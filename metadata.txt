@@ -1,0 +1,39 @@
+# This file contains metadata for your plugin. Since 
+# version 2.0 of QGIS this is the proper way to supply 
+# information about a plugin. The old method of 
+# embedding metadata in __init__.py will 
+# is no longer supported since version 2.0.
+
+# This file should be included when you package your plugin.# Mandatory items:
+
+[general]
+name=ImportPhotos
+qgisMinimumVersion=2.0
+description=Import Photos
+version=0.1
+author=Marios Kyriakou, George Christou - KIOS Research and Innovation Center of Excellence
+email=mariosmsk@gmail.com, george.a.christou@gmail.com
+
+about= This tool can be used to import Geo-Tagged photos (jpg or jpeg) as points to QGIS. The user is able to select a folder with photos and only the geo-tagged photos will be taken. Then a point shapefile will be created which will contain the name of the picture, its directory, the date and time taken, the altitude and longitude and latitude. It was two buttons, the one is to import geotagged photos, and the other is to be able to click on the point and display the photo along with information regarding the data time and altitude. The plug-in doesn’t need any third party applications to work.
+
+tracker=https://github.com/KIOS-Research/ImportPhotos/issues/
+repository=https://github.com/KIOS-Research/ImportPhotos/
+# End of mandatory metadata
+
+# Recommended items:
+
+# Uncomment the following line and add your changelog:
+# changelog=
+
+# Tags are comma separated with spaces allowed
+tags=photos, jpeg, jpg, geotag
+
+homepage=https://github.com/KIOS-Research/ImportPhotos/
+category=Plugins
+icon=icon.png
+# experimental flag
+experimental=False
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+

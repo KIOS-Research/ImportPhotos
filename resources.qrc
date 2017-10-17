@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/plugins/ImportPhotos" >
+        <file>svg/ImportImage.svg</file>
+        <file>svg/SelectImage.svg</file>
+    </qresource>
+</RCC>
