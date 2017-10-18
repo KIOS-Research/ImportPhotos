@@ -63,11 +63,12 @@ class MouseClick(QgsMapTool):
             layers = self.canvas.layers()
             p = self.toMapCoordinates(event.pos())
             w = self.canvas.mapUnitsPerPixel() * 10
-            rect = QgsRectangle(p.x() - w, p.y() - w, p.x() + w, p.y() + w)
+            try: rect = QgsRectangle(p.x() - w, p.y() - w, p.x() + w, p.y() + w)
+            except: return
             layersSelected = []
             for layer in layers:
                 #try:
-                if layer.name() == self.drawSelf.layernamePhotos:
+                if (layer.name() in self.drawSelf.layernamePhotos)==True:
                     lRect = self.canvas.mapSettings().mapToLayerCoordinates(layer, rect)
                     layer.select(lRect, False)
                     selected_features = layer.selectedFeatures()
@@ -113,7 +114,8 @@ class MouseClick(QgsMapTool):
                         self.drawSelf.photosDLG.exec_()
                         return
 
-        layer.removeSelection()
+        try:layer.removeSelection()
+        except: pass
 
     def deactivate(self):
         self.drawSelf.clickPhotos.setChecked(False)

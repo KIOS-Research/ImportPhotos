@@ -20,14 +20,16 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QVariant
+from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QVariant, Qt
 from PyQt4.QtGui import QAction, QIcon, QMessageBox, QWidget, QFileDialog
 from qgis.core import QgsMapLayerRegistry, QgsVectorLayer, QgsField, QgsVectorFileWriter, QgsFeature, QgsPoint, QgsGeometry, QgsSvgMarkerSymbolLayerV2
+from qgis.gui import QgsEncodingFileDialog
 
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
 from ImportPhotos_dialog import ImportPhotosDialog
+
 from MouseClick import MouseClick
 from Photos_dialog import PhotosDialog
 import os.path
@@ -36,6 +38,7 @@ from PIL.ExifTags import TAGS
 import uuid
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 class ImportPhotos:
     """QGIS Plugin Implementation."""
 
@@ -141,6 +144,13 @@ class ImportPhotos:
 
         # Create the dialog (after translation) and keep reference
         self.dlg = ImportPhotosDialog()
+        self.dlg.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+
+        self.dlg.ok.clicked.connect(self.ok)
+        self.dlg.cancel.clicked.connect(self.cancel)
+        self.dlg.toolButtonImport.clicked.connect(self.toolButtonImport)
+        self.dlg.toolButtonOut.clicked.connect(self.toolButtonOut)
+        self.settings = QSettings()
 
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
@@ -184,8 +194,9 @@ class ImportPhotos:
         self.clickPhotos.setCheckable(True)
         self.clickPhotos.setEnabled(False)
         self.photosDLG = PhotosDialog()
+        self.clickPhotos.setChecked(True)
 
-        self.layernamePhotos = "Import Photos"
+        self.layernamePhotos = []
         self.listPhotos = []
         self.dirname = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
         self.toolMouseClick = MouseClick(self.iface.mapCanvas(), self)
@@ -205,69 +216,118 @@ class ImportPhotos:
         del self.toolbar
 
     def run(self):
-        self.folderPathPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
+        self.clickPhotos.setEnabled(True)
+        self.dlg.out.setText('')
+        self.dlg.imp.setText('')
+        self.dlg.progressBar.setValue(0)
+        self.dlg.show()
+
+    def cancel(self):
+        self.dlg.close()
+
+    def toolButtonOut(self):
+
+        self.outDirectoryPhotosShapefile = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(os.path.join(os.environ['USERPROFILE']),
+                                                                   'Desktop'), 'ESRI Shapefiles (*.shp *.SHP)')
+        self.dlg.out.setText(self.outDirectoryPhotosShapefile)
+
+    def toolButtonImport(self):
+        self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
                                                       os.path.join(os.path.join(os.environ['USERPROFILE']),
                                                                    'Desktop'), QFileDialog.ShowDirsOnly)
-        if self.folderPathPhotos == "":
+        if self.directoryPhotos == "":
+            return
+        self.dlg.imp.setText(self.directoryPhotos)
+
+    def ok(self):
+        if self.dlg.imp.text()=='':
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setWindowTitle('Warning')
+            msgBox.setText('Please select a directory photos.')
+            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+            msgBox.exec_()
+            return
+        if self.dlg.out.text()=='':
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setWindowTitle('Warning')
+            msgBox.setText('Please write ouptut shapefile.')
+            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+            msgBox.exec_()
             return
 
-        listPhotosTmp = self.getPhotoProperties()
-        #print listPhotosTmp
-        if self.NewPhotos == True:
-            self.clickPhotos.setEnabled(True)
-            self.clickPhotos.setChecked(True)
-            self.iface.mapCanvas().setMapTool(self.toolMouseClick)
-
-            fields = ["ID", "Name", "Date", "Time", "Altitude", "Lon", "Lat", "Path"]
-            fieldsCode=[0,0,0,0,2,2,2,0]
-            if len(QgsMapLayerRegistry.instance().mapLayersByName(self.layernamePhotos)) == 0:
-                self.layerPhotos = self.makeLayers(self.layernamePhotos, fields, fieldsCode, "Point")
-                #self.iface.legendInterface().moveLayer(self.layerPhotos, self.missionLayers)
-                try: self.layerPhotos.loadNamedStyle(self.plugin_path + "/svg/photos.qml")
-                except: pass
-                svgStyle = {}
-                svgStyle['fill'] = '#0000ff'
-                svgStyle['name'] = self.plugin_path + "/svg/Camera.svg"
-                svgStyle['outline'] = '#0000000'
-                svgStyle['outline-width'] = '6.8'
-                svgStyle['size'] = '6'
-                symLyr1 = QgsSvgMarkerSymbolLayerV2.create(svgStyle)
-                self.layerPhotos.rendererV2().symbols()[0].changeSymbolLayer(0, symLyr1)
-                QgsMapLayerRegistry.instance().addMapLayer(self.layerPhotos)
-                self.layerPhotos.triggerRepaint()
-                qgisTView = self.iface.layerTreeView()
-                actions = qgisTView.defaultActions()
-                actions.showFeatureCount()
-                actions.showFeatureCount()
-            else:
-                for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
-                    if lyr.name() == self.layernamePhotos:
-                        self.layerPhotos = lyr
-                        break
+        extens = ['jpg', 'jpeg', 'JPG', 'JPEG']
+        photos = []
+        for root, dirs, files in os.walk(self.directoryPhotos):
+            photos.extend(os.path.join(root, name) for name in files
+                          if name.lower().endswith(tuple(extens)))
+        #if len(photos) == 0: #MESSAGE EDWWWWW
+        #    self.importError.emit(self.tr('No images found in directory.'))
+        #    return
+        self.total = 100.0 / len(photos)
 
 
-            for x in listPhotosTmp:
-                date = x[0]
-                time = x[1]
-                lat = x[2]
-                lon = x[3]
-                altidude = x[4]
-                fullpath = x[5]
-                name = x[6]
-                uuid_ = x[7]
+        listPhotosTmp = self.getPhotoProperties(extens)
+        self.iface.mapCanvas().setMapTool(self.toolMouseClick)
 
-                # add the first point
-                feature = QgsFeature()
-                point1 = QgsPoint(lon, lat)
-                # ADD ATTRIBUTE COLUMN
-                self.layerPhotos.startEditing()
-                feature.setGeometry(QgsGeometry.fromPoint(point1))
-                #print uuid_, name, date, time, altidude, lon, lat, fullpath
-                feature.setAttributes([uuid_, name, date, time, altidude, lon, lat, fullpath])
-                self.layerPhotos.dataProvider().addFeatures([feature])
-            self.layerPhotos.updateFields()
-            self.layerPhotos.commitChanges()
-            self.layerPhotos.reload()
+        fields = ["ID", "Name", "Date", "Time", "Altitude", "Lon", "Lat", "Path"]
+        fieldsCode=[0,0,0,0,2,2,2,0]
+
+        self.outDirectoryPhotosShapefile=self.dlg.out.text()
+        basename = os.path.basename(self.outDirectoryPhotosShapefile)
+        lphoto = basename[:-4]
+        self.layernamePhotos.append(lphoto)
+
+        #if len(QgsMapLayerRegistry.instance().mapLayersByName(self.layernamePhotos)) == 0:
+        self.layerPhotos = self.makeLayers(lphoto, fields, fieldsCode, "Point")
+        try:self.layerPhotos.setLayerName(lphoto)
+        except: return #message here
+
+        #self.iface.legendInterface().moveLayer(self.layerPhotos, self.missionLayers)
+        try: self.layerPhotos.loadNamedStyle(self.plugin_path + "/svg/photos.qml")
+        except: pass
+        svgStyle = {}
+        svgStyle['fill'] = '#0000ff'
+        svgStyle['name'] = self.plugin_path + "/svg/Camera.svg"
+        svgStyle['outline'] = '#0000000'
+        svgStyle['outline-width'] = '6.8'
+        svgStyle['size'] = '6'
+        symLyr1 = QgsSvgMarkerSymbolLayerV2.create(svgStyle)
+        self.layerPhotos.rendererV2().symbols()[0].changeSymbolLayer(0, symLyr1)
+        QgsMapLayerRegistry.instance().addMapLayer(self.layerPhotos)
+        self.layerPhotos.triggerRepaint()
+        self.layerPhotos.setReadOnly(False)
+        qgisTView = self.iface.layerTreeView()
+        actions = qgisTView.defaultActions()
+        actions.showFeatureCount()
+        actions.showFeatureCount()
+
+        for x in listPhotosTmp:
+            date = x[0]
+            time = x[1]
+            lat = x[2]
+            lon = x[3]
+            altidude = x[4]
+            fullpath = x[5]
+            name = x[6]
+            uuid_ = x[7]
+
+            # add the first point
+            feature = QgsFeature()
+            point1 = QgsPoint(lon, lat)
+            # ADD ATTRIBUTE COLUMN
+            self.layerPhotos.startEditing()
+            feature.setGeometry(QgsGeometry.fromPoint(point1))
+            #print uuid_, name, date, time, altidude, lon, lat, fullpath
+            feature.setAttributes([uuid_, name, date, time, altidude, lon, lat, fullpath])
+            self.layerPhotos.dataProvider().addFeatures([feature])
+        self.layerPhotos.updateFields()
+        self.layerPhotos.commitChanges()
+        self.layerPhotos.reload()
+
+        #self.dlg.close()
+        self.dlg.progressBar.setValue(0)
 
     def get_exif(self, imagepath):
         ret = {}
@@ -287,10 +347,9 @@ class ImportPhotos:
                 layer.removeSelection()
         mc.refresh()
 
-    def getPhotoProperties(self):
-        extens = ['jpg', 'jpeg', 'JPG', 'JPEG']
-        listPhotosTmp = []
-        for (dirpath, dirnames, filenames) in os.walk(self.folderPathPhotos):
+    def getPhotoProperties(self, extens):
+        listPhotosTmp = []; count=0
+        for (dirpath, dirnames, filenames) in os.walk(self.directoryPhotos):
             for filename in filenames:
                 ext = filename.lower().rsplit('.', 1)[-1]
                 if ext in extens:
@@ -313,6 +372,8 @@ class ImportPhotos:
                                 if lonref == 'W':
                                     lon = -lon
                                 uuid_ = str(uuid.uuid4())
+                                self.dlg.progressBar.setValue(int(count * self.total))
+                                count = count+1
                                 try: dt1, dt2 = a['DateTime'].split()
                                 except: dt1, dt2 = a['DateTimeOriginal'].split()
                                 date = dt1.replace(':','/')
@@ -345,12 +406,13 @@ class ImportPhotos:
                 self.NewPhotos = True
             return listPhotosTmp
         except: pass
+        self.dlg.progressBar.setValue(100)
 
     def makeLayers(self,layername,fields,fieldsCode,type):
         pos = QgsVectorLayer(type, layername, "memory")
         pr = pos.dataProvider()
         shapename = layername + ".shp"
-        dest = self.plugin_path+'\\results\\'+shapename
+        dest = self.outDirectoryPhotosShapefile
         for i in range(len(fieldsCode)):
             if fieldsCode[i]==0:
                 pr.addAttributes( [ QgsField(fields[i], QVariant.String) ] )
