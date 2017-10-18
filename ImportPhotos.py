@@ -143,14 +143,6 @@ class ImportPhotos:
         """
 
         # Create the dialog (after translation) and keep reference
-        self.dlg = ImportPhotosDialog()
-        self.dlg.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-
-        self.dlg.ok.clicked.connect(self.ok)
-        self.dlg.cancel.clicked.connect(self.cancel)
-        self.dlg.toolButtonImport.clicked.connect(self.toolButtonImport)
-        self.dlg.toolButtonOut.clicked.connect(self.toolButtonOut)
-        self.settings = QSettings()
 
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
@@ -191,6 +183,14 @@ class ImportPhotos:
             text=self.tr(u'Click Photos'),
             callback=self.mouseClick,
             parent=self.iface.mainWindow())
+        self.dlg = ImportPhotosDialog()
+        self.dlg.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+
+        self.dlg.ok.clicked.connect(self.ok)
+        self.dlg.closebutton.clicked.connect(self.close)
+        self.dlg.toolButtonImport.clicked.connect(self.toolButtonImport)
+        self.dlg.toolButtonOut.clicked.connect(self.toolButtonOut)
+
         self.clickPhotos.setCheckable(True)
         self.clickPhotos.setEnabled(False)
         self.photosDLG = PhotosDialog()
@@ -222,7 +222,7 @@ class ImportPhotos:
         self.dlg.progressBar.setValue(0)
         self.dlg.show()
 
-    def cancel(self):
+    def close(self):
         self.dlg.close()
 
     def toolButtonOut(self):
@@ -257,6 +257,10 @@ class ImportPhotos:
             msgBox.exec_()
             return
 
+        self.dlg.ok.setEnabled(False)
+        self.dlg.closebutton.setEnabled(False)
+        self.dlg.toolButtonImport.setEnabled(False)
+        self.dlg.toolButtonOut.setEnabled(False)
         extens = ['jpg', 'jpeg', 'JPG', 'JPEG']
         photos = []
         for root, dirs, files in os.walk(self.directoryPhotos):
@@ -268,7 +272,6 @@ class ImportPhotos:
         self.total = 100.0 / len(photos)
 
 
-        listPhotosTmp = self.getPhotoProperties(extens)
         self.iface.mapCanvas().setMapTool(self.toolMouseClick)
 
         fields = ["ID", "Name", "Date", "Time", "Altitude", "Lon", "Lat", "Path"]
@@ -281,8 +284,14 @@ class ImportPhotos:
 
         #if len(QgsMapLayerRegistry.instance().mapLayersByName(self.layernamePhotos)) == 0:
         self.layerPhotos = self.makeLayers(lphoto, fields, fieldsCode, "Point")
-        try:self.layerPhotos.setLayerName(lphoto)
-        except: return #message here
+        try:
+            self.layerPhotos.setLayerName(lphoto)
+        except:
+            self.dlg.ok.setEnabled(True)
+            self.dlg.closebutton.setEnabled(True)
+            self.dlg.toolButtonImport.setEnabled(True)
+            self.dlg.toolButtonOut.setEnabled(True)
+            return #message here
 
         #self.iface.legendInterface().moveLayer(self.layerPhotos, self.missionLayers)
         try: self.layerPhotos.loadNamedStyle(self.plugin_path + "/svg/photos.qml")
@@ -303,31 +312,23 @@ class ImportPhotos:
         actions.showFeatureCount()
         actions.showFeatureCount()
 
-        for x in listPhotosTmp:
-            date = x[0]
-            time = x[1]
-            lat = x[2]
-            lon = x[3]
-            altidude = x[4]
-            fullpath = x[5]
-            name = x[6]
-            uuid_ = x[7]
+        self.getPhotoProperties(extens)
 
-            # add the first point
-            feature = QgsFeature()
-            point1 = QgsPoint(lon, lat)
-            # ADD ATTRIBUTE COLUMN
-            self.layerPhotos.startEditing()
-            feature.setGeometry(QgsGeometry.fromPoint(point1))
-            #print uuid_, name, date, time, altidude, lon, lat, fullpath
-            feature.setAttributes([uuid_, name, date, time, altidude, lon, lat, fullpath])
-            self.layerPhotos.dataProvider().addFeatures([feature])
         self.layerPhotos.updateFields()
         self.layerPhotos.commitChanges()
         self.layerPhotos.reload()
-
-        #self.dlg.close()
         self.dlg.progressBar.setValue(0)
+
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setWindowTitle('ImportPhotos')
+        msgBox.setText('Import sucessfull.')
+        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+        msgBox.exec_()
+        self.dlg.ok.setEnabled(True)
+        self.dlg.closebutton.setEnabled(True)
+        self.dlg.toolButtonImport.setEnabled(True)
+        self.dlg.toolButtonOut.setEnabled(True)
 
     def get_exif(self, imagepath):
         ret = {}
@@ -380,32 +381,17 @@ class ImportPhotos:
                                 time = dt2
                                 mAltitude = float(a['GPSInfo'][6][0])
                                 mAltitudeDec = float(a['GPSInfo'][6][1])
-                                listPhotosTmp.append([date, time, lat, lon, mAltitude / mAltitudeDec, fullpath,
-                                             name, uuid_])
+                                altidude = mAltitude / mAltitudeDec
+
+                                feature = QgsFeature()
+                                point1 = QgsPoint(lon, lat)
+                                # ADD ATTRIBUTE COLUMN
+                                self.layerPhotos.startEditing()
+                                feature.setGeometry(QgsGeometry.fromPoint(point1))
+                                # print uuid_, name, date, time, altidude, lon, lat, fullpath
+                                feature.setAttributes([uuid_, name, date, time, altidude, lon, lat, fullpath])
+                                self.layerPhotos.dataProvider().addFeatures([feature])
                     except: pass
-        try:
-            #check if exists from before...pictures.
-            listPhotosTmp2 = self.listPhotos[:]
-            listPhotosTmp3 = []
-            self.NewPhotos = False
-            if listPhotosTmp2!=[]:
-                for tmp in listPhotosTmp:
-                    notImportAgain = []
-                    for x in listPhotosTmp2:
-                        if tmp[5] not in x and tmp[6] not in x:
-                            notImportAgain.append(1)
-                        else:
-                            notImportAgain.append(0)
-                    if sum(notImportAgain)==len(notImportAgain):
-                        self.NewPhotos = True
-                        self.listPhotos.append(tmp)
-                        listPhotosTmp3.append(tmp)
-                        listPhotosTmp = listPhotosTmp3[:]
-            else:
-                self.listPhotos = listPhotosTmp[:]
-                self.NewPhotos = True
-            return listPhotosTmp
-        except: pass
         self.dlg.progressBar.setValue(100)
 
     def makeLayers(self,layername,fields,fieldsCode,type):

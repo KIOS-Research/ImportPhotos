@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'impphotos.ui'
 #
-# Created: Wed Oct 18 15:45:42 2017
+# Created: Wed Oct 18 16:58:14 2017
 #      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -55,9 +55,9 @@ class Ui_photosImp(object):
         self.ok = QtGui.QPushButton(photosImp)
         self.ok.setGeometry(QtCore.QRect(10, 130, 75, 23))
         self.ok.setObjectName(_fromUtf8("ok"))
-        self.cancel = QtGui.QPushButton(photosImp)
-        self.cancel.setGeometry(QtCore.QRect(290, 130, 75, 23))
-        self.cancel.setObjectName(_fromUtf8("cancel"))
+        self.closebutton = QtGui.QPushButton(photosImp)
+        self.closebutton.setGeometry(QtCore.QRect(290, 130, 75, 23))
+        self.closebutton.setObjectName(_fromUtf8("closebutton"))
 
         self.retranslateUi(photosImp)
         QtCore.QMetaObject.connectSlotsByName(photosImp)
@@ -69,5 +69,5 @@ class Ui_photosImp(object):
         self.toolButtonImport.setText(_translate("photosImp", "Browse...", None))
         self.toolButtonOut.setText(_translate("photosImp", "Browse...", None))
         self.ok.setText(_translate("photosImp", "OK", None))
-        self.cancel.setText(_translate("photosImp", "Cancel", None))
+        self.closebutton.setText(_translate("photosImp", "Close", None))
 
