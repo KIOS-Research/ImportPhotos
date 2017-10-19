@@ -266,23 +266,24 @@ class ImportPhotos:
         for root, dirs, files in os.walk(self.directoryPhotos):
             photos.extend(os.path.join(root, name) for name in files
                           if name.lower().endswith(tuple(extens)))
-        #if len(photos) == 0: #MESSAGE EDWWWWW
-        #    self.importError.emit(self.tr('No images found in directory.'))
+
+        if len(photos) == 0:
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setWindowTitle('Warning')
+            msgBox.setText('No images.')
+            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+            msgBox.exec_()
+            return
         #    return
         self.total = 100.0 / len(photos)
-
-
         self.iface.mapCanvas().setMapTool(self.toolMouseClick)
-
-        fields = ["ID", "Name", "Date", "Time", "Altitude", "Lon", "Lat", "Path"]
-        fieldsCode=[0,0,0,0,2,2,2,0]
-
+        fields = ["ID", "Name", "Date", "Time", "Altitude", "Lon", "Lat", "North", "Azimuth", "Path"]
+        fieldsCode=[0,0,0,0,2,2,2,0,0,0]
         self.outDirectoryPhotosShapefile=self.dlg.out.text()
         basename = os.path.basename(self.outDirectoryPhotosShapefile)
         lphoto = basename[:-4]
         self.layernamePhotos.append(lphoto)
-
-        #if len(QgsMapLayerRegistry.instance().mapLayersByName(self.layernamePhotos)) == 0:
         self.layerPhotos = self.makeLayers(lphoto, fields, fieldsCode, "Point")
         try:
             self.layerPhotos.setLayerName(lphoto)
@@ -293,7 +294,6 @@ class ImportPhotos:
             self.dlg.toolButtonOut.setEnabled(True)
             return #message here
 
-        #self.iface.legendInterface().moveLayer(self.layerPhotos, self.missionLayers)
         try: self.layerPhotos.loadNamedStyle(self.plugin_path + "/svg/photos.qml")
         except: pass
         svgStyle = {}
@@ -311,12 +311,53 @@ class ImportPhotos:
         actions = qgisTView.defaultActions()
         actions.showFeatureCount()
         actions.showFeatureCount()
+        # getPhotoProperties(extens, photos)
+        for count, imgpath in enumerate(photos):
+            print ''
+            self.dlg.progressBar.setValue(int(count * self.total))
+            a = self.get_exif(imgpath)
+            #try:
+            if 'GPSInfo' in a:
+                if a is not None and a['GPSInfo'] != {}:
+                    lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
+                    latref = a['GPSInfo'][1]
+                    lon = [float(x) / float(y) for x, y in a['GPSInfo'][4]]
+                    lonref = a['GPSInfo'][3]
 
-        self.getPhotoProperties(extens)
+                    lat = lat[0] + lat[1] / 60 + lat[2] / 3600
+                    lon = lon[0] + lon[1] / 60 + lon[2] / 3600
 
-        self.layerPhotos.updateFields()
+                    if latref == 'S':
+                        lat = -lat
+                    if lonref == 'W':
+                        lon = -lon
+                    name = os.path.basename(imgpath)
+                    uuid_ = str(uuid.uuid4())
+                    try: dt1, dt2 = a['DateTime'].split()
+                    except: dt1, dt2 = a['DateTimeOriginal'].split()
+                    date = dt1.replace(':','/')
+                    time = dt2
+                    mAltitude = float(a['GPSInfo'][6][0])
+                    mAltitudeDec = float(a['GPSInfo'][6][1])
+                    altidude = mAltitude / mAltitudeDec
+                    try:
+                        north = str(a['GPSInfo'][16])
+                        azimuth = str(a['GPSInfo'][17][0])
+                    except:
+                        north = ''
+                        azimuth = ''
+
+                    feature = QgsFeature()
+                    point1 = QgsPoint(lon, lat)
+                    # ADD ATTRIBUTE COLUMN
+                    self.layerPhotos.startEditing()
+                    feature.setGeometry(QgsGeometry.fromPoint(point1))
+                    feature.setAttributes([uuid_, name, date, time, altidude, lon, lat, north, azimuth, imgpath])
+                    self.layerPhotos.dataProvider().addFeatures([feature])
+            #except: pass
+        self.dlg.progressBar.setValue(100)
+        #####################################
         self.layerPhotos.commitChanges()
-        self.layerPhotos.reload()
         self.dlg.progressBar.setValue(0)
 
         msgBox = QMessageBox()
@@ -337,6 +378,7 @@ class ImportPhotos:
             if info is not None:
                 for tag, value in info.items():
                     ret[TAGS.get(tag, tag)] = value
+                del tag
                 return ret
         except:
             return None
@@ -347,52 +389,6 @@ class ImportPhotos:
             if layer.type() == layer.VectorLayer:
                 layer.removeSelection()
         mc.refresh()
-
-    def getPhotoProperties(self, extens):
-        listPhotosTmp = []; count=0
-        for (dirpath, dirnames, filenames) in os.walk(self.directoryPhotos):
-            for filename in filenames:
-                ext = filename.lower().rsplit('.', 1)[-1]
-                if ext in extens:
-                    fullpath = os.path.join(dirpath, filename)
-                    name = os.path.basename(fullpath)
-                    a = self.get_exif(dirpath + '\\' + name)
-                    try:
-                        if 'GPSInfo' in a:
-                            if a is not None and a['GPSInfo'] != {}:
-                                lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
-                                latref = a['GPSInfo'][1]
-                                lon = [float(x) / float(y) for x, y in a['GPSInfo'][4]]
-                                lonref = a['GPSInfo'][3]
-
-                                lat = lat[0] + lat[1] / 60 + lat[2] / 3600
-                                lon = lon[0] + lon[1] / 60 + lon[2] / 3600
-
-                                if latref == 'S':
-                                    lat = -lat
-                                if lonref == 'W':
-                                    lon = -lon
-                                uuid_ = str(uuid.uuid4())
-                                self.dlg.progressBar.setValue(int(count * self.total))
-                                count = count+1
-                                try: dt1, dt2 = a['DateTime'].split()
-                                except: dt1, dt2 = a['DateTimeOriginal'].split()
-                                date = dt1.replace(':','/')
-                                time = dt2
-                                mAltitude = float(a['GPSInfo'][6][0])
-                                mAltitudeDec = float(a['GPSInfo'][6][1])
-                                altidude = mAltitude / mAltitudeDec
-
-                                feature = QgsFeature()
-                                point1 = QgsPoint(lon, lat)
-                                # ADD ATTRIBUTE COLUMN
-                                self.layerPhotos.startEditing()
-                                feature.setGeometry(QgsGeometry.fromPoint(point1))
-                                # print uuid_, name, date, time, altidude, lon, lat, fullpath
-                                feature.setAttributes([uuid_, name, date, time, altidude, lon, lat, fullpath])
-                                self.layerPhotos.dataProvider().addFeatures([feature])
-                    except: pass
-        self.dlg.progressBar.setValue(100)
 
     def makeLayers(self,layername,fields,fieldsCode,type):
         pos = QgsVectorLayer(type, layername, "memory")
