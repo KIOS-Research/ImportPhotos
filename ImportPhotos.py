@@ -278,7 +278,7 @@ class ImportPhotos:
         self.total = 100.0 / len(photos)
         self.iface.mapCanvas().setMapTool(self.toolMouseClick)
         fields = ["ID", "Name", "Date", "Time", "Altitude", "Lon", "Lat", "North", "Azimuth", "Path"]
-        fieldsCode=[0,0,0,0,2,2,2,0,0,0]
+        fieldsCode=[0,0,0,0,0,0,0,0,0,0]
         self.outDirectoryPhotosShapefile=self.dlg.out.text()
         basename = os.path.basename(self.outDirectoryPhotosShapefile)
         lphoto = basename[:-4]
@@ -315,34 +315,49 @@ class ImportPhotos:
             print ''
             self.dlg.progressBar.setValue(int(count * self.total))
             a = self.get_exif(imgpath)
-            #try:
             if 'GPSInfo' in a:
                 if a is not None and a['GPSInfo'] != {}:
-                    lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
-                    latref = a['GPSInfo'][1]
-                    lon = [float(x) / float(y) for x, y in a['GPSInfo'][4]]
-                    lonref = a['GPSInfo'][3]
+                    if 1 and 2 and 3 and 4 in a['GPSInfo']:
+                        lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
+                        latref = a['GPSInfo'][1]
+                        lon = [float(x) / float(y) for x, y in a['GPSInfo'][4]]
+                        lonref = a['GPSInfo'][3]
 
-                    lat = lat[0] + lat[1] / 60 + lat[2] / 3600
-                    lon = lon[0] + lon[1] / 60 + lon[2] / 3600
+                        lat = lat[0] + lat[1] / 60 + lat[2] / 3600
+                        lon = lon[0] + lon[1] / 60 + lon[2] / 3600
 
-                    if latref == 'S':
-                        lat = -lat
-                    if lonref == 'W':
-                        lon = -lon
+                        if latref == 'S':
+                            lat = -lat
+                        if lonref == 'W':
+                            lon = -lon
+                        lat = str(lat)
+                        lon = str(lon)
+                    else:
+                        continue
                     name = os.path.basename(imgpath)
                     uuid_ = str(uuid.uuid4())
-                    try: dt1, dt2 = a['DateTime'].split()
-                    except: dt1, dt2 = a['DateTimeOriginal'].split()
-                    date = dt1.replace(':','/')
-                    time = dt2
-                    mAltitude = float(a['GPSInfo'][6][0])
-                    mAltitudeDec = float(a['GPSInfo'][6][1])
-                    altidude = mAltitude / mAltitudeDec
-                    try:
+                    if 'DateTime' or 'DateTimeOriginal' in a:
+                        if 'DateTime' in a:
+                            dt1, dt2 = a['DateTime'].split()
+                        elif 'DateTimeOriginal' in a:
+                            dt1, dt2 = a['DateTimeOriginal'].split()
+                        date = dt1.replace(':','/')
+                        time = dt2
+                    else:
+                        date=''
+                        time=''
+                    if 6 in a['GPSInfo']:
+                        if len(a['GPSInfo'][6])>1:
+                            mAltitude = float(a['GPSInfo'][6][0])
+                            mAltitudeDec = float(a['GPSInfo'][6][1])
+                            altidude = str(mAltitude / mAltitudeDec)
+                    else:
+                        altidude = ''
+
+                    if 16 and 17 in a['GPSInfo']:
                         north = str(a['GPSInfo'][16])
                         azimuth = str(a['GPSInfo'][17][0])
-                    except:
+                    else:
                         north = ''
                         azimuth = ''
 
@@ -353,7 +368,6 @@ class ImportPhotos:
                     feature.setGeometry(QgsGeometry.fromPoint(point1))
                     feature.setAttributes([uuid_, name, date, time, altidude, lon, lat, north, azimuth, imgpath])
                     self.layerPhotos.dataProvider().addFeatures([feature])
-            #except: pass
         self.dlg.progressBar.setValue(100)
         #####################################
         self.layerPhotos.commitChanges()
@@ -395,12 +409,12 @@ class ImportPhotos:
         shapename = layername + ".shp"
         dest = self.outDirectoryPhotosShapefile
         for i in range(len(fieldsCode)):
-            if fieldsCode[i]==0:
-                pr.addAttributes( [ QgsField(fields[i], QVariant.String) ] )
-            elif fieldsCode[i]==1:
-                pr.addAttributes( [ QgsField(fields[i], QVariant.Int) ] )
-            elif fieldsCode[i]==2:
-                pr.addAttributes( [ QgsField(fields[i], QVariant.Double) ] )
+            #if fieldsCode[i]==0:
+            pr.addAttributes( [ QgsField(fields[i], QVariant.String) ] )
+            #elif fieldsCode[i]==1:
+            #    pr.addAttributes( [ QgsField(fields[i], QVariant.Int) ] )
+            #elif fieldsCode[i]==2:
+            #    pr.addAttributes( [ QgsField(fields[i], QVariant.Double) ] )
         pos.startEditing()
         QgsVectorFileWriter.writeAsVectorFormat(pos,dest,"utf-8",None,"ESRI Shapefile")
         self.iface.messageBar().clearWidgets()
