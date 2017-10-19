@@ -23,7 +23,6 @@
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QVariant, Qt
 from PyQt4.QtGui import QAction, QIcon, QMessageBox, QWidget, QFileDialog
 from qgis.core import QgsMapLayerRegistry, QgsVectorLayer, QgsField, QgsVectorFileWriter, QgsFeature, QgsPoint, QgsGeometry, QgsSvgMarkerSymbolLayerV2
-from qgis.gui import QgsEncodingFileDialog
 
 # Initialize Qt resources from file resources.py
 import resources
