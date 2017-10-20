@@ -22,7 +22,7 @@
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QVariant, Qt
 from PyQt4.QtGui import QAction, QIcon, QMessageBox, QWidget, QFileDialog
-from qgis.core import QgsMapLayerRegistry, QgsVectorLayer, QgsField, QgsVectorFileWriter, QgsFeature, QgsPoint, QgsGeometry, QgsSvgMarkerSymbolLayerV2
+from qgis.core import QGis, QgsMapLayerRegistry, QgsVectorLayer, QgsField, QgsVectorFileWriter, QgsFeature, QgsPoint, QgsGeometry, QgsSvgMarkerSymbolLayerV2, QgsCoordinateReferenceSystem, QgsFields
 
 # Initialize Qt resources from file resources.py
 import resources
@@ -277,24 +277,27 @@ class ImportPhotos:
         #    return
         self.total = 100.0 / len(photos)
         self.iface.mapCanvas().setMapTool(self.toolMouseClick)
-        fields = ["ID", "Name", "Date", "Time", "Altitude", "Lon", "Lat", "North", "Azimuth", "Path"]
-        fieldsCode=[0,0,0,0,0,0,0,0,0,0]
         self.outDirectoryPhotosShapefile=self.dlg.out.text()
         basename = os.path.basename(self.outDirectoryPhotosShapefile)
         lphoto = basename[:-4]
         self.layernamePhotos.append(lphoto)
-        self.layerPhotos = self.makeLayers(lphoto, fields, fieldsCode, "Point")
-        try:
-            self.layerPhotos.setLayerName(lphoto)
-        except:
-            self.dlg.ok.setEnabled(True)
-            self.dlg.closebutton.setEnabled(True)
-            self.dlg.toolButtonImport.setEnabled(True)
-            self.dlg.toolButtonOut.setEnabled(True)
-            return #message here
 
-        try: self.layerPhotos.loadNamedStyle(self.plugin_path + "/svg/photos.qml")
-        except: pass
+        #makeLayer
+        fields = QgsFields()
+        fields.append( QgsField("ID", QVariant.String, '', 254))
+        fields.append( QgsField("Name", QVariant.String, '', 254))
+        fields.append( QgsField("Date", QVariant.String, '', 254))
+        fields.append( QgsField("Time", QVariant.String, '', 254))
+        fields.append( QgsField("Altitude", QVariant.String, '', 254))
+        fields.append( QgsField("Lon", QVariant.String, '', 254))
+        fields.append( QgsField("Lat", QVariant.String, '', 254))
+        fields.append( QgsField("North", QVariant.String, '', 254))
+        fields.append( QgsField("Azimuth", QVariant.String, '', 254))
+        fields.append( QgsField("Path", QVariant.String, '', 254))
+        w = QgsVectorFileWriter(self.outDirectoryPhotosShapefile, "UTF-8", fields, QGis.WKBPoint, QgsCoordinateReferenceSystem(4326))
+        del w
+        self.layerPhotos = QgsVectorLayer(self.outDirectoryPhotosShapefile, lphoto, 'ogr')
+
         svgStyle = {}
         svgStyle['fill'] = '#0000ff'
         svgStyle['name'] = self.plugin_path + "/svg/Camera.svg"
@@ -309,10 +312,12 @@ class ImportPhotos:
         qgisTView = self.iface.layerTreeView()
         actions = qgisTView.defaultActions()
         actions.showFeatureCount()
-        actions.showFeatureCount()
+        self.layerPhotos.loadNamedStyle(self.plugin_path + "/svg/photos.qml")
+        self.layerPhotos.startEditing()
+
         # getPhotoProperties(extens, photos)
+        feature = QgsFeature()
         for count, imgpath in enumerate(photos):
-            print ''
             self.dlg.progressBar.setValue(int(count * self.total))
             a = self.get_exif(imgpath)
             if 'GPSInfo' in a:
@@ -330,8 +335,6 @@ class ImportPhotos:
                             lat = -lat
                         if lonref == 'W':
                             lon = -lon
-                        lat = str(lat)
-                        lon = str(lon)
                     else:
                         continue
                     name = os.path.basename(imgpath)
@@ -360,18 +363,14 @@ class ImportPhotos:
                     else:
                         north = ''
                         azimuth = ''
-
-                    feature = QgsFeature()
-                    point1 = QgsPoint(lon, lat)
                     # ADD ATTRIBUTE COLUMN
-                    self.layerPhotos.startEditing()
-                    feature.setGeometry(QgsGeometry.fromPoint(point1))
-                    feature.setAttributes([uuid_, name, date, time, altidude, lon, lat, north, azimuth, imgpath])
+                    feature.setGeometry(QgsGeometry.fromPoint(QgsPoint(lon, lat)))
+                    feature.setAttributes([uuid_, name, date, time, altidude, str(lon), str(lat), north, azimuth, imgpath])
                     self.layerPhotos.dataProvider().addFeatures([feature])
         self.dlg.progressBar.setValue(100)
-        #####################################
         self.layerPhotos.commitChanges()
         self.dlg.progressBar.setValue(0)
+        ###########################################
 
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Warning)
@@ -402,23 +401,3 @@ class ImportPhotos:
             if layer.type() == layer.VectorLayer:
                 layer.removeSelection()
         mc.refresh()
-
-    def makeLayers(self,layername,fields,fieldsCode,type):
-        pos = QgsVectorLayer(type, layername, "memory")
-        pr = pos.dataProvider()
-        shapename = layername + ".shp"
-        dest = self.outDirectoryPhotosShapefile
-        for i in range(len(fieldsCode)):
-            #if fieldsCode[i]==0:
-            pr.addAttributes( [ QgsField(fields[i], QVariant.String) ] )
-            #elif fieldsCode[i]==1:
-            #    pr.addAttributes( [ QgsField(fields[i], QVariant.Int) ] )
-            #elif fieldsCode[i]==2:
-            #    pr.addAttributes( [ QgsField(fields[i], QVariant.Double) ] )
-        pos.startEditing()
-        QgsVectorFileWriter.writeAsVectorFormat(pos,dest,"utf-8",None,"ESRI Shapefile")
-        self.iface.messageBar().clearWidgets()
-        crs = pos.crs()
-        crs.createFromId(4326)
-        pos.setCrs(crs)
-        return self.iface.addVectorLayer(dest, shapename[:-4], "ogr")
