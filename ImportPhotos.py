@@ -35,8 +35,6 @@ import os.path
 from PIL import Image
 from PIL.ExifTags import TAGS
 import uuid
-#import warnings
-#warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class ImportPhotos:
     """QGIS Plugin Implementation."""
@@ -215,6 +213,10 @@ class ImportPhotos:
         del self.toolbar
 
     def run(self):
+        self.dlg.ok.setEnabled(True)
+        self.dlg.closebutton.setEnabled(True)
+        self.dlg.toolButtonImport.setEnabled(True)
+        self.dlg.toolButtonOut.setEnabled(True)
         self.clickPhotos.setEnabled(True)
         self.dlg.out.setText('')
         self.dlg.imp.setText('')
@@ -284,76 +286,80 @@ class ImportPhotos:
 
         #makeLayer
         fields = QgsFields()
-        fields.append( QgsField("ID", QVariant.String, '', 254))
-        fields.append( QgsField("Name", QVariant.String, '', 254))
-        fields.append( QgsField("Date", QVariant.String, '', 254))
-        fields.append( QgsField("Time", QVariant.String, '', 254))
-        fields.append( QgsField("Altitude", QVariant.String, '', 254))
-        fields.append( QgsField("Lon", QVariant.String, '', 254))
-        fields.append( QgsField("Lat", QVariant.String, '', 254))
-        fields.append( QgsField("North", QVariant.String, '', 254))
-        fields.append( QgsField("Azimuth", QVariant.String, '', 254))
-        fields.append( QgsField("Path", QVariant.String, '', 254))
+        f = ["ID", "Name", "Date", "Time", "Altitude", "Lon", "Lat", "North", "Azimuth", "Path"]
+        [fields.append( QgsField(fld, QVariant.String, '', 254)) for fld in f]
+
         w = QgsVectorFileWriter(self.outDirectoryPhotosShapefile, "UTF-8", fields, QGis.WKBPoint, QgsCoordinateReferenceSystem(4326))
         del w
         self.layerPhotos = QgsVectorLayer(self.outDirectoryPhotosShapefile, lphoto, 'ogr')
         QgsMapLayerRegistry.instance().addMapLayer(self.layerPhotos)
         self.layerPhotos.setReadOnly(False)
+        qgisTView = self.iface.layerTreeView()
+        actions = qgisTView.defaultActions()
+        actions.showFeatureCount()
         self.layerPhotos.loadNamedStyle(self.plugin_path + "/svg/photos.qml")
         self.layerPhotos.startEditing()
 
         # getPhotoProperties(extens, photos)
         feature = QgsFeature()
         for count, imgpath in enumerate(photos):
-            a = self.get_exif(imgpath)
-            try:
-                if 'GPSInfo' in a:
-                    if a is not None and a['GPSInfo'] != {}:
-                        if 1 and 2 and 3 and 4 in a['GPSInfo']:
-                            self.dlg.progressBar.setValue(int(count * self.total))
-                            lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
-                            latref = a['GPSInfo'][1]
-                            lon = [float(x) / float(y) for x, y in a['GPSInfo'][4]]
-                            lonref = a['GPSInfo'][3]
+            self.dlg.progressBar.setValue(int(count * self.total))
+            a = {}
+            info = Image.open(imgpath)
+            info = info._getexif()
+            if info == None:
+                continue
+            for tag, value in info.items():
+                if TAGS.get(tag, tag) == 'GPSInfo' or TAGS.get(tag, tag) == 'DateTime' or TAGS.get(tag, tag) == 'DateTimeOriginal':
+                    a[TAGS.get(tag, tag)] = value
+            if a=={}:
+                continue
 
-                            lat = lat[0] + lat[1] / 60 + lat[2] / 3600
-                            lon = lon[0] + lon[1] / 60 + lon[2] / 3600
+            if a['GPSInfo'] != {}:
+                if 1 and 2 and 3 and 4 in a['GPSInfo']:
+                    lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
+                    latref = a['GPSInfo'][1]
+                    lon = [float(x) / float(y) for x, y in a['GPSInfo'][4]]
+                    lonref = a['GPSInfo'][3]
 
-                            if latref == 'S':
-                                lat = -lat
-                            if lonref == 'W':
-                                lon = -lon
-                        name = os.path.basename(imgpath)
-                        uuid_ = str(uuid.uuid4())
-                        if 'DateTime' or 'DateTimeOriginal' in a:
-                            if 'DateTime' in a:
-                                dt1, dt2 = a['DateTime'].split()
-                            elif 'DateTimeOriginal' in a:
-                                dt1, dt2 = a['DateTimeOriginal'].split()
-                            date = dt1.replace(':','/')
-                            time = dt2
+                    lat = lat[0] + lat[1] / 60 + lat[2] / 3600
+                    lon = lon[0] + lon[1] / 60 + lon[2] / 3600
 
-                        if 6 in a['GPSInfo']:
-                            if len(a['GPSInfo'][6])>1:
-                                mAltitude = float(a['GPSInfo'][6][0])
-                                mAltitudeDec = float(a['GPSInfo'][6][1])
-                                altidude = str(mAltitude / mAltitudeDec)
-                        else:
-                            altidude = ''
+                    if latref == 'S':
+                        lat = -lat
+                    if lonref == 'W':
+                        lon = -lon
+                else:
+                    continue
 
-                        if 16 and 17 in a['GPSInfo']:
-                            north = str(a['GPSInfo'][16])
-                            azimuth = str(a['GPSInfo'][17][0])
-                        else:
-                            north = ''
-                            azimuth = ''
-                        # ADD ATTRIBUTE COLUMN
-                        feature.setGeometry(QgsGeometry.fromPoint(QgsPoint(lon, lat)))
-                        feature.setAttributes([uuid_, name, date, time, altidude, str(lon), str(lat), north, azimuth, imgpath])
-                        self.layerPhotos.dataProvider().addFeatures([feature])
-            except:
-               self.dlg.progressBar.setValue(int(count * self.total))
+                name = os.path.basename(imgpath)
+                uuid_ = str(uuid.uuid4())
+                if 'DateTime' or 'DateTimeOriginal' in a:
+                    if 'DateTime' in a:
+                        dt1, dt2 = a['DateTime'].split()
+                    elif 'DateTimeOriginal' in a:
+                        dt1, dt2 = a['DateTimeOriginal'].split()
+                    date = dt1.replace(':','/')
+                    time = dt2
 
+                if 6 in a['GPSInfo']:
+                    if len(a['GPSInfo'][6])>1:
+                        mAltitude = float(a['GPSInfo'][6][0])
+                        mAltitudeDec = float(a['GPSInfo'][6][1])
+                        altidude = str(mAltitude / mAltitudeDec)
+                else:
+                    altidude = ''
+
+                if 16 and 17 in a['GPSInfo']:
+                    north = str(a['GPSInfo'][16])
+                    azimuth = str(a['GPSInfo'][17][0])
+                else:
+                    north = ''
+                    azimuth = ''
+                # ADD ATTRIBUTE COLUMN
+                feature.setGeometry(QgsGeometry.fromPoint(QgsPoint(lon, lat)))
+                feature.setAttributes([uuid_, name, date, time, altidude, str(lon), str(lat), north, azimuth, imgpath])
+                self.layerPhotos.dataProvider().addFeatures([feature])
         self.dlg.progressBar.setValue(100)
         self.layerPhotos.commitChanges()
         self.dlg.progressBar.setValue(0)
@@ -369,20 +375,6 @@ class ImportPhotos:
         self.dlg.closebutton.setEnabled(True)
         self.dlg.toolButtonImport.setEnabled(True)
         self.dlg.toolButtonOut.setEnabled(True)
-
-    def get_exif(self, fn):
-        """Get embedded EXIF data from image file."""
-        ret = {}
-        try:
-            img = Image.open(fn)
-            if hasattr(img, '_getexif'):
-                exifinfo = img._getexif()
-                if exifinfo != None:
-                    for tag, value in exifinfo.items():
-                        decoded = TAGS.get(tag, tag)
-                        ret[decoded] = value
-        except IOError:
-            print 'IOERROR ' + fn
 
     def refresh(self): # Deselect features
         mc = self.iface.mapCanvas()
