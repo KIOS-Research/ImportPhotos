@@ -300,82 +300,82 @@ class ImportPhotos:
 
         truePhotosCount = 0
         for count, imgpath in enumerate(photos):
-            #try:
-            self.dlg.progressBar.setValue(int(count * self.total))
-            a = {}
-            info = Image.open(imgpath)
-            info = info._getexif()
+            try:
+                self.dlg.progressBar.setValue(int(count * self.total))
+                a = {}
+                info = Image.open(imgpath)
+                info = info._getexif()
 
-            if info == None:
-                continue
-
-            for tag, value in info.items():
-                if TAGS.get(tag, tag) == 'GPSInfo' or TAGS.get(tag, tag) == 'DateTime' or TAGS.get(tag,
-                                                                                                   tag) == 'DateTimeOriginal':
-                    a[TAGS.get(tag, tag)] = value
-
-            if a == {}:
-                continue
-
-            name = os.path.basename(imgpath)
-            imgpath = imgpath.replace('\\', '/')
-            if a['GPSInfo'] != {}:
-                if 1 and 2 and 3 and 4 in a['GPSInfo']:
-                    lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
-                    latref = a['GPSInfo'][1]
-                    lon = [float(x) / float(y) for x, y in a['GPSInfo'][4]]
-                    lonref = a['GPSInfo'][3]
-
-                    lat = lat[0] + lat[1] / 60 + lat[2] / 3600
-                    lon = lon[0] + lon[1] / 60 + lon[2] / 3600
-
-                    if latref == 'S':
-                        lat = -lat
-                    if lonref == 'W':
-                        lon = -lon
-                else:
+                if info == None:
                     continue
 
-                uuid_ = str(uuid.uuid4())
-                if 'DateTime' or 'DateTimeOriginal' in a:
-                    if 'DateTime' in a:
-                        dt1, dt2 = a['DateTime'].split()
-                    elif 'DateTimeOriginal' in a:
-                        dt1, dt2 = a['DateTimeOriginal'].split()
-                    date = dt1.replace(':', '/')
-                    time_ = dt2
+                for tag, value in info.items():
+                    if TAGS.get(tag, tag) == 'GPSInfo' or TAGS.get(tag, tag) == 'DateTime' or TAGS.get(tag,
+                                                                                                       tag) == 'DateTimeOriginal':
+                        a[TAGS.get(tag, tag)] = value
 
-                if 6 in a['GPSInfo']:
-                    if len(a['GPSInfo'][6]) > 1:
-                        mAltitude = float(a['GPSInfo'][6][0])
-                        mAltitudeDec = float(a['GPSInfo'][6][1])
-                        altitude = str(mAltitude / mAltitudeDec)
-                else:
-                    altitude = ''
+                if a == {}:
+                    continue
 
-                if 16 and 17 in a['GPSInfo']:
-                    north = str(a['GPSInfo'][16])
-                    azimuth = str(a['GPSInfo'][17][0])
-                else:
-                    north = ''
-                    azimuth = ''
-            truePhotosCount = truePhotosCount + 1
-            geoPhotoFile.append(
-                '''{ "type": "Feature", "properties": {  "ID": ''' + '"' + uuid_ + '"' + ', "Name": ' + '"' + name + '"' + ', "Date": ' + '"' + date +
-                '"' + ', "Time": ' + '"' + time_ + '"' + ', "Altitude": ' + '"' + altitude + '"' + ', "Lon": ' + '"' + str(
-                    lon) + '"' +
-                ', "Lat": ' + '"' + str(
-                    lat) + '"' + ', "North": ' + '"' + north + '"' + ', "Azimuth": ' + '"' + azimuth + '"' + ', "Path": ' + '"' + imgpath + '"'
-                + ',}, "geometry": { "type": "Point",  "coordinates": ' + '[' + str(lon) + ',' + str(lat) + ']')
-            geoPhotoFile.append('}\n }')
-            f = open(self.outDirectoryPhotosShapefile, "w")
-            for line in geoPhotoFile:
-                f.write(line)
-            f.write('\n]\n}\n')
-            f.close()
-            geoPhotoFile.append(',\n')
-            #except:
-             #   pass
+                name = os.path.basename(imgpath)
+                imgpath = imgpath.replace('\\', '/')
+                if a['GPSInfo'] != {}:
+                    if 1 and 2 and 3 and 4 in a['GPSInfo']:
+                        lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
+                        latref = a['GPSInfo'][1]
+                        lon = [float(x) / float(y) for x, y in a['GPSInfo'][4]]
+                        lonref = a['GPSInfo'][3]
+
+                        lat = lat[0] + lat[1] / 60 + lat[2] / 3600
+                        lon = lon[0] + lon[1] / 60 + lon[2] / 3600
+
+                        if latref == 'S':
+                            lat = -lat
+                        if lonref == 'W':
+                            lon = -lon
+                    else:
+                        continue
+
+                    uuid_ = str(uuid.uuid4())
+                    if 'DateTime' or 'DateTimeOriginal' in a:
+                        if 'DateTime' in a:
+                            dt1, dt2 = a['DateTime'].split()
+                        elif 'DateTimeOriginal' in a:
+                            dt1, dt2 = a['DateTimeOriginal'].split()
+                        date = dt1.replace(':', '/')
+                        time_ = dt2
+
+                    if 6 in a['GPSInfo']:
+                        if len(a['GPSInfo'][6]) > 1:
+                            mAltitude = float(a['GPSInfo'][6][0])
+                            mAltitudeDec = float(a['GPSInfo'][6][1])
+                            altitude = str(mAltitude / mAltitudeDec)
+                    else:
+                        altitude = ''
+
+                    if 16 and 17 in a['GPSInfo']:
+                        north = str(a['GPSInfo'][16])
+                        azimuth = str(a['GPSInfo'][17][0])
+                    else:
+                        north = ''
+                        azimuth = ''
+                truePhotosCount = truePhotosCount + 1
+                geoPhotoFile.append(
+                    '''{ "type": "Feature", "properties": {  "ID": ''' + '"' + uuid_ + '"' + ', "Name": ' + '"' + name + '"' + ', "Date": ' + '"' + date +
+                    '"' + ', "Time": ' + '"' + time_ + '"' + ', "Altitude": ' + '"' + altitude + '"' + ', "Lon": ' + '"' + str(
+                        lon) + '"' +
+                    ', "Lat": ' + '"' + str(
+                        lat) + '"' + ', "North": ' + '"' + north + '"' + ', "Azimuth": ' + '"' + azimuth + '"' + ', "Path": ' + '"' + imgpath + '"'
+                    + ',}, "geometry": { "type": "Point",  "coordinates": ' + '[' + str(lon) + ',' + str(lat) + ']')
+                geoPhotoFile.append('}\n }')
+                f = open(self.outDirectoryPhotosShapefile, "w")
+                for line in geoPhotoFile:
+                    f.write(line)
+                f.write('\n]\n}\n')
+                f.close()
+                geoPhotoFile.append(',\n')
+            except:
+                pass
         self.layerPhotos = self.iface.addVectorLayer(self.outDirectoryPhotosShapefile, lphoto, "ogr")
         self.layerPhotos.loadNamedStyle(self.plugin_path + "/svg/photos.qml")
         self.layerPhotos.setReadOnly()
