@@ -27,6 +27,7 @@ from qgis.core import QgsRectangle
 from qgis.gui import QgsMapTool, QgsRubberBand
 from PyQt4 import QtCore, QtGui
 from PIL import Image
+import ctypes
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -76,21 +77,28 @@ class MouseClick(QgsMapTool):
                         layersSelected.append(layer)
                         ########## SHOW PHOTOS ############
                         feature = selected_features[0]
-                        #self.drawSelf.photosDLG.label.setPixmap(
-                        #    QPixmap(feature.attributes()[feature.fieldNameIndex('Path')]))
+                        user32 = ctypes.windll.user32
+                        screensize = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
                         imPath = feature.attributes()[feature.fieldNameIndex('Path')]
                         im = Image.open(imPath)
                         width, height = im.size
                         x=0;y=0#;zoomFactor=1
                         if height < width:
                             if width>1000:
-                                width = width*0.252#width/(width/1000)
+                                if width>screensize[0]:
+                                    width = screensize[0]*0.6
+                                else:
+                                    width = width*0.252#width/(width/1000)
                             elif width<200:
                                 width = 200
                                 x=113
                                # zoomFactor=1.5
                             if height>700:
-                                height = height*0.252
+                                if height>screensize[1]:
+                                    height = screensize[1]*0.8
+                                else:
+                                    height = height*0.252
+
                             elif height < 200:
                                 height = 200
                                 y=60
@@ -108,8 +116,8 @@ class MouseClick(QgsMapTool):
                         self.drawSelf.photosDLG.webView.setMaximumSize(QSize(width, height))
                         self.drawSelf.photosDLG.webView.load(QUrl(imPath))
                         #self.drawSelf.photosDLG.label.setScaledContents(True)
-                        self.drawSelf.photosDLG.infoPhoto1.setText('Date: '+feature.attributes()[feature.fieldNameIndex('Date')].replace(':','/'))
-                        self.drawSelf.photosDLG.infoPhoto2.setText('Time: '+feature.attributes()[feature.fieldNameIndex('Time')])
+                        self.drawSelf.photosDLG.infoPhoto1.setText('Date: '+str(feature.attributes()[feature.fieldNameIndex('Date')].toString('yyyy-MM-dd')))
+                        self.drawSelf.photosDLG.infoPhoto2.setText('Time: '+str(feature.attributes()[feature.fieldNameIndex('Time')].toString('hh:mm:ss')))
                         self.drawSelf.photosDLG.infoPhoto3.setText("Altitude: "+str(feature.attributes()[feature.fieldNameIndex('Altitude')])+' m')
                         self.drawSelf.photosDLG.exec_()
                         return

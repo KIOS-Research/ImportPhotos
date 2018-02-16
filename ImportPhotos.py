@@ -191,7 +191,6 @@ class ImportPhotos:
         self.clickPhotos.setCheckable(True)
         self.clickPhotos.setEnabled(False)
         self.photosDLG = PhotosDialog()
-        self.clickPhotos.setChecked(True)
 
         self.layernamePhotos = []
         self.listPhotos = []
@@ -229,7 +228,7 @@ class ImportPhotos:
     def toolButtonOut(self):
 
         self.outDirectoryPhotosShapefile = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(os.path.join(os.environ['USERPROFILE']),
-                                                                   'Desktop'), 'ESRI Shapefiles (*.shp *.SHP)')
+                                                                   'Desktop'), 'GeoJSON (*.geojson *.GEOJSON)')
         self.dlg.out.setText(self.outDirectoryPhotosShapefile)
 
     def toolButtonImport(self):
@@ -262,7 +261,7 @@ class ImportPhotos:
         self.dlg.closebutton.setEnabled(False)
         self.dlg.toolButtonImport.setEnabled(False)
         self.dlg.toolButtonOut.setEnabled(False)
-        extens = ['jpg', 'jpeg']
+        extens = ['jpg', 'jpeg', 'JPG', 'JPEG']
         photos = []
         for root, dirs, files in os.walk(self.directoryPhotos):
             photos.extend(os.path.join(root, name) for name in files
@@ -276,45 +275,50 @@ class ImportPhotos:
             msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
             msgBox.exec_()
             return
-        #    return
+
+        if os.path.exists(self.outDirectoryPhotosShapefile) == True:
+            f = open(self.outDirectoryPhotosShapefile, 'r')
+            lines = [line.rstrip('\n') for line in f]
+            geoPhotoFile = lines[:-2]
+            geoPhotoFile.append(',')
+            f.close()
+        else:
+            # makeLayer
+            geoPhotoFile = []
+            geoPhotoFile.append('''{ "type": "FeatureCollection", ''')
+            geoPhotoFile.append(
+                '''"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } }, ''')
+            geoPhotoFile.append('\n')
+            geoPhotoFile.append('"features": [')
+
         self.total = 100.0 / len(photos)
         self.iface.mapCanvas().setMapTool(self.toolMouseClick)
         self.outDirectoryPhotosShapefile=self.dlg.out.text()
         basename = os.path.basename(self.outDirectoryPhotosShapefile)
-        lphoto = basename[:-4]
+        lphoto = basename[:-8]
         self.layernamePhotos.append(lphoto)
 
-        #makeLayer
-        fields = QgsFields()
-        f = ["ID", "Name", "Date", "Time", "Altitude", "Lon", "Lat", "North", "Azimuth", "Path"]
-        [fields.append( QgsField(fld, QVariant.String, '', 254)) for fld in f]
-
-        w = QgsVectorFileWriter(self.outDirectoryPhotosShapefile, "UTF-8", fields, QGis.WKBPoint, QgsCoordinateReferenceSystem(4326))
-        del w
-        self.layerPhotos = QgsVectorLayer(self.outDirectoryPhotosShapefile, lphoto, 'ogr')
-        QgsMapLayerRegistry.instance().addMapLayer(self.layerPhotos)
-        self.layerPhotos.setReadOnly(False)
-        qgisTView = self.iface.layerTreeView()
-        actions = qgisTView.defaultActions()
-        actions.showFeatureCount()
-        self.layerPhotos.loadNamedStyle(self.plugin_path + "/svg/photos.qml")
-        self.layerPhotos.startEditing()
-
-        # getPhotoProperties(extens, photos)
-        feature = QgsFeature()
+        truePhotosCount = 0
         for count, imgpath in enumerate(photos):
+            #try:
             self.dlg.progressBar.setValue(int(count * self.total))
             a = {}
             info = Image.open(imgpath)
             info = info._getexif()
+
             if info == None:
                 continue
+
             for tag, value in info.items():
-                if TAGS.get(tag, tag) == 'GPSInfo' or TAGS.get(tag, tag) == 'DateTime' or TAGS.get(tag, tag) == 'DateTimeOriginal':
+                if TAGS.get(tag, tag) == 'GPSInfo' or TAGS.get(tag, tag) == 'DateTime' or TAGS.get(tag,
+                                                                                                   tag) == 'DateTimeOriginal':
                     a[TAGS.get(tag, tag)] = value
-            if a=={}:
+
+            if a == {}:
                 continue
 
+            name = os.path.basename(imgpath)
+            imgpath = imgpath.replace('\\', '/')
             if a['GPSInfo'] != {}:
                 if 1 and 2 and 3 and 4 in a['GPSInfo']:
                     lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
@@ -332,23 +336,22 @@ class ImportPhotos:
                 else:
                     continue
 
-                name = os.path.basename(imgpath)
                 uuid_ = str(uuid.uuid4())
                 if 'DateTime' or 'DateTimeOriginal' in a:
                     if 'DateTime' in a:
                         dt1, dt2 = a['DateTime'].split()
                     elif 'DateTimeOriginal' in a:
                         dt1, dt2 = a['DateTimeOriginal'].split()
-                    date = dt1.replace(':','/')
-                    time = dt2
+                    date = dt1.replace(':', '/')
+                    time_ = dt2
 
                 if 6 in a['GPSInfo']:
-                    if len(a['GPSInfo'][6])>1:
+                    if len(a['GPSInfo'][6]) > 1:
                         mAltitude = float(a['GPSInfo'][6][0])
                         mAltitudeDec = float(a['GPSInfo'][6][1])
-                        altidude = str(mAltitude / mAltitudeDec)
+                        altitude = str(mAltitude / mAltitudeDec)
                 else:
-                    altidude = ''
+                    altitude = ''
 
                 if 16 and 17 in a['GPSInfo']:
                     north = str(a['GPSInfo'][16])
@@ -356,12 +359,27 @@ class ImportPhotos:
                 else:
                     north = ''
                     azimuth = ''
-                # ADD ATTRIBUTE COLUMN
-                feature.setGeometry(QgsGeometry.fromPoint(QgsPoint(lon, lat)))
-                feature.setAttributes([uuid_, name, date, time, altidude, str(lon), str(lat), north, azimuth, imgpath])
-                self.layerPhotos.dataProvider().addFeatures([feature])
+            truePhotosCount = truePhotosCount + 1
+            geoPhotoFile.append(
+                '''{ "type": "Feature", "properties": {  "ID": ''' + '"' + uuid_ + '"' + ', "Name": ' + '"' + name + '"' + ', "Date": ' + '"' + date +
+                '"' + ', "Time": ' + '"' + time_ + '"' + ', "Altitude": ' + '"' + altitude + '"' + ', "Lon": ' + '"' + str(
+                    lon) + '"' +
+                ', "Lat": ' + '"' + str(
+                    lat) + '"' + ', "North": ' + '"' + north + '"' + ', "Azimuth": ' + '"' + azimuth + '"' + ', "Path": ' + '"' + imgpath + '"'
+                + ',}, "geometry": { "type": "Point",  "coordinates": ' + '[' + str(lon) + ',' + str(lat) + ']')
+            geoPhotoFile.append('}\n }')
+            f = open(self.outDirectoryPhotosShapefile, "w")
+            for line in geoPhotoFile:
+                f.write(line)
+            f.write('\n]\n}\n')
+            f.close()
+            geoPhotoFile.append(',\n')
+            #except:
+             #   pass
+        self.layerPhotos = self.iface.addVectorLayer(self.outDirectoryPhotosShapefile, lphoto, "ogr")
+        self.layerPhotos.loadNamedStyle(self.plugin_path + "/svg/photos.qml")
+        self.layerPhotos.setReadOnly()
         self.dlg.progressBar.setValue(100)
-        self.layerPhotos.commitChanges()
         self.dlg.progressBar.setValue(0)
         ###########################################
 
@@ -375,6 +393,7 @@ class ImportPhotos:
         self.dlg.closebutton.setEnabled(True)
         self.dlg.toolButtonImport.setEnabled(True)
         self.dlg.toolButtonOut.setEnabled(True)
+        self.clickPhotos.setChecked(True)
 
     def refresh(self): # Deselect features
         mc = self.iface.mapCanvas()

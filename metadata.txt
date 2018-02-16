@@ -9,9 +9,10 @@
 [general]
 name=ImportPhotos
 qgisMinimumVersion=2.0
+qgisMaximumVersion=2.18
 description=Import Photos
 version=0.1
-author=Marios Kyriakou, George Christou - KIOS Research and Innovation Center of Excellence
+author=Marios S. Kyriakou, George A. Christou (KIOS Research and Innovation Center of Excellence)
 email=mariosmsk@gmail.com, george.a.christou@gmail.com
 
 about= This tool can be used to import Geo-Tagged photos (jpg or jpeg) as points to QGIS. The user is able to select a folder with photos and only the geo-tagged photos will be taken. Then a point shapefile will be created which will contain the name of the picture, its directory, the date and time taken, the altitude and longitude and latitude. It was two buttons, the one is to import geotagged photos, and the other is to be able to click on the point and display the photo along with information regarding the data time and altitude. The plug-in doesn’t need any third party applications to work.
