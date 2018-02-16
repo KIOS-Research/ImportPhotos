@@ -167,7 +167,6 @@ class ImportPhotos:
         
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-        self.plugin_path = os.path.join(os.environ['USERPROFILE']) + '/.qgis2/python/plugins/ImportPhotos'#os.path.dirname(__file__)
         icon_path = ':/plugins/ImportPhotos/svg/ImportImage.svg'
         self.add_action(
             icon_path,
@@ -194,7 +193,6 @@ class ImportPhotos:
 
         self.layernamePhotos = []
         self.listPhotos = []
-        self.dirname = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
         self.toolMouseClick = MouseClick(self.iface.mapCanvas(), self)
 
     def mouseClick(self):
@@ -377,7 +375,7 @@ class ImportPhotos:
             except:
                 pass
         self.layerPhotos = self.iface.addVectorLayer(self.outDirectoryPhotosShapefile, lphoto, "ogr")
-        self.layerPhotos.loadNamedStyle(self.plugin_path + "/svg/photos.qml")
+        self.layerPhotos.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
         self.layerPhotos.setReadOnly()
         self.dlg.progressBar.setValue(100)
         self.dlg.progressBar.setValue(0)
