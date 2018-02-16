@@ -21,11 +21,12 @@
  ***************************************************************************/
 """
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtCore import *
 from qgis.core import QgsRectangle
 from qgis.gui import QgsMapTool, QgsRubberBand
-from PyQt4 import QtCore, QtGui
+from qgis.PyQt import QtCore
 from PIL import Image
 import ctypes
 
@@ -56,16 +57,21 @@ class MouseClick(QgsMapTool):
     def canvasDoubleClickEvent(self, event):
         layer = self.drawSelf.iface.activeLayer()
         try:
-            try:selected_features = layer.selectedFeatures()
-            except:self.drawSelf.iface.setActiveLayer(self.drawSelf.layerPhotos);selected_features=[]
-        except: return
+            try:
+                selected_features = layer.selectedFeatures()
+            except:
+                self.drawSelf.iface.setActiveLayer(self.drawSelf.layerPhotos);selected_features=[]
+        except:
+            return
         if selected_features == []:
             #if event.button() == 2:
             layers = self.canvas.layers()
             p = self.toMapCoordinates(event.pos())
             w = self.canvas.mapUnitsPerPixel() * 10
-            try: rect = QgsRectangle(p.x() - w, p.y() - w, p.x() + w, p.y() + w)
-            except: return
+            try:
+                rect = QgsRectangle(p.x() - w, p.y() - w, p.x() + w, p.y() + w)
+            except:
+                return
             layersSelected = []
             for layer in layers:
                 #try:
@@ -119,11 +125,14 @@ class MouseClick(QgsMapTool):
                         self.drawSelf.photosDLG.infoPhoto1.setText('Date: '+str(feature.attributes()[feature.fieldNameIndex('Date')].toString('yyyy-MM-dd')))
                         self.drawSelf.photosDLG.infoPhoto2.setText('Time: '+str(feature.attributes()[feature.fieldNameIndex('Time')].toString('hh:mm:ss')))
                         self.drawSelf.photosDLG.infoPhoto3.setText("Altitude: "+str(feature.attributes()[feature.fieldNameIndex('Altitude')])+' m')
+                        self.drawSelf.photosDLG.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
                         self.drawSelf.photosDLG.exec_()
                         return
 
-        try:layer.removeSelection()
-        except: pass
+        try:
+            layer.removeSelection()
+        except:
+            pass
 
     def deactivate(self):
         self.drawSelf.clickPhotos.setChecked(False)

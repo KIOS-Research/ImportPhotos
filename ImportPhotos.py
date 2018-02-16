@@ -20,9 +20,9 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QVariant, Qt
-from PyQt4.QtGui import QAction, QIcon, QMessageBox, QWidget, QFileDialog
-from qgis.core import QGis, QgsMapLayerRegistry, QgsVectorLayer, QgsField, QgsVectorFileWriter, QgsFeature, QgsPoint, QgsGeometry, QgsSvgMarkerSymbolLayerV2, QgsCoordinateReferenceSystem, QgsFields
+from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt
 
 # Initialize Qt resources from file resources.py
 import resources
