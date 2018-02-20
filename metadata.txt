@@ -9,7 +9,6 @@
 [general]
 name=ImportPhotos
 qgisMinimumVersion=2.0
-qgisMaximumVersion=2.18
 description=Import Photos
 version=0.2
 author=Marios S. Kyriakou, George A. Christou, KIOS Research and Innovation Center of Excellence (KIOS CoE)
