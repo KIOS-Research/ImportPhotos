@@ -22,9 +22,9 @@ repository=https://github.com/KIOS-Research/ImportPhotos/
 # End of mandatory metadata
 
 # Recommended items:
-
 # Uncomment the following line and add your changelog:
-# changelog=
+changelog=2018-02-20  ImportPhotos 0.2:
+		Fixed error with activation
 
 # Tags are comma separated with spaces allowed
 tags=photos, jpeg, jpg, geotag
