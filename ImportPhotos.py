@@ -35,6 +35,7 @@ import os.path
 from PIL import Image
 from PIL.ExifTags import TAGS
 import uuid
+import platform
 
 class ImportPhotos:
     """QGIS Plugin Implementation."""
@@ -167,7 +168,6 @@ class ImportPhotos:
         
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-        self.plugin_path = os.path.join(os.environ['USERPROFILE']) + '/.qgis2/python/plugins/ImportPhotos'#os.path.dirname(__file__)
         icon_path = ':/plugins/ImportPhotos/svg/ImportImage.svg'
         self.add_action(
             icon_path,
@@ -194,7 +194,6 @@ class ImportPhotos:
 
         self.layernamePhotos = []
         self.listPhotos = []
-        self.dirname = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
         self.toolMouseClick = MouseClick(self.iface.mapCanvas(), self)
 
     def mouseClick(self):
@@ -227,14 +226,19 @@ class ImportPhotos:
 
     def toolButtonOut(self):
 
-        self.outDirectoryPhotosShapefile = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(os.path.join(os.environ['USERPROFILE']),
-                                                                   'Desktop'), 'GeoJSON (*.geojson *.GEOJSON)')
+        self.outDirectoryPhotosShapefile = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(os.path.join(os.path.expanduser('~')),
+                                                                             'Desktop'), 'GeoJSON (*.geojson *.GEOJSON)')
         self.dlg.out.setText(self.outDirectoryPhotosShapefile)
 
     def toolButtonImport(self):
+        #try:
         self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
-                                                      os.path.join(os.path.join(os.environ['USERPROFILE']),
-                                                                   'Desktop'), QFileDialog.ShowDirsOnly)
+                                                                os.path.join(os.path.join(os.path.expanduser('~')),
+                                                                             'Desktop'), QFileDialog.ShowDirsOnly)
+        #except:
+            #self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
+            #                                              os.path.join(os.path.join(os.environ['USERPROFILE']),
+            #                                                           'Desktop'), QFileDialog.ShowDirsOnly)
         if self.directoryPhotos == "":
             return
         self.dlg.imp.setText(self.directoryPhotos)
@@ -274,6 +278,11 @@ class ImportPhotos:
             msgBox.setText('No images.')
             msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
             msgBox.exec_()
+            self.dlg.ok.setEnabled(True)
+            self.dlg.closebutton.setEnabled(True)
+            self.dlg.toolButtonImport.setEnabled(True)
+            self.dlg.toolButtonOut.setEnabled(True)
+            self.clickPhotos.setChecked(True)
             return
 
         if os.path.exists(self.outDirectoryPhotosShapefile) == True:
@@ -296,7 +305,10 @@ class ImportPhotos:
         self.outDirectoryPhotosShapefile=self.dlg.out.text()
         basename = os.path.basename(self.outDirectoryPhotosShapefile)
         lphoto = basename[:-8]
-        self.layernamePhotos.append(lphoto)
+        if platform.system()=='Darwin':
+            self.layernamePhotos.append(lphoto+' OGRGeoJSON Point')
+        else:
+            self.layernamePhotos.append(lphoto)
 
         truePhotosCount = 0
         for count, imgpath in enumerate(photos):
@@ -377,18 +389,30 @@ class ImportPhotos:
             except:
                 pass
         self.layerPhotos = self.iface.addVectorLayer(self.outDirectoryPhotosShapefile, lphoto, "ogr")
-        self.layerPhotos.loadNamedStyle(self.plugin_path + "/svg/photos.qml")
+        self.layerPhotos.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
         self.layerPhotos.setReadOnly()
         self.dlg.progressBar.setValue(100)
         self.dlg.progressBar.setValue(0)
         ###########################################
+        initphotos = len(photos)
+        noLocationPhotosCounter = initphotos - truePhotosCount
+        if truePhotosCount==noLocationPhotosCounter==0 or truePhotosCount==0:
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setWindowTitle('Import Photos')
+            msgBox.setText('Import Completed.\n\nDetails:\n  No new photos were added.')
+            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+            msgBox.exec_()
+        elif (truePhotosCount == initphotos) or ((noLocationPhotosCounter + truePhotosCount) == initphotos):
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setWindowTitle('Import Photos')
+            msgBox.setText(
+                'Import Completed.\n\nDetails:\n  ' + str(truePhotosCount) + ' photo(s) added without error.\n  ' + str(
+                    noLocationPhotosCounter) + ' photo(s) skipped (because of missing location).')
+            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+            msgBox.exec_()
 
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Warning)
-        msgBox.setWindowTitle('ImportPhotos')
-        msgBox.setText('Import sucessfull.')
-        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-        msgBox.exec_()
         self.dlg.ok.setEnabled(True)
         self.dlg.closebutton.setEnabled(True)
         self.dlg.toolButtonImport.setEnabled(True)

@@ -29,7 +29,12 @@ from qgis.gui import QgsMapTool, QgsRubberBand
 from qgis.PyQt import QtCore
 from PIL import Image
 import ctypes
+import platform
 
+try:
+    from AppKit import NSScreen
+except:
+    pass
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
 except AttributeError:
@@ -45,9 +50,23 @@ class MouseClick(QgsMapTool):
         self.canvas = canvas
         self.drawSelf = drawSelf
         self.drawSelf.rb = None
+        self.screensize = []
+        try:
+            user32 = ctypes.windll.user32
+            self.screensize = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+        except:
+            self.screensize.append(NSScreen.mainScreen().frame().size.width)
+            self.screensize.append(NSScreen.mainScreen().frame().size.height)
+
     def canvasPressEvent(self, event):
         if event.button() == 1:
             self.drawSelf.refresh()
+
+            try:
+                if platform.system() == 'Darwin':
+                    self.drawSelf.photosDLG.webView.history().clear()
+            except:
+                pass
     def canvasMoveEvent(self, event):
         pass
 
@@ -60,7 +79,8 @@ class MouseClick(QgsMapTool):
             try:
                 selected_features = layer.selectedFeatures()
             except:
-                self.drawSelf.iface.setActiveLayer(self.drawSelf.layerPhotos);selected_features=[]
+                self.drawSelf.iface.setActiveLayer(self.drawSelf.layerPhotos)
+                selected_features=[]
         except:
             return
         if selected_features == []:
@@ -73,6 +93,7 @@ class MouseClick(QgsMapTool):
             except:
                 return
             layersSelected = []
+
             for layer in layers:
                 #try:
                 if (layer.name() in self.drawSelf.layernamePhotos)==True:
@@ -83,16 +104,15 @@ class MouseClick(QgsMapTool):
                         layersSelected.append(layer)
                         ########## SHOW PHOTOS ############
                         feature = selected_features[0]
-                        user32 = ctypes.windll.user32
-                        screensize = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+
                         imPath = feature.attributes()[feature.fieldNameIndex('Path')]
                         im = Image.open(imPath)
                         width, height = im.size
                         x=0;y=0#;zoomFactor=1
                         if height < width:
                             if width>1000:
-                                if width>screensize[0]:
-                                    width = screensize[0]*0.6
+                                if width>self.screensize[0]:
+                                    width = self.screensize[0]*0.6
                                 else:
                                     width = width*0.252#width/(width/1000)
                             elif width<200:
@@ -100,8 +120,8 @@ class MouseClick(QgsMapTool):
                                 x=113
                                # zoomFactor=1.5
                             if height>700:
-                                if height>screensize[1]:
-                                    height = screensize[1]*0.8
+                                if height>self.screensize[1]:
+                                    height = self.screensize[1]*0.8
                                 else:
                                     height = height*0.252
 
@@ -113,26 +133,19 @@ class MouseClick(QgsMapTool):
                             if height>1000:
                                 height = 756#width/(width/1000)
                                 width = 0.793*height
-
                         self.drawSelf.photosDLG.setMinimumSize(QSize(width, height))
                         self.drawSelf.photosDLG.setMaximumSize(QSize(width, height))
                         self.drawSelf.photosDLG.webView.setGeometry(QRect(x, y, width, height))
-                        #self.drawSelf.photosDLG.webView.setZoomFactor(zoomFactor)
                         self.drawSelf.photosDLG.webView.setMinimumSize(QSize(width, height))
                         self.drawSelf.photosDLG.webView.setMaximumSize(QSize(width, height))
                         self.drawSelf.photosDLG.webView.load(QUrl(imPath))
-                        #self.drawSelf.photosDLG.label.setScaledContents(True)
                         self.drawSelf.photosDLG.infoPhoto1.setText('Date: '+str(feature.attributes()[feature.fieldNameIndex('Date')].toString('yyyy-MM-dd')))
                         self.drawSelf.photosDLG.infoPhoto2.setText('Time: '+str(feature.attributes()[feature.fieldNameIndex('Time')].toString('hh:mm:ss')))
                         self.drawSelf.photosDLG.infoPhoto3.setText("Altitude: "+str(feature.attributes()[feature.fieldNameIndex('Altitude')])+' m')
                         self.drawSelf.photosDLG.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
                         self.drawSelf.photosDLG.exec_()
+                        self.drawSelf.photosDLG.webView.history().clear()
                         return
-
-        try:
-            layer.removeSelection()
-        except:
-            pass
 
     def deactivate(self):
         self.drawSelf.clickPhotos.setChecked(False)

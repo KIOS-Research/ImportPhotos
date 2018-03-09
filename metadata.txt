@@ -9,23 +9,25 @@
 [general]
 name=ImportPhotos
 qgisMinimumVersion=2.0
-qgisMaximumVersion=2.18
 description=Import Photos
-version=0.1
 author=Marios S. Kyriakou, George A. Christou, KIOS Research and Innovation Center of Excellence (KIOS CoE)
 email=mariosmsk@gmail.com, george.a.christou@gmail.com
 
-about= This tool can be used to import Geo-Tagged photos (jpg or jpeg) as points to QGIS. The user is able to select a folder with photos and only the geo-tagged photos will be taken. Then a point shapefile will be created which will contain the name of the picture, its directory, the date and time taken, the altitude and longitude and latitude. It was two buttons, the one is to import geotagged photos, and the other is to be able to click on the point and display the photo along with information regarding the data time and altitude. The plug-in doesn’t need any third party applications to work.
+about= This tool can be used to import Geo-Tagged photos (jpg or jpeg) as points to QGIS. The user is able to select a folder with photos and only the geo-tagged photos will be taken. Then a geoJSON point file will be created which will contain the name of the picture, its directory, the date and time taken, altitude, longitude, latitude, azimuth and North. The plug-in doesn’t need any third party applications to work. It has two buttons; the one is to import geotagged photos, and the other one is to be able to click on a point and display the photo along with information regarding the date time and altitude. Mac users please refer to the Read Me file for further guidance.
 
 tracker=https://github.com/KIOS-Research/ImportPhotos/issues/
 repository=https://github.com/KIOS-Research/ImportPhotos/
 # End of mandatory metadata
 
 # Recommended items:
-
 # Uncomment the following line and add your changelog:
-# changelog=
-
+changelog=2018-02-20  ImportPhotos 0.2:
+		Fixed error with activation
+	  2018-02-20  ImportPhotos 0.3:
+		Update version
+	  2018-03-09  ImportPhotos 0.4:
+		Fix error for mac pc, and add some warning messages
+		
 # Tags are comma separated with spaces allowed
 tags=photos, jpeg, jpg, geotag
 
@@ -37,4 +39,3 @@ experimental=False
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
-
