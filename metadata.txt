@@ -10,11 +10,7 @@
 name=ImportPhotos
 qgisMinimumVersion=2.0
 description=Import Photos
-<<<<<<< HEAD
 version=0.4
-=======
-version=0.3
->>>>>>> origin/master
 author=Marios S. Kyriakou, George A. Christou, KIOS Research and Innovation Center of Excellence (KIOS CoE)
 email=mariosmsk@gmail.com, george.a.christou@gmail.com
 
@@ -30,13 +26,9 @@ changelog=2018-02-20  ImportPhotos 0.2:
 		Fixed error with activation
 	  2018-02-20  ImportPhotos 0.3:
 		Update version
-<<<<<<< HEAD
 	  2018-03-09  ImportPhotos 0.4:
 		Fix error for mac pc, and add some warning messages
 		
-=======
-
->>>>>>> origin/master
 # Tags are comma separated with spaces allowed
 tags=photos, jpeg, jpg, geotag
 
