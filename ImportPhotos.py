@@ -377,14 +377,14 @@ class ImportPhotos:
         noLocationPhotosCounter = initphotos - truePhotosCount
         if truePhotosCount == noLocationPhotosCounter == 0 or truePhotosCount == 0:
             msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setIcon(QMessageBox.Information)
             msgBox.setWindowTitle('Import Photos')
             msgBox.setText('Import Completed.\n\nDetails:\n  No new photos were added.')
             msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
             msgBox.exec_()
         elif (truePhotosCount == initphotos) or ((noLocationPhotosCounter + truePhotosCount) == initphotos):
             msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setIcon(QMessageBox.Information)
             msgBox.setWindowTitle('Import Photos')
             msgBox.setText(
                 'Import Completed.\n\nDetails:\n  ' + str(truePhotosCount) + ' photo(s) added without error.\n  ' + str(
