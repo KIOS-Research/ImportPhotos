@@ -103,10 +103,17 @@ class MouseClick(QgsMapTool):
                         try:
                             f = open(imPath, 'rb')
                             tags = exifread.process_file(f, details=False)
+                        except:
+                            pass
+                        try:
                             height = tags['EXIF ExifImageLength'].values[0]
                             width = tags['EXIF ExifImageWidth'].values[0]
                         except:
-                            width, height = 4000, 3000
+                            try:
+                                width = tags['Image ImageWidth'].values[0]
+                                height = tags['Image ImageLength'].values[0]
+                            except:
+                                width, height = 4000, 3000
                         x=0
                         y=0
                         if height < width:
@@ -133,6 +140,7 @@ class MouseClick(QgsMapTool):
                             if height>1000:
                                 height = 756#width/(width/1000)
                                 width = 0.793*height
+
                         self.drawSelf.photosDLG.setMinimumSize(QSize(width, height))
                         self.drawSelf.photosDLG.setMaximumSize(QSize(width, height))
                         self.drawSelf.photosDLG.webView.setGeometry(QRect(x, y, width, height))
