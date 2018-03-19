@@ -2,12 +2,12 @@
 
 # Form implementation generated from reading ui file 'impphotos.ui'
 #
-# Created: Fri Mar 09 14:43:41 2018
+# Created: Wed Oct 18 16:58:14 2017
 #      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt4 import QtCore, QtGui
+from qgis.PyQt import QtCore, QtGui
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -28,8 +28,6 @@ class Ui_photosImp(object):
         photosImp.setObjectName(_fromUtf8("photosImp"))
         photosImp.setWindowModality(QtCore.Qt.ApplicationModal)
         photosImp.resize(377, 164)
-        photosImp.setMinimumSize(QtCore.QSize(377, 164))
-        photosImp.setMaximumSize(QtCore.QSize(377, 164))
         photosImp.setWhatsThis(_fromUtf8(""))
         photosImp.setSizeGripEnabled(False)
         self.label = QtGui.QLabel(photosImp)
@@ -39,13 +37,13 @@ class Ui_photosImp(object):
         self.label_2.setGeometry(QtCore.QRect(10, 50, 91, 21))
         self.label_2.setObjectName(_fromUtf8("label_2"))
         self.imp = QtGui.QLineEdit(photosImp)
-        self.imp.setGeometry(QtCore.QRect(119, 20, 151, 20))
+        self.imp.setGeometry(QtCore.QRect(100, 20, 190, 20))
         self.imp.setObjectName(_fromUtf8("imp"))
         self.toolButtonImport = QtGui.QToolButton(photosImp)
         self.toolButtonImport.setGeometry(QtCore.QRect(300, 20, 60, 19))
         self.toolButtonImport.setObjectName(_fromUtf8("toolButtonImport"))
         self.out = QtGui.QLineEdit(photosImp)
-        self.out.setGeometry(QtCore.QRect(119, 50, 151, 20))
+        self.out.setGeometry(QtCore.QRect(100, 50, 190, 20))
         self.out.setObjectName(_fromUtf8("out"))
         self.toolButtonOut = QtGui.QToolButton(photosImp)
         self.toolButtonOut.setGeometry(QtCore.QRect(300, 50, 60, 19))

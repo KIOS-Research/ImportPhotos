@@ -2,12 +2,12 @@
 
 # Form implementation generated from reading ui file 'photos.ui'
 #
-# Created: Mon Oct 09 12:30:08 2017
-#      by: PyQt4 UI code generator 4.11.3
+# Created: Mon Mar 19 15:07:33 2018
+#      by: PyQt4 UI code generator 4.10.2
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt4 import QtCore, QtGui
+from qgis.PyQt import QtCore, QtGui
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -56,8 +56,8 @@ class Ui_importPhotos(object):
         self.webView.setWhatsThis(_fromUtf8(""))
         self.webView.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.webView.setAutoFillBackground(True)
-        self.webView.setUrl(QtCore.QUrl(_fromUtf8("c:\\Users\\mkiria01\\Desktop\\test2\\DJI_0243.JPG")))
-        self.webView.setZoomFactor(1.0)
+        self.webView.setProperty("url", QtCore.QUrl(None))
+        self.webView.setProperty("zoomFactor", 1.0)
         self.webView.setObjectName(_fromUtf8("webView"))
         self.infoPhoto1 = QtGui.QLineEdit(importPhotos)
         self.infoPhoto1.setGeometry(QtCore.QRect(0, 0, 113, 20))

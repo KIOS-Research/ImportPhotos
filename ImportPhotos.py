@@ -25,17 +25,18 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt
 
 # Initialize Qt resources from file resources.py
-import resources
+from . import resources_rc
 # Import the code for the dialog
-from ImportPhotos_dialog import ImportPhotosDialog
+from .ImportPhotos_dialog import ImportPhotosDialog
 
-from MouseClick import MouseClick
-from Photos_dialog import PhotosDialog
+from .MouseClick import MouseClick
+from .Photos_dialog import PhotosDialog
 import os.path
-from PIL import Image
-from PIL.ExifTags import TAGS
+import exifread
+
 import uuid
 import platform
+
 
 class ImportPhotos:
     """QGIS Plugin Implementation."""
@@ -66,7 +67,6 @@ class ImportPhotos:
             if qVersion() > '4.3.3':
                 QCoreApplication.installTranslator(self.translator)
 
-
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr(u'&ImportPhotos')
@@ -89,18 +89,17 @@ class ImportPhotos:
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('ImportPhotos', message)
 
-
     def add_action(
-        self,
-        icon_path,
-        text,
-        callback,
-        enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
-        status_tip=None,
-        whats_this=None,
-        parent=None):
+            self,
+            icon_path,
+            text,
+            callback,
+            enabled_flag=True,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip=None,
+            whats_this=None,
+            parent=None):
         """Add a toolbar icon to the toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
@@ -162,10 +161,9 @@ class ImportPhotos:
                 action)
 
         self.actions.append(action)
-             
+
         return action
 
-        
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
         icon_path = ':/plugins/ImportPhotos/svg/ImportImage.svg'
@@ -204,10 +202,10 @@ class ImportPhotos:
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginMenu(
-            self.tr(u'&ImportPhotos'),
-            action)
+                self.tr(u'&ImportPhotos'),
+                action)
             self.iface.removeToolBarIcon(action)
-         # remove the toolbar
+            # remove the toolbar
         del self.toolbar
 
     def run(self):
@@ -226,25 +224,27 @@ class ImportPhotos:
 
     def toolButtonOut(self):
 
-        self.outDirectoryPhotosShapefile = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(os.path.join(os.path.expanduser('~')),
-                                                                             'Desktop'), 'GeoJSON (*.geojson *.GEOJSON)')
+        self.outDirectoryPhotosShapefile = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
+            os.path.join(os.path.expanduser('~')),
+            'Desktop'), 'GeoJSON (*.geojson *.GEOJSON)')
+        self.outDirectoryPhotosShapefile = self.outDirectoryPhotosShapefile[0]
         self.dlg.out.setText(self.outDirectoryPhotosShapefile)
 
     def toolButtonImport(self):
-        #try:
+        # try:
         self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
                                                                 os.path.join(os.path.join(os.path.expanduser('~')),
                                                                              'Desktop'), QFileDialog.ShowDirsOnly)
-        #except:
-            #self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
-            #                                              os.path.join(os.path.join(os.environ['USERPROFILE']),
-            #                                                           'Desktop'), QFileDialog.ShowDirsOnly)
+        # except:
+        # self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
+        #                                              os.path.join(os.path.join(os.environ['USERPROFILE']),
+        #                                                           'Desktop'), QFileDialog.ShowDirsOnly)
         if self.directoryPhotos == "":
             return
         self.dlg.imp.setText(self.directoryPhotos)
 
     def ok(self):
-        if self.dlg.imp.text()=='':
+        if self.dlg.imp.text() == '':
             msgBox = QMessageBox()
             msgBox.setIcon(QMessageBox.Warning)
             msgBox.setWindowTitle('Warning')
@@ -252,7 +252,7 @@ class ImportPhotos:
             msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
             msgBox.exec_()
             return
-        if self.dlg.out.text()=='':
+        if self.dlg.out.text() == '':
             msgBox = QMessageBox()
             msgBox.setIcon(QMessageBox.Warning)
             msgBox.setWindowTitle('Warning')
@@ -302,92 +302,71 @@ class ImportPhotos:
 
         self.total = 100.0 / len(photos)
         self.iface.mapCanvas().setMapTool(self.toolMouseClick)
-        self.outDirectoryPhotosShapefile=self.dlg.out.text()
+        self.outDirectoryPhotosShapefile = self.dlg.out.text()
         basename = os.path.basename(self.outDirectoryPhotosShapefile)
         lphoto = basename[:-8]
-        if platform.system()=='Darwin':
-            self.layernamePhotos.append(lphoto+' OGRGeoJSON Point')
+        if platform.system() == 'Darwin':
+            self.layernamePhotos.append(lphoto + ' OGRGeoJSON Point')
         else:
             self.layernamePhotos.append(lphoto)
 
         truePhotosCount = 0
         for count, imgpath in enumerate(photos):
+            #try:
+            self.dlg.progressBar.setValue(int(count * self.total))
+
+            with open(imgpath, 'rb') as imgpathF:
+                tags = exifread.process_file(imgpathF, details=False)
+            if not tags.keys() & {"GPS GPSLongitude", "GPS GPSLatitude"}:
+                continue
+
+            name = os.path.basename(imgpath)
+            imgpath = imgpath.replace('\\', '/')
+            lat, lon = self.get_exif_location(tags, "lonlat")
             try:
-                self.dlg.progressBar.setValue(int(count * self.total))
-                a = {}
-                info = Image.open(imgpath)
-                info = info._getexif()
-
-                if info == None:
-                    continue
-
-                for tag, value in info.items():
-                    if TAGS.get(tag, tag) == 'GPSInfo' or TAGS.get(tag, tag) == 'DateTime' or TAGS.get(tag,
-                                                                                                       tag) == 'DateTimeOriginal':
-                        a[TAGS.get(tag, tag)] = value
-
-                if a == {}:
-                    continue
-
-                name = os.path.basename(imgpath)
-                imgpath = imgpath.replace('\\', '/')
-                if a['GPSInfo'] != {}:
-                    if 1 and 2 and 3 and 4 in a['GPSInfo']:
-                        lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
-                        latref = a['GPSInfo'][1]
-                        lon = [float(x) / float(y) for x, y in a['GPSInfo'][4]]
-                        lonref = a['GPSInfo'][3]
-
-                        lat = lat[0] + lat[1] / 60 + lat[2] / 3600
-                        lon = lon[0] + lon[1] / 60 + lon[2] / 3600
-
-                        if latref == 'S':
-                            lat = -lat
-                        if lonref == 'W':
-                            lon = -lon
-                    else:
-                        continue
-
-                    uuid_ = str(uuid.uuid4())
-                    if 'DateTime' or 'DateTimeOriginal' in a:
-                        if 'DateTime' in a:
-                            dt1, dt2 = a['DateTime'].split()
-                        elif 'DateTimeOriginal' in a:
-                            dt1, dt2 = a['DateTimeOriginal'].split()
-                        date = dt1.replace(':', '/')
-                        time_ = dt2
-
-                    if 6 in a['GPSInfo']:
-                        if len(a['GPSInfo'][6]) > 1:
-                            mAltitude = float(a['GPSInfo'][6][0])
-                            mAltitudeDec = float(a['GPSInfo'][6][1])
-                            altitude = str(mAltitude / mAltitudeDec)
-                    else:
-                        altitude = ''
-
-                    if 16 and 17 in a['GPSInfo']:
-                        north = str(a['GPSInfo'][16])
-                        azimuth = str(a['GPSInfo'][17][0])
-                    else:
-                        north = ''
-                        azimuth = ''
-                truePhotosCount = truePhotosCount + 1
-                geoPhotoFile.append(
-                    '''{ "type": "Feature", "properties": {  "ID": ''' + '"' + uuid_ + '"' + ', "Name": ' + '"' + name + '"' + ', "Date": ' + '"' + date +
-                    '"' + ', "Time": ' + '"' + time_ + '"' + ', "Altitude": ' + '"' + altitude + '"' + ', "Lon": ' + '"' + str(
-                        lon) + '"' +
-                    ', "Lat": ' + '"' + str(
-                        lat) + '"' + ', "North": ' + '"' + north + '"' + ', "Azimuth": ' + '"' + azimuth + '"' + ', "Path": ' + '"' + imgpath + '"'
-                    + ',}, "geometry": { "type": "Point",  "coordinates": ' + '[' + str(lon) + ',' + str(lat) + ']')
-                geoPhotoFile.append('}\n }')
-                f = open(self.outDirectoryPhotosShapefile, "w")
-                for line in geoPhotoFile:
-                    f.write(line)
-                f.write('\n]\n}\n')
-                f.close()
-                geoPhotoFile.append(',\n')
+                altitude = str(float(tags["GPS GPSAltitude"].values[0].num) / float(tags["GPS GPSAltitude"].values[0].den))
             except:
-                pass
+                altitude = ''
+            uuid_ = str(uuid.uuid4())
+
+            try:
+                dt1, dt2 = tags["Image DateTime"].values.split()
+                date = dt1.replace(':', '/')
+                time_ = dt2
+            except:
+                try:
+                    date = tags["GPS GPSDate"].values.replace(':', '/')
+                    tt = [str(i) for i in tags["GPS GPSTimeStamp"].values]
+                    time_ = "{:0>2}:{:0>2}:{:0>2}".format(tt[0], tt[1], tt[2])
+                except:
+                    pass
+
+            try:
+                azimuth = str(tags["GPS GPSImgDirection"].values[0])
+            except:
+                azimuth = ''
+            try:
+                north = str(tags["GPS GPSImgDirectionRef"].values)
+            except:
+                north = ''
+
+            truePhotosCount = truePhotosCount + 1
+            geoPhotoFile.append('''{ "type": "Feature", "properties": {  "ID": ''' + '"' + uuid_ + '"' + ', "Name": ' + '"' + name + '"' + ', "Date": ' + '"' + date +
+                '"' + ', "Time": ' + '"' + time_ + '"' + ', "Altitude": ' + '"' + altitude + '"' + ', "Lon": ' + '"' +
+                str(lon) + '"' +
+                ', "Lat": ' + '"' + str(lat) + '"' + ', "North": ' + '"' + north + '"' + ', "Azimuth": ' + '"' + azimuth + '"' + ', "Path": ' + '"' + imgpath + '"'
+                + ',}, "geometry": { "type": "Point",  "coordinates": ' + '[' + str(lon) + ',' + str(lat) + ']')
+
+            geoPhotoFile.append('}\n }')
+            f = open(self.outDirectoryPhotosShapefile, "w")
+            for line in geoPhotoFile:
+                f.write(line)
+            f.write('\n]\n}\n')
+            f.close()
+            geoPhotoFile.append(',\n')
+            #except:
+            #    pass
+
         self.layerPhotos = self.iface.addVectorLayer(self.outDirectoryPhotosShapefile, lphoto, "ogr")
         self.layerPhotos.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
         self.layerPhotos.setReadOnly()
@@ -396,7 +375,7 @@ class ImportPhotos:
         ###########################################
         initphotos = len(photos)
         noLocationPhotosCounter = initphotos - truePhotosCount
-        if truePhotosCount==noLocationPhotosCounter==0 or truePhotosCount==0:
+        if truePhotosCount == noLocationPhotosCounter == 0 or truePhotosCount == 0:
             msgBox = QMessageBox()
             msgBox.setIcon(QMessageBox.Warning)
             msgBox.setWindowTitle('Import Photos')
@@ -419,9 +398,60 @@ class ImportPhotos:
         self.dlg.toolButtonOut.setEnabled(True)
         self.clickPhotos.setChecked(True)
 
-    def refresh(self): # Deselect features
+    def refresh(self):  # Deselect features
         mc = self.iface.mapCanvas()
         for layer in mc.layers():
             if layer.type() == layer.VectorLayer:
                 layer.removeSelection()
         mc.refresh()
+
+
+
+######################################################
+# based on http://www.codegists.com/snippet/python/exif_gpspy_snakeye_python
+
+    def _get_if_exist(self, data, key):
+        if key in data:
+            return data[key]
+
+        return None
+
+
+    def _convert_to_degress(self, value):
+        """
+        Helper function to convert the GPS coordinates stored in the EXIF to degress in float format
+
+        :param value:
+        :type value: exifread.utils.Ratio
+        :rtype: float
+        """
+        d = float(value.values[0].num) / float(value.values[0].den)
+        m = float(value.values[1].num) / float(value.values[1].den)
+        s = float(value.values[2].num) / float(value.values[2].den)
+
+        return d + (m / 60.0) + (s / 3600.0)
+
+
+    def get_exif_location(self, exif_data, lonlat):
+        """
+        Returns the latitude and longitude, if available, from the provided exif_data (obtained through get_exif_data above)
+        """
+
+        if lonlat=='lonlat':
+            lat = ''
+            lon = ''
+            gps_latitude = self._get_if_exist(exif_data, 'GPS GPSLatitude')
+            gps_latitude_ref = self._get_if_exist(exif_data, 'GPS GPSLatitudeRef')
+            gps_longitude = self._get_if_exist(exif_data, 'GPS GPSLongitude')
+            gps_longitude_ref = self._get_if_exist(exif_data, 'GPS GPSLongitudeRef')
+
+            if gps_latitude and gps_latitude_ref and gps_longitude and gps_longitude_ref:
+                lat = self._convert_to_degress(gps_latitude)
+                if gps_latitude_ref.values[0] != 'N':
+                    lat = 0 - lat
+
+                lon = self._convert_to_degress(gps_longitude)
+                if gps_longitude_ref.values[0] != 'E':
+                    lon = 0 - lon
+
+            return lat, lon

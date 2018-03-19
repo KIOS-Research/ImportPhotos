@@ -27,9 +27,8 @@ from qgis.PyQt.QtCore import *
 from qgis.core import QgsRectangle
 from qgis.gui import QgsMapTool, QgsRubberBand
 from qgis.PyQt import QtCore
-from PIL import Image
 import ctypes
-import platform
+import exifread
 
 try:
     from AppKit import NSScreen
@@ -62,11 +61,6 @@ class MouseClick(QgsMapTool):
         if event.button() == 1:
             self.drawSelf.refresh()
 
-            try:
-                if platform.system() == 'Darwin':
-                    self.drawSelf.photosDLG.webView.history().clear()
-            except:
-                pass
     def canvasMoveEvent(self, event):
         pass
 
@@ -98,7 +92,7 @@ class MouseClick(QgsMapTool):
                 #try:
                 if (layer.name() in self.drawSelf.layernamePhotos)==True:
                     lRect = self.canvas.mapSettings().mapToLayerCoordinates(layer, rect)
-                    layer.select(lRect, False)
+                    layer.selectByRect(lRect, False)
                     selected_features = layer.selectedFeatures()
                     if selected_features != []:
                         layersSelected.append(layer)
@@ -106,9 +100,15 @@ class MouseClick(QgsMapTool):
                         feature = selected_features[0]
 
                         imPath = feature.attributes()[feature.fieldNameIndex('Path')]
-                        im = Image.open(imPath)
-                        width, height = im.size
-                        x=0;y=0#;zoomFactor=1
+                        try:
+                            f = open(imPath, 'rb')
+                            tags = exifread.process_file(f, details=False)
+                            height = tags['EXIF ExifImageLength'].values[0]
+                            width = tags['EXIF ExifImageWidth'].values[0]
+                        except:
+                            width, height = 4000, 3000
+                        x=0
+                        y=0
                         if height < width:
                             if width>1000:
                                 if width>self.screensize[0]:
@@ -138,7 +138,8 @@ class MouseClick(QgsMapTool):
                         self.drawSelf.photosDLG.webView.setGeometry(QRect(x, y, width, height))
                         self.drawSelf.photosDLG.webView.setMinimumSize(QSize(width, height))
                         self.drawSelf.photosDLG.webView.setMaximumSize(QSize(width, height))
-                        self.drawSelf.photosDLG.webView.load(QUrl(imPath))
+                        self.drawSelf.photosDLG.webView.history().clear()
+                        self.drawSelf.photosDLG.webView.load(QUrl("file:///"+imPath))
                         self.drawSelf.photosDLG.infoPhoto1.setText('Date: '+str(feature.attributes()[feature.fieldNameIndex('Date')].toString('yyyy-MM-dd')))
                         self.drawSelf.photosDLG.infoPhoto2.setText('Time: '+str(feature.attributes()[feature.fieldNameIndex('Time')].toString('hh:mm:ss')))
                         self.drawSelf.photosDLG.infoPhoto3.setText("Altitude: "+str(feature.attributes()[feature.fieldNameIndex('Altitude')])+' m')
