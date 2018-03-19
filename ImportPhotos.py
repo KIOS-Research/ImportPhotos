@@ -243,23 +243,37 @@ class ImportPhotos:
             return
         self.dlg.imp.setText(self.directoryPhotos)
 
+    def selectDir(self):
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setWindowTitle('Warning')
+        msgBox.setText('Please select a directory photos.')
+        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+        msgBox.exec_()
+        return True
+
+    def selectOutp(self):
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setWindowTitle('Warning')
+        msgBox.setText('Please write ouptut shapefile.')
+        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+        msgBox.exec_()
+        return True
+
     def ok(self):
         if self.dlg.imp.text() == '':
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Warning)
-            msgBox.setWindowTitle('Warning')
-            msgBox.setText('Please select a directory photos.')
-            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-            msgBox.exec_()
-            return
+            if self.selectDir():
+                return
+        elif os.path.isdir(self.dlg.imp.text())==False:
+            if self.selectDir():
+                return
         if self.dlg.out.text() == '':
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Warning)
-            msgBox.setWindowTitle('Warning')
-            msgBox.setText('Please write ouptut shapefile.')
-            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-            msgBox.exec_()
-            return
+            if self.selectOutp():
+                return
+        elif os.path.isabs(self.dlg.out.text())==False:
+            if self.selectOutp():
+                return
 
         self.dlg.ok.setEnabled(False)
         self.dlg.closebutton.setEnabled(False)
