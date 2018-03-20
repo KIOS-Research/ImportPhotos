@@ -27,13 +27,9 @@ from qgis.PyQt.QtCore import *
 from qgis.core import QgsRectangle
 from qgis.gui import QgsMapTool, QgsRubberBand
 from qgis.PyQt import QtCore
-import ctypes
+import qgis.utils
 import exifread
 
-try:
-    from AppKit import NSScreen
-except:
-    pass
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
 except AttributeError:
@@ -49,13 +45,6 @@ class MouseClick(QgsMapTool):
         self.canvas = canvas
         self.drawSelf = drawSelf
         self.drawSelf.rb = None
-        self.screensize = []
-        try:
-            user32 = ctypes.windll.user32
-            self.screensize = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
-        except:
-            self.screensize.append(NSScreen.mainScreen().frame().size.width)
-            self.screensize.append(NSScreen.mainScreen().frame().size.height)
 
     def canvasPressEvent(self, event):
         if event.button() == 1:
@@ -87,7 +76,8 @@ class MouseClick(QgsMapTool):
             except:
                 return
             layersSelected = []
-
+            widthScreen = qgis.utils.iface.mainWindow().size().width()
+            heightScreen = qgis.utils.iface.mainWindow().size().height()
             for layer in layers:
                 #try:
                 if (layer.name() in self.drawSelf.layernamePhotos)==True:
@@ -118,8 +108,8 @@ class MouseClick(QgsMapTool):
                         y=0
                         if height < width:
                             if width>1000:
-                                if width>self.screensize[0]:
-                                    width = self.screensize[0]*0.6
+                                if width>widthScreen:
+                                    width = widthScreen*0.5658
                                 else:
                                     width = width*0.252#width/(width/1000)
                             elif width<200:
@@ -127,8 +117,8 @@ class MouseClick(QgsMapTool):
                                 x=113
                                # zoomFactor=1.5
                             if height>700:
-                                if height>self.screensize[1]:
-                                    height = self.screensize[1]*0.8
+                                if height>heightScreen:
+                                    height = heightScreen*0.8
                                 else:
                                     height = height*0.252
 

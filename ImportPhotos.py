@@ -34,10 +34,7 @@ from .MouseClick import MouseClick
 from .Photos_dialog import PhotosDialog
 import os.path
 import exifread
-
 import uuid
-import platform
-
 
 class ImportPhotos:
     """QGIS Plugin Implementation."""
@@ -308,10 +305,8 @@ class ImportPhotos:
         self.outDirectoryPhotosShapefile = self.dlg.out.text()
         basename = os.path.basename(self.outDirectoryPhotosShapefile)
         lphoto = basename[:-8]
-        if platform.system() == 'Darwin':
-            self.layernamePhotos.append(lphoto + ' OGRGeoJSON Point')
-        else:
-            self.layernamePhotos.append(lphoto)
+
+        self.layernamePhotos.append(lphoto)
 
         truePhotosCount = 0
         for count, imgpath in enumerate(photos):
