@@ -23,6 +23,7 @@
 from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt
+from qgis.core import QgsProject, QgsRectangle
 
 # Initialize Qt resources from file resources.py
 from . import resources_rc
@@ -235,31 +236,41 @@ class ImportPhotos:
         self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
                                                                 os.path.join(os.path.join(os.path.expanduser('~')),
                                                                              'Desktop'), QFileDialog.ShowDirsOnly)
-        # except:
-        # self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
-        #                                              os.path.join(os.path.join(os.environ['USERPROFILE']),
-        #                                                           'Desktop'), QFileDialog.ShowDirsOnly)
         if self.directoryPhotos == "":
             return
         self.dlg.imp.setText(self.directoryPhotos)
 
+    def selectDir(self):
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setWindowTitle('Warning')
+        msgBox.setText('Please select a directory photos.')
+        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+        msgBox.exec_()
+        return True
+
+    def selectOutp(self):
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setWindowTitle('Warning')
+        msgBox.setText('Please write ouptut shapefile.')
+        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+        msgBox.exec_()
+        return True
+
     def ok(self):
         if self.dlg.imp.text() == '':
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Warning)
-            msgBox.setWindowTitle('Warning')
-            msgBox.setText('Please select a directory photos.')
-            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-            msgBox.exec_()
-            return
+            if self.selectDir():
+                return
+        elif os.path.isdir(self.dlg.imp.text())==False:
+            if self.selectDir():
+                return
         if self.dlg.out.text() == '':
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Warning)
-            msgBox.setWindowTitle('Warning')
-            msgBox.setText('Please write ouptut shapefile.')
-            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-            msgBox.exec_()
-            return
+            if self.selectOutp():
+                return
+        elif os.path.isabs(self.dlg.out.text())==False:
+            if self.selectOutp():
+                return
 
         self.dlg.ok.setEnabled(False)
         self.dlg.closebutton.setEnabled(False)
@@ -285,20 +296,12 @@ class ImportPhotos:
             self.clickPhotos.setChecked(True)
             return
 
-        if os.path.exists(self.outDirectoryPhotosShapefile) == True:
-            f = open(self.outDirectoryPhotosShapefile, 'r')
-            lines = [line.rstrip('\n') for line in f]
-            geoPhotoFile = lines[:-2]
-            geoPhotoFile.append(',')
-            f.close()
-        else:
-            # makeLayer
-            geoPhotoFile = []
-            geoPhotoFile.append('''{ "type": "FeatureCollection", ''')
-            geoPhotoFile.append(
-                '''"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } }, ''')
-            geoPhotoFile.append('\n')
-            geoPhotoFile.append('"features": [')
+        geoPhotoFile = []
+        geoPhotoFile.append('''{ "type": "FeatureCollection", ''')
+        geoPhotoFile.append(
+          '''"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } }, ''')
+        geoPhotoFile.append('\n')
+        geoPhotoFile.append('"features": [')
 
         self.total = 100.0 / len(photos)
         self.iface.mapCanvas().setMapTool(self.toolMouseClick)
@@ -312,7 +315,6 @@ class ImportPhotos:
 
         truePhotosCount = 0
         for count, imgpath in enumerate(photos):
-            #try:
             self.dlg.progressBar.setValue(int(count * self.total))
 
             with open(imgpath, 'rb') as imgpathF:
@@ -339,7 +341,8 @@ class ImportPhotos:
                     tt = [str(i) for i in tags["GPS GPSTimeStamp"].values]
                     time_ = "{:0>2}:{:0>2}:{:0>2}".format(tt[0], tt[1], tt[2])
                 except:
-                    pass
+                    date = ''
+                    time_ = ''
 
             try:
                 azimuth = str(tags["GPS GPSImgDirection"].values[0])
@@ -364,12 +367,23 @@ class ImportPhotos:
             f.write('\n]\n}\n')
             f.close()
             geoPhotoFile.append(',\n')
-            #except:
-            #    pass
 
-        self.layerPhotos = self.iface.addVectorLayer(self.outDirectoryPhotosShapefile, lphoto, "ogr")
-        self.layerPhotos.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
-        self.layerPhotos.setReadOnly()
+        if len(QgsProject.instance().mapLayersByName(lphoto)) == 0:
+            self.layerPhotos = self.iface.addVectorLayer(self.outDirectoryPhotosShapefile, lphoto, "ogr")
+            self.layerPhotos.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
+            self.layerPhotos.setReadOnly()
+        else:
+            try:
+                self.layerPhotos.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
+                self.layerPhotos.setReadOnly()
+                self.layerPhotos.reload()
+                self.layerPhotos.triggerRepaint()
+            except:
+                pass
+            try:
+                self.iface.mapCanvas().setExtent(QgsRectangle(lon, lat, lon, lat))
+            except:
+                pass
         self.dlg.progressBar.setValue(100)
         self.dlg.progressBar.setValue(0)
         ###########################################
