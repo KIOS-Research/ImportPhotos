@@ -241,7 +241,7 @@ class ImportPhotos:
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Warning)
         msgBox.setWindowTitle('Warning')
-        msgBox.setText('Please select a directory photos.')
+        msgBox.setText('Please select a folder with photos.')
         msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
         msgBox.exec_()
         return True
@@ -250,7 +250,7 @@ class ImportPhotos:
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Warning)
         msgBox.setWindowTitle('Warning')
-        msgBox.setText('Please write ouptut shapefile.')
+        msgBox.setText('Please define output file location.')
         msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
         msgBox.exec_()
         return True
@@ -259,16 +259,28 @@ class ImportPhotos:
         if self.dlg.imp.text() == '':
             if self.selectDir():
                 return
-        elif os.path.isdir(self.dlg.imp.text())==False:
+        if os.path.isdir(self.dlg.imp.text())==False:
             if self.selectDir():
                 return
         if self.dlg.out.text() == '':
             if self.selectOutp():
                 return
-        elif os.path.isabs(self.dlg.out.text())==False:
+        if os.path.isabs(self.dlg.out.text())==False:
             if self.selectOutp():
                 return
-
+        self.outDirectoryPhotosShapefile = self.dlg.out.text()
+        try:
+            f = open(self.outDirectoryPhotosShapefile, "w")
+            f.close()
+        except:
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setWindowTitle('Warning')
+            msgBox.setText('Please define output file location.')
+            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+            msgBox.exec_()
+            return 
+            
         self.dlg.ok.setEnabled(False)
         self.dlg.closebutton.setEnabled(False)
         self.dlg.toolButtonImport.setEnabled(False)
@@ -302,7 +314,6 @@ class ImportPhotos:
 
         self.total = 100.0 / len(photos)
         self.iface.mapCanvas().setMapTool(self.toolMouseClick)
-        self.outDirectoryPhotosShapefile = self.dlg.out.text()
         basename = os.path.basename(self.outDirectoryPhotosShapefile)
         lphoto = basename[:-8]
 

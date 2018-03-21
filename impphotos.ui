@@ -13,6 +13,18 @@
     <height>164</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>377</width>
+    <height>164</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>377</width>
+    <height>164</height>
+   </size>
+  </property>
   <property name="windowTitle">
    <string>ImportPhotos</string>
   </property>
@@ -27,12 +39,12 @@
     <rect>
      <x>10</x>
      <y>20</y>
-     <width>81</width>
+     <width>101</width>
      <height>16</height>
     </rect>
    </property>
    <property name="text">
-    <string>Import directory</string>
+    <string>Input folder location</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_2">
@@ -40,20 +52,20 @@
     <rect>
      <x>10</x>
      <y>50</y>
-     <width>91</width>
+     <width>101</width>
      <height>21</height>
     </rect>
    </property>
    <property name="text">
-    <string>Output shapefile</string>
+    <string>Output file location</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="imp">
    <property name="geometry">
     <rect>
-     <x>100</x>
+     <x>130</x>
      <y>20</y>
-     <width>190</width>
+     <width>151</width>
      <height>20</height>
     </rect>
    </property>
@@ -74,9 +86,9 @@
   <widget class="QLineEdit" name="out">
    <property name="geometry">
     <rect>
-     <x>100</x>
+     <x>130</x>
      <y>50</y>
-     <width>190</width>
+     <width>151</width>
      <height>20</height>
     </rect>
    </property>

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'impphotos.ui'
 #
-# Created: Wed Oct 18 16:58:14 2017
+# Created: Wed Mar 21 17:17:18 2018
 #      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -28,22 +28,24 @@ class Ui_photosImp(object):
         photosImp.setObjectName(_fromUtf8("photosImp"))
         photosImp.setWindowModality(QtCore.Qt.ApplicationModal)
         photosImp.resize(377, 164)
+        photosImp.setMinimumSize(QtCore.QSize(377, 164))
+        photosImp.setMaximumSize(QtCore.QSize(377, 164))
         photosImp.setWhatsThis(_fromUtf8(""))
         photosImp.setSizeGripEnabled(False)
         self.label = QtGui.QLabel(photosImp)
-        self.label.setGeometry(QtCore.QRect(10, 20, 81, 16))
+        self.label.setGeometry(QtCore.QRect(10, 20, 101, 16))
         self.label.setObjectName(_fromUtf8("label"))
         self.label_2 = QtGui.QLabel(photosImp)
-        self.label_2.setGeometry(QtCore.QRect(10, 50, 91, 21))
+        self.label_2.setGeometry(QtCore.QRect(10, 50, 101, 21))
         self.label_2.setObjectName(_fromUtf8("label_2"))
         self.imp = QtGui.QLineEdit(photosImp)
-        self.imp.setGeometry(QtCore.QRect(100, 20, 190, 20))
+        self.imp.setGeometry(QtCore.QRect(130, 20, 151, 20))
         self.imp.setObjectName(_fromUtf8("imp"))
         self.toolButtonImport = QtGui.QToolButton(photosImp)
         self.toolButtonImport.setGeometry(QtCore.QRect(300, 20, 60, 19))
         self.toolButtonImport.setObjectName(_fromUtf8("toolButtonImport"))
         self.out = QtGui.QLineEdit(photosImp)
-        self.out.setGeometry(QtCore.QRect(100, 50, 190, 20))
+        self.out.setGeometry(QtCore.QRect(130, 50, 151, 20))
         self.out.setObjectName(_fromUtf8("out"))
         self.toolButtonOut = QtGui.QToolButton(photosImp)
         self.toolButtonOut.setGeometry(QtCore.QRect(300, 50, 60, 19))
@@ -64,8 +66,8 @@ class Ui_photosImp(object):
 
     def retranslateUi(self, photosImp):
         photosImp.setWindowTitle(_translate("photosImp", "ImportPhotos", None))
-        self.label.setText(_translate("photosImp", "Import directory", None))
-        self.label_2.setText(_translate("photosImp", "Output shapefile", None))
+        self.label.setText(_translate("photosImp", "Input folder location", None))
+        self.label_2.setText(_translate("photosImp", "Output file location", None))
         self.toolButtonImport.setText(_translate("photosImp", "Browse...", None))
         self.toolButtonOut.setText(_translate("photosImp", "Browse...", None))
         self.ok.setText(_translate("photosImp", "OK", None))

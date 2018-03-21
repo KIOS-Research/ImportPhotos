@@ -1,9 +1,9 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis simplifyMaxScale="1" minScale="1e+8" simplifyDrawingHints="0" version="3.0.0-Girona" hasScaleBasedVisibilityFlag="0" readOnly="0" labelsEnabled="0" simplifyLocal="1" simplifyAlgorithm="0" simplifyDrawingTol="1" maxScale="0">
-  <renderer-v2 forceraster="0" enableorderby="0" symbollevels="0" type="singleSymbol">
+<qgis hasScaleBasedVisibilityFlag="0" simplifyMaxScale="1" readOnly="1" labelsEnabled="0" simplifyLocal="1" minScale="1e+8" simplifyDrawingHints="0" simplifyDrawingTol="1" simplifyAlgorithm="0" maxScale="0" version="3.0.0-Girona">
+  <renderer-v2 enableorderby="0" forceraster="0" symbollevels="0" type="singleSymbol">
     <symbols>
-      <symbol name="0" alpha="1" clip_to_extent="1" type="marker">
-        <layer pass="0" class="SimpleMarker" enabled="1" locked="0">
+      <symbol clip_to_extent="1" name="0" alpha="1" type="marker">
+        <layer class="SimpleMarker" enabled="1" pass="0" locked="0">
           <prop k="angle" v="0"/>
           <prop k="color" v="255,255,255,255"/>
           <prop k="horizontal_anchor_point" v="1"/>
@@ -24,13 +24,13 @@
           <prop k="vertical_anchor_point" v="1"/>
           <data_defined_properties>
             <Option type="Map">
-              <Option value="" name="name" type="QString"/>
+              <Option name="name" value="" type="QString"/>
               <Option name="properties"/>
-              <Option value="collection" name="type" type="QString"/>
+              <Option name="type" value="collection" type="QString"/>
             </Option>
           </data_defined_properties>
         </layer>
-        <layer pass="0" class="SimpleMarker" enabled="1" locked="0">
+        <layer class="SimpleMarker" enabled="1" pass="0" locked="0">
           <prop k="angle" v="0"/>
           <prop k="color" v="97,97,97,255"/>
           <prop k="horizontal_anchor_point" v="1"/>
@@ -51,13 +51,13 @@
           <prop k="vertical_anchor_point" v="1"/>
           <data_defined_properties>
             <Option type="Map">
-              <Option value="" name="name" type="QString"/>
+              <Option name="name" value="" type="QString"/>
               <Option name="properties"/>
-              <Option value="collection" name="type" type="QString"/>
+              <Option name="type" value="collection" type="QString"/>
             </Option>
           </data_defined_properties>
         </layer>
-        <layer pass="0" class="SimpleMarker" enabled="1" locked="0">
+        <layer class="SimpleMarker" enabled="1" pass="0" locked="0">
           <prop k="angle" v="0"/>
           <prop k="color" v="97,97,97,255"/>
           <prop k="horizontal_anchor_point" v="1"/>
@@ -78,13 +78,13 @@
           <prop k="vertical_anchor_point" v="1"/>
           <data_defined_properties>
             <Option type="Map">
-              <Option value="" name="name" type="QString"/>
+              <Option name="name" value="" type="QString"/>
               <Option name="properties"/>
-              <Option value="collection" name="type" type="QString"/>
+              <Option name="type" value="collection" type="QString"/>
             </Option>
           </data_defined_properties>
         </layer>
-        <layer pass="0" class="SimpleMarker" enabled="1" locked="0">
+        <layer class="SimpleMarker" enabled="1" pass="0" locked="0">
           <prop k="angle" v="0"/>
           <prop k="color" v="97,97,97,255"/>
           <prop k="horizontal_anchor_point" v="1"/>
@@ -105,9 +105,9 @@
           <prop k="vertical_anchor_point" v="1"/>
           <data_defined_properties>
             <Option type="Map">
-              <Option value="" name="name" type="QString"/>
+              <Option name="name" value="" type="QString"/>
               <Option name="properties"/>
-              <Option value="collection" name="type" type="QString"/>
+              <Option name="type" value="collection" type="QString"/>
             </Option>
           </data_defined_properties>
         </layer>
@@ -117,192 +117,230 @@
     <sizescale/>
   </renderer-v2>
   <customproperties>
-    <property key="dualview/previewExpressions">
-      <value>ID</value>
-      <value>"ID"</value>
-    </property>
-    <property key="embeddedWidgets/count" value="0"/>
+    <property value="0" key="embeddedWidgets/count"/>
     <property key="variableNames"/>
     <property key="variableValues"/>
   </customproperties>
   <blendMode>0</blendMode>
   <featureBlendMode>0</featureBlendMode>
   <layerOpacity>1</layerOpacity>
-  <SingleCategoryDiagramRenderer diagramType="Histogram" attributeLegend="1">
-    <DiagramCategory lineSizeType="MM" height="15" penAlpha="255" diagramOrientation="Up" penColor="#000000" scaleDependency="Area" opacity="1" backgroundColor="#ffffff" minimumSize="0" labelPlacementMethod="XHeight" minScaleDenominator="0" sizeType="MM" scaleBasedVisibility="0" maxScaleDenominator="1e+8" backgroundAlpha="255" width="15" enabled="0" penWidth="0" lineSizeScale="3x:0,0,0,0,0,0" barWidth="5" sizeScale="3x:0,0,0,0,0,0" rotationOffset="270">
+  <SingleCategoryDiagramRenderer attributeLegend="1" diagramType="Histogram">
+    <DiagramCategory barWidth="5" maxScaleDenominator="1e+8" backgroundAlpha="255" minScaleDenominator="0" lineSizeType="MM" sizeScale="3x:0,0,0,0,0,0" backgroundColor="#ffffff" height="15" penAlpha="255" minimumSize="0" opacity="1" scaleDependency="Area" width="15" sizeType="MM" diagramOrientation="Up" lineSizeScale="3x:0,0,0,0,0,0" penWidth="0" rotationOffset="270" labelPlacementMethod="XHeight" enabled="0" scaleBasedVisibility="0" penColor="#000000">
       <fontProperties style="" description="MS Shell Dlg 2,8.25,-1,5,50,0,0,0,0,0"/>
+      <attribute label="" color="#000000" field=""/>
     </DiagramCategory>
   </SingleCategoryDiagramRenderer>
-  <DiagramLayerSettings zIndex="0" dist="0" showAll="1" placement="0" priority="0" linePlacementFlags="18" obstacle="0">
+  <DiagramLayerSettings priority="0" placement="0" obstacle="0" dist="0" linePlacementFlags="18" showAll="1" zIndex="0">
     <properties>
       <Option type="Map">
-        <Option value="" name="name" type="QString"/>
+        <Option name="name" value="" type="QString"/>
         <Option name="properties"/>
-        <Option value="collection" name="type" type="QString"/>
+        <Option name="type" value="collection" type="QString"/>
       </Option>
     </properties>
   </DiagramLayerSettings>
   <fieldConfiguration>
     <field name="ID">
-      <editWidget type="TextEdit">
+      <editWidget type="Hidden">
         <config>
           <Option/>
         </config>
       </editWidget>
     </field>
     <field name="Name">
-      <editWidget type="TextEdit">
+      <editWidget type="Hidden">
         <config>
           <Option/>
         </config>
       </editWidget>
     </field>
     <field name="Date">
-      <editWidget type="DateTime">
+      <editWidget type="TextEdit">
         <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="IsMultiline" value="false" type="bool"/>
+            <Option name="UseHtml" value="false" type="bool"/>
+          </Option>
         </config>
       </editWidget>
     </field>
     <field name="Time">
-      <editWidget type="DateTime">
+      <editWidget type="TextEdit">
         <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="IsMultiline" value="false" type="bool"/>
+            <Option name="UseHtml" value="false" type="bool"/>
+          </Option>
         </config>
       </editWidget>
     </field>
     <field name="Lon">
       <editWidget type="TextEdit">
         <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="IsMultiline" value="false" type="bool"/>
+            <Option name="UseHtml" value="false" type="bool"/>
+          </Option>
         </config>
       </editWidget>
     </field>
     <field name="Lat">
       <editWidget type="TextEdit">
         <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="IsMultiline" value="false" type="bool"/>
+            <Option name="UseHtml" value="false" type="bool"/>
+          </Option>
         </config>
       </editWidget>
     </field>
     <field name="Altitude">
       <editWidget type="TextEdit">
         <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="IsMultiline" value="false" type="bool"/>
+            <Option name="UseHtml" value="false" type="bool"/>
+          </Option>
         </config>
       </editWidget>
     </field>
     <field name="North">
       <editWidget type="TextEdit">
         <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="IsMultiline" value="false" type="bool"/>
+            <Option name="UseHtml" value="false" type="bool"/>
+          </Option>
         </config>
       </editWidget>
     </field>
     <field name="Azimuth">
       <editWidget type="TextEdit">
         <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="IsMultiline" value="false" type="bool"/>
+            <Option name="UseHtml" value="false" type="bool"/>
+          </Option>
         </config>
       </editWidget>
     </field>
     <field name="Camera Maker">
       <editWidget type="TextEdit">
         <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="IsMultiline" value="false" type="bool"/>
+            <Option name="UseHtml" value="false" type="bool"/>
+          </Option>
         </config>
       </editWidget>
     </field>
     <field name="Camera Model">
       <editWidget type="TextEdit">
         <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="IsMultiline" value="false" type="bool"/>
+            <Option name="UseHtml" value="false" type="bool"/>
+          </Option>
         </config>
       </editWidget>
     </field>
     <field name="Path">
-      <editWidget type="TextEdit">
+      <editWidget type="ExternalResource">
         <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="DocumentViewer" value="1" type="int"/>
+            <Option name="DocumentViewerHeight" value="0" type="int"/>
+            <Option name="DocumentViewerWidth" value="0" type="int"/>
+            <Option name="FileWidget" value="true" type="bool"/>
+            <Option name="FileWidgetButton" value="true" type="bool"/>
+            <Option name="FileWidgetFilter" value="" type="QString"/>
+            <Option name="PropertyCollection" type="Map">
+              <Option name="name" value="" type="QString"/>
+              <Option name="properties"/>
+              <Option name="type" value="collection" type="QString"/>
+            </Option>
+            <Option name="RelativeStorage" value="0" type="int"/>
+            <Option name="StorageMode" value="0" type="int"/>
+          </Option>
         </config>
       </editWidget>
     </field>
   </fieldConfiguration>
   <aliases>
-    <alias name="" index="0" field="ID"/>
-    <alias name="" index="1" field="Name"/>
-    <alias name="" index="2" field="Date"/>
-    <alias name="" index="3" field="Time"/>
-    <alias name="" index="4" field="Lon"/>
-    <alias name="" index="5" field="Lat"/>
-    <alias name="" index="6" field="Altitude"/>
-    <alias name="" index="7" field="North"/>
-    <alias name="" index="8" field="Azimuth"/>
-    <alias name="" index="9" field="Camera Maker"/>
-    <alias name="" index="10" field="Camera Model"/>
-    <alias name="" index="11" field="Path"/>
+    <alias name="" field="ID" index="0"/>
+    <alias name="" field="Name" index="1"/>
+    <alias name="" field="Date" index="2"/>
+    <alias name="" field="Time" index="3"/>
+    <alias name="" field="Lon" index="4"/>
+    <alias name="" field="Lat" index="5"/>
+    <alias name="" field="Altitude" index="6"/>
+    <alias name="" field="North" index="7"/>
+    <alias name="" field="Azimuth" index="8"/>
+    <alias name="" field="Camera Maker" index="9"/>
+    <alias name="" field="Camera Model" index="10"/>
+    <alias name="" field="Path" index="11"/>
   </aliases>
   <excludeAttributesWMS/>
   <excludeAttributesWFS/>
   <defaults>
-    <default expression="" field="ID" applyOnUpdate="0"/>
-    <default expression="" field="Name" applyOnUpdate="0"/>
-    <default expression="" field="Date" applyOnUpdate="0"/>
-    <default expression="" field="Time" applyOnUpdate="0"/>
-    <default expression="" field="Lon" applyOnUpdate="0"/>
-    <default expression="" field="Lat" applyOnUpdate="0"/>
-    <default expression="" field="Altitude" applyOnUpdate="0"/>
-    <default expression="" field="North" applyOnUpdate="0"/>
-    <default expression="" field="Azimuth" applyOnUpdate="0"/>
-    <default expression="" field="Camera Maker" applyOnUpdate="0"/>
-    <default expression="" field="Camera Model" applyOnUpdate="0"/>
-    <default expression="" field="Path" applyOnUpdate="0"/>
+    <default applyOnUpdate="0" field="ID" expression=""/>
+    <default applyOnUpdate="0" field="Name" expression=""/>
+    <default applyOnUpdate="0" field="Date" expression=""/>
+    <default applyOnUpdate="0" field="Time" expression=""/>
+    <default applyOnUpdate="0" field="Lon" expression=""/>
+    <default applyOnUpdate="0" field="Lat" expression=""/>
+    <default applyOnUpdate="0" field="Altitude" expression=""/>
+    <default applyOnUpdate="0" field="North" expression=""/>
+    <default applyOnUpdate="0" field="Azimuth" expression=""/>
+    <default applyOnUpdate="0" field="Camera Maker" expression=""/>
+    <default applyOnUpdate="0" field="Camera Model" expression=""/>
+    <default applyOnUpdate="0" field="Path" expression=""/>
   </defaults>
   <constraints>
-    <constraint unique_strength="0" exp_strength="0" constraints="0" field="ID" notnull_strength="0"/>
-    <constraint unique_strength="0" exp_strength="0" constraints="0" field="Name" notnull_strength="0"/>
-    <constraint unique_strength="0" exp_strength="0" constraints="0" field="Date" notnull_strength="0"/>
-    <constraint unique_strength="0" exp_strength="0" constraints="0" field="Time" notnull_strength="0"/>
-    <constraint unique_strength="0" exp_strength="0" constraints="0" field="Lon" notnull_strength="0"/>
-    <constraint unique_strength="0" exp_strength="0" constraints="0" field="Lat" notnull_strength="0"/>
-    <constraint unique_strength="0" exp_strength="0" constraints="0" field="Altitude" notnull_strength="0"/>
-    <constraint unique_strength="0" exp_strength="0" constraints="0" field="North" notnull_strength="0"/>
-    <constraint unique_strength="0" exp_strength="0" constraints="0" field="Azimuth" notnull_strength="0"/>
-    <constraint unique_strength="0" exp_strength="0" constraints="0" field="Camera Maker" notnull_strength="0"/>
-    <constraint unique_strength="0" exp_strength="0" constraints="0" field="Camera Model" notnull_strength="0"/>
-    <constraint unique_strength="0" exp_strength="0" constraints="0" field="Path" notnull_strength="0"/>
+    <constraint notnull_strength="0" exp_strength="0" field="ID" constraints="0" unique_strength="0"/>
+    <constraint notnull_strength="0" exp_strength="0" field="Name" constraints="0" unique_strength="0"/>
+    <constraint notnull_strength="0" exp_strength="0" field="Date" constraints="0" unique_strength="0"/>
+    <constraint notnull_strength="0" exp_strength="0" field="Time" constraints="0" unique_strength="0"/>
+    <constraint notnull_strength="0" exp_strength="0" field="Lon" constraints="0" unique_strength="0"/>
+    <constraint notnull_strength="0" exp_strength="0" field="Lat" constraints="0" unique_strength="0"/>
+    <constraint notnull_strength="0" exp_strength="0" field="Altitude" constraints="0" unique_strength="0"/>
+    <constraint notnull_strength="0" exp_strength="0" field="North" constraints="0" unique_strength="0"/>
+    <constraint notnull_strength="0" exp_strength="0" field="Azimuth" constraints="0" unique_strength="0"/>
+    <constraint notnull_strength="0" exp_strength="0" field="Camera Maker" constraints="0" unique_strength="0"/>
+    <constraint notnull_strength="0" exp_strength="0" field="Camera Model" constraints="0" unique_strength="0"/>
+    <constraint notnull_strength="0" exp_strength="0" field="Path" constraints="0" unique_strength="0"/>
   </constraints>
   <constraintExpressions>
-    <constraint desc="" exp="" field="ID"/>
-    <constraint desc="" exp="" field="Name"/>
-    <constraint desc="" exp="" field="Date"/>
-    <constraint desc="" exp="" field="Time"/>
-    <constraint desc="" exp="" field="Lon"/>
-    <constraint desc="" exp="" field="Lat"/>
-    <constraint desc="" exp="" field="Altitude"/>
-    <constraint desc="" exp="" field="North"/>
-    <constraint desc="" exp="" field="Azimuth"/>
-    <constraint desc="" exp="" field="Camera Maker"/>
-    <constraint desc="" exp="" field="Camera Model"/>
-    <constraint desc="" exp="" field="Path"/>
+    <constraint field="ID" desc="" exp=""/>
+    <constraint field="Name" desc="" exp=""/>
+    <constraint field="Date" desc="" exp=""/>
+    <constraint field="Time" desc="" exp=""/>
+    <constraint field="Lon" desc="" exp=""/>
+    <constraint field="Lat" desc="" exp=""/>
+    <constraint field="Altitude" desc="" exp=""/>
+    <constraint field="North" desc="" exp=""/>
+    <constraint field="Azimuth" desc="" exp=""/>
+    <constraint field="Camera Maker" desc="" exp=""/>
+    <constraint field="Camera Model" desc="" exp=""/>
+    <constraint field="Path" desc="" exp=""/>
   </constraintExpressions>
   <attributeactions>
-    <defaultAction key="Canvas" value="{00000000-0000-0000-0000-000000000000}"/>
+    <defaultAction value="{00000000-0000-0000-0000-000000000000}" key="Canvas"/>
   </attributeactions>
-  <attributetableconfig sortOrder="0" sortExpression="" actionWidgetStyle="dropDown">
+  <attributetableconfig sortOrder="1" sortExpression="&quot;Camera Model&quot;" actionWidgetStyle="dropDown">
     <columns>
-      <column width="-1" name="ID" hidden="0" type="field"/>
-      <column width="-1" name="Name" hidden="0" type="field"/>
-      <column width="-1" name="Date" hidden="0" type="field"/>
-      <column width="-1" name="Time" hidden="0" type="field"/>
-      <column width="-1" name="Lon" hidden="0" type="field"/>
-      <column width="-1" name="Lat" hidden="0" type="field"/>
-      <column width="-1" name="Altitude" hidden="0" type="field"/>
-      <column width="-1" name="North" hidden="0" type="field"/>
-      <column width="-1" name="Azimuth" hidden="0" type="field"/>
-      <column width="-1" name="Camera Maker" hidden="0" type="field"/>
-      <column width="-1" name="Camera Model" hidden="0" type="field"/>
-      <column width="-1" name="Path" hidden="0" type="field"/>
+      <column name="ID" width="-1" hidden="0" type="field"/>
+      <column name="Name" width="-1" hidden="0" type="field"/>
+      <column name="Date" width="-1" hidden="0" type="field"/>
+      <column name="Time" width="-1" hidden="0" type="field"/>
+      <column name="Lon" width="-1" hidden="0" type="field"/>
+      <column name="Lat" width="-1" hidden="0" type="field"/>
+      <column name="Altitude" width="-1" hidden="0" type="field"/>
+      <column name="North" width="-1" hidden="0" type="field"/>
+      <column name="Azimuth" width="-1" hidden="0" type="field"/>
+      <column name="Camera Maker" width="-1" hidden="0" type="field"/>
+      <column name="Camera Model" width="-1" hidden="0" type="field"/>
+      <column name="Path" width="526" hidden="0" type="field"/>
       <column width="-1" hidden="1" type="actions"/>
     </columns>
   </attributetableconfig>
