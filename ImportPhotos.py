@@ -348,11 +348,19 @@ class ImportPhotos:
             except:
                 north = ''
 
+            maker = ''
+            model = ''
+            try:
+                maker = tags['Image Make']
+                model = tags['Image Model']
+            except:
+                pass
+
             truePhotosCount = truePhotosCount + 1
             geoPhotoFile.append('''{ "type": "Feature", "properties": {  "ID": ''' + '"' + uuid_ + '"' + ', "Name": ' + '"' + name + '"' + ', "Date": ' + '"' + date +
-                '"' + ', "Time": ' + '"' + time_ + '"' + ', "Altitude": ' + '"' + altitude + '"' + ', "Lon": ' + '"' +
+                '"' + ', "Time": ' + '"' + time_ + '"' + ', "Lon": ' + '"' +
                 str(lon) + '"' +
-                ', "Lat": ' + '"' + str(lat) + '"' + ', "North": ' + '"' + north + '"' + ', "Azimuth": ' + '"' + azimuth + '"' + ', "Path": ' + '"' + imgpath + '"'
+                ', "Lat": ' + '"' + str(lat) + '"' + ', "Altitude": ' + '"' + altitude + '"' + ', "North": ' + '"' + north + '"' + ', "Azimuth": ' + '"' + azimuth + '"' + ', "Camera Maker": ' + '"' + str(maker) + '"' + ', "Camera Model": ' + '"' + str(model) + '"' + ', "Path": ' + '"' + imgpath + '"'
                 + ',}, "geometry": { "type": "Point",  "coordinates": ' + '[' + str(lon) + ',' + str(lat) + ']')
 
             geoPhotoFile.append('}\n }')
