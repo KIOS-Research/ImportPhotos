@@ -270,6 +270,19 @@ class ImportPhotos:
             if self.selectOutp():
                 return
 
+        self.outDirectoryPhotosShapefile = self.dlg.out.text()
+        try:
+            f = open(self.outDirectoryPhotosShapefile, "w")
+            f.close()
+        except:
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setWindowTitle('Warning')
+            msgBox.setText('Please define output file location.')
+            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+            msgBox.exec_()
+            return
+
         self.dlg.ok.setEnabled(False)
         self.dlg.closebutton.setEnabled(False)
         self.dlg.toolButtonImport.setEnabled(False)

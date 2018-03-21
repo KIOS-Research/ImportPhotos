@@ -39,12 +39,12 @@
     <rect>
      <x>10</x>
      <y>20</y>
-     <width>81</width>
+     <width>101</width>
      <height>16</height>
     </rect>
    </property>
    <property name="text">
-    <string>Import directory</string>
+    <string>Input folder location</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_2">
@@ -52,18 +52,18 @@
     <rect>
      <x>10</x>
      <y>50</y>
-     <width>91</width>
+     <width>101</width>
      <height>21</height>
     </rect>
    </property>
    <property name="text">
-    <string>Output shapefile</string>
+    <string>Output file location</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="imp">
    <property name="geometry">
     <rect>
-     <x>119</x>
+     <x>130</x>
      <y>20</y>
      <width>151</width>
      <height>20</height>
@@ -86,7 +86,7 @@
   <widget class="QLineEdit" name="out">
    <property name="geometry">
     <rect>
-     <x>119</x>
+     <x>130</x>
      <y>50</y>
      <width>151</width>
      <height>20</height>

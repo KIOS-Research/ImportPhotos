@@ -131,6 +131,10 @@ class MouseClick(QgsMapTool):
                             if height>1000:
                                 height = 756
                                 width = 0.793*height
+                        else:
+                            height = 756
+                            width = 0.9758 * height
+
                         self.drawSelf.photosDLG.setMinimumSize(QSize(width, height))
                         self.drawSelf.photosDLG.setMaximumSize(QSize(width, height))
                         self.drawSelf.photosDLG.webView.setGeometry(QRect(x, y, width, height))
@@ -138,9 +142,27 @@ class MouseClick(QgsMapTool):
                         self.drawSelf.photosDLG.webView.setMaximumSize(QSize(width, height))
                         self.drawSelf.photosDLG.webView.history().clear()
                         self.drawSelf.photosDLG.webView.load(QUrl("file:///"+imPath))
-                        self.drawSelf.photosDLG.infoPhoto1.setText('Date: '+str(feature.attributes()[feature.fieldNameIndex('Date')].toString('yyyy-MM-dd')))
-                        self.drawSelf.photosDLG.infoPhoto2.setText('Time: '+str(feature.attributes()[feature.fieldNameIndex('Time')].toString('hh:mm:ss')))
-                        self.drawSelf.photosDLG.infoPhoto3.setText("Altitude: "+str(feature.attributes()[feature.fieldNameIndex('Altitude')])+' m')
+                        dateTrue = ''
+                        timeTrue = ''
+                        try:
+                            dateTrue = str(feature.attributes()[feature.fieldNameIndex('Date')].toString('yyyy-MM-dd'))
+                        except:
+                            dateTrue = str(feature.attributes()[feature.fieldNameIndex('Date')])
+                        try:
+                            timeTrue = str(feature.attributes()[feature.fieldNameIndex('Time')].toString('hh:mm:ss'))
+                        except:
+                            timeTrue = str(feature.attributes()[feature.fieldNameIndex('Time')])
+
+                        self.drawSelf.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
+                        self.drawSelf.photosDLG.infoPhoto2.setText('Time: ' + timeTrue)
+
+                        altitude = str(feature.attributes()[feature.fieldNameIndex('Altitude')])
+                        if str(feature.attributes()[feature.fieldNameIndex('Altitude')])=='':
+                            altitude = "None"
+                            self.drawSelf.photosDLG.infoPhoto3.setText("Altitude: "+altitude)
+                        else:
+                            self.drawSelf.photosDLG.infoPhoto3.setText("Altitude: "+altitude+' m')
+
                         self.drawSelf.photosDLG.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
                         self.drawSelf.photosDLG.exec_()
                         self.drawSelf.photosDLG.webView.history().clear()
