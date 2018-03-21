@@ -67,7 +67,6 @@ class MouseClick(QgsMapTool):
         except:
             return
         if selected_features == []:
-            #if event.button() == 2:
             layers = self.canvas.layers()
             p = self.toMapCoordinates(event.pos())
             w = self.canvas.mapUnitsPerPixel() * 10
@@ -79,7 +78,6 @@ class MouseClick(QgsMapTool):
             widthScreen = qgis.utils.iface.mainWindow().size().width()
             heightScreen = qgis.utils.iface.mainWindow().size().height()
             for layer in layers:
-                #try:
                 if (layer.name() in self.drawSelf.layernamePhotos)==True:
                     lRect = self.canvas.mapSettings().mapToLayerCoordinates(layer, rect)
                     layer.selectByRect(lRect, False)
@@ -115,7 +113,6 @@ class MouseClick(QgsMapTool):
                             elif width<200:
                                 width = 200
                                 x=113
-                               # zoomFactor=1.5
                             if height>700:
                                 if height>heightScreen:
                                     height = heightScreen*0.8
@@ -125,10 +122,9 @@ class MouseClick(QgsMapTool):
                             elif height < 200:
                                 height = 200
                                 y=60
-                                #zoomFactor=1.5
                         elif width < height:
                             if height>1000:
-                                height = 756#width/(width/1000)
+                                height = 756
                                 width = 0.793*height
 
                         self.drawSelf.photosDLG.setMinimumSize(QSize(width, height))

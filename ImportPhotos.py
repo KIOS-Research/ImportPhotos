@@ -365,20 +365,30 @@ class ImportPhotos:
 
         if len(QgsProject.instance().mapLayersByName(lphoto)) == 0:
             self.layerPhotos = self.iface.addVectorLayer(self.outDirectoryPhotosShapefile, lphoto, "ogr")
-            self.layerPhotos.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
-            self.layerPhotos.setReadOnly()
         else:
-            try:
-                self.layerPhotos.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
-                self.layerPhotos.setReadOnly()
-                self.layerPhotos.reload()
-                self.layerPhotos.triggerRepaint()
-            except:
-                pass
-            try:
-                self.iface.mapCanvas().setExtent(QgsRectangle(lon, lat, lon, lat))
-            except:
-                pass
+            for x in self.iface.mapCanvas().layers():
+                if x.name() == lphoto:
+                    self.layerPhotos = x
+        try:
+            self.layerPhotos.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
+        except:
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setWindowTitle('Warning')
+            msgBox.setText('No geo-tagged images were detected.')
+            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+            msgBox.exec_()
+            return
+        try:
+            self.layerPhotos.setReadOnly()
+            self.layerPhotos.reload()
+            self.layerPhotos.triggerRepaint()
+        except:
+            pass
+        try:
+            self.iface.mapCanvas().setExtent(QgsRectangle(lon, lat, lon, lat))
+        except:
+            pass
         self.dlg.progressBar.setValue(100)
         self.dlg.progressBar.setValue(0)
         ###########################################
