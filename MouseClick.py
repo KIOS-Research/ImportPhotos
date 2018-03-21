@@ -84,7 +84,6 @@ class MouseClick(QgsMapTool):
         except:
             return
         if selected_features == []:
-            #if event.button() == 2:
             layers = self.canvas.layers()
             p = self.toMapCoordinates(event.pos())
             w = self.canvas.mapUnitsPerPixel() * 10
@@ -108,7 +107,8 @@ class MouseClick(QgsMapTool):
                         imPath = feature.attributes()[feature.fieldNameIndex('Path')]
                         im = Image.open(imPath)
                         width, height = im.size
-                        x=0;y=0#;zoomFactor=1
+                        x=0
+                        y=0
                         if height < width:
                             if width>1000:
                                 if width>self.screensize[0]:
@@ -118,7 +118,6 @@ class MouseClick(QgsMapTool):
                             elif width<200:
                                 width = 200
                                 x=113
-                               # zoomFactor=1.5
                             if height>700:
                                 if height>self.screensize[1]:
                                     height = self.screensize[1]*0.8
@@ -128,17 +127,17 @@ class MouseClick(QgsMapTool):
                             elif height < 200:
                                 height = 200
                                 y=60
-                                #zoomFactor=1.5
                         elif width < height:
                             if height>1000:
-                                height = 756#width/(width/1000)
+                                height = 756
                                 width = 0.793*height
                         self.drawSelf.photosDLG.setMinimumSize(QSize(width, height))
                         self.drawSelf.photosDLG.setMaximumSize(QSize(width, height))
                         self.drawSelf.photosDLG.webView.setGeometry(QRect(x, y, width, height))
                         self.drawSelf.photosDLG.webView.setMinimumSize(QSize(width, height))
                         self.drawSelf.photosDLG.webView.setMaximumSize(QSize(width, height))
-                        self.drawSelf.photosDLG.webView.load(QUrl(imPath))
+                        self.drawSelf.photosDLG.webView.history().clear()
+                        self.drawSelf.photosDLG.webView.load(QUrl("file:///"+imPath))
                         self.drawSelf.photosDLG.infoPhoto1.setText('Date: '+str(feature.attributes()[feature.fieldNameIndex('Date')].toString('yyyy-MM-dd')))
                         self.drawSelf.photosDLG.infoPhoto2.setText('Time: '+str(feature.attributes()[feature.fieldNameIndex('Time')].toString('hh:mm:ss')))
                         self.drawSelf.photosDLG.infoPhoto3.setText("Altitude: "+str(feature.attributes()[feature.fieldNameIndex('Altitude')])+' m')

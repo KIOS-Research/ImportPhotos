@@ -23,7 +23,7 @@
 from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt
-
+from qgis.core import QgsMapLayerRegistry, QgsRectangle
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
@@ -231,35 +231,44 @@ class ImportPhotos:
         self.dlg.out.setText(self.outDirectoryPhotosShapefile)
 
     def toolButtonImport(self):
-        #try:
         self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
                                                                 os.path.join(os.path.join(os.path.expanduser('~')),
                                                                              'Desktop'), QFileDialog.ShowDirsOnly)
-        #except:
-            #self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
-            #                                              os.path.join(os.path.join(os.environ['USERPROFILE']),
-            #                                                           'Desktop'), QFileDialog.ShowDirsOnly)
         if self.directoryPhotos == "":
             return
         self.dlg.imp.setText(self.directoryPhotos)
 
+    def selectDir(self):
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setWindowTitle('Warning')
+        msgBox.setText('Please select a directory photos.')
+        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+        msgBox.exec_()
+        return True
+
+    def selectOutp(self):
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setWindowTitle('Warning')
+        msgBox.setText('Please write ouptut shapefile.')
+        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+        msgBox.exec_()
+        return True
+
     def ok(self):
-        if self.dlg.imp.text()=='':
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Warning)
-            msgBox.setWindowTitle('Warning')
-            msgBox.setText('Please select a directory photos.')
-            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-            msgBox.exec_()
-            return
-        if self.dlg.out.text()=='':
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Warning)
-            msgBox.setWindowTitle('Warning')
-            msgBox.setText('Please write ouptut shapefile.')
-            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-            msgBox.exec_()
-            return
+        if self.dlg.imp.text() == '':
+            if self.selectDir():
+                return
+        elif os.path.isdir(self.dlg.imp.text())==False:
+            if self.selectDir():
+                return
+        if self.dlg.out.text() == '':
+            if self.selectOutp():
+                return
+        elif os.path.isabs(self.dlg.out.text())==False:
+            if self.selectOutp():
+                return
 
         self.dlg.ok.setEnabled(False)
         self.dlg.closebutton.setEnabled(False)
@@ -285,26 +294,19 @@ class ImportPhotos:
             self.clickPhotos.setChecked(True)
             return
 
-        if os.path.exists(self.outDirectoryPhotosShapefile) == True:
-            f = open(self.outDirectoryPhotosShapefile, 'r')
-            lines = [line.rstrip('\n') for line in f]
-            geoPhotoFile = lines[:-2]
-            geoPhotoFile.append(',')
-            f.close()
-        else:
-            # makeLayer
-            geoPhotoFile = []
-            geoPhotoFile.append('''{ "type": "FeatureCollection", ''')
-            geoPhotoFile.append(
-                '''"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } }, ''')
-            geoPhotoFile.append('\n')
-            geoPhotoFile.append('"features": [')
+        geoPhotoFile = []
+        geoPhotoFile.append('''{ "type": "FeatureCollection", ''')
+        geoPhotoFile.append(
+            '''"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } }, ''')
+        geoPhotoFile.append('\n')
+        geoPhotoFile.append('"features": [')
 
         self.total = 100.0 / len(photos)
         self.iface.mapCanvas().setMapTool(self.toolMouseClick)
         self.outDirectoryPhotosShapefile=self.dlg.out.text()
         basename = os.path.basename(self.outDirectoryPhotosShapefile)
         lphoto = basename[:-8]
+
         if platform.system()=='Darwin':
             self.layernamePhotos.append(lphoto+' OGRGeoJSON Point')
         else:
@@ -380,6 +382,7 @@ class ImportPhotos:
                         lat) + '"' + ', "North": ' + '"' + north + '"' + ', "Azimuth": ' + '"' + azimuth + '"' + ', "Path": ' + '"' + imgpath + '"'
                     + ',}, "geometry": { "type": "Point",  "coordinates": ' + '[' + str(lon) + ',' + str(lat) + ']')
                 geoPhotoFile.append('}\n }')
+
                 f = open(self.outDirectoryPhotosShapefile, "w")
                 for line in geoPhotoFile:
                     f.write(line)
@@ -388,9 +391,33 @@ class ImportPhotos:
                 geoPhotoFile.append(',\n')
             except:
                 pass
-        self.layerPhotos = self.iface.addVectorLayer(self.outDirectoryPhotosShapefile, lphoto, "ogr")
-        self.layerPhotos.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
-        self.layerPhotos.setReadOnly()
+
+        if len(QgsMapLayerRegistry.instance().mapLayersByName(lphoto)) == 0:
+            self.layerPhotos = self.iface.addVectorLayer(self.outDirectoryPhotosShapefile, lphoto, "ogr")
+        else:
+            for x in self.iface.mapCanvas().layers():
+                if x.name() == lphoto:
+                    self.layerPhotos = x
+        try:
+            self.layerPhotos.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
+        except:
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setWindowTitle('Warning')
+            msgBox.setText('No geo-tagged images were detected.')
+            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+            msgBox.exec_()
+            return
+        try:
+            self.layerPhotos.setReadOnly()
+            self.layerPhotos.reload()
+            self.layerPhotos.triggerRepaint()
+        except:
+            pass
+        try:
+            self.iface.mapCanvas().setExtent(QgsRectangle(lon, lat, lon, lat))
+        except:
+            pass
         self.dlg.progressBar.setValue(100)
         self.dlg.progressBar.setValue(0)
         ###########################################
@@ -398,14 +425,14 @@ class ImportPhotos:
         noLocationPhotosCounter = initphotos - truePhotosCount
         if truePhotosCount==noLocationPhotosCounter==0 or truePhotosCount==0:
             msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setIcon(QMessageBox.Information)
             msgBox.setWindowTitle('Import Photos')
             msgBox.setText('Import Completed.\n\nDetails:\n  No new photos were added.')
             msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
             msgBox.exec_()
         elif (truePhotosCount == initphotos) or ((noLocationPhotosCounter + truePhotosCount) == initphotos):
             msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setIcon(QMessageBox.Information)
             msgBox.setWindowTitle('Import Photos')
             msgBox.setText(
                 'Import Completed.\n\nDetails:\n  ' + str(truePhotosCount) + ' photo(s) added without error.\n  ' + str(
