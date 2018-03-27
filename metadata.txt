@@ -28,8 +28,10 @@ changelog=2018-02-20  ImportPhotos 0.2:
 		Update version
 	  2018-03-09  ImportPhotos 0.4:
 		Fix error for mac pc, and add some warning messages
-	  2018-03-21  ImportPhotos 0.6:
+	  2018-03-21  ImportPhotos 0.5:
 		Fix issues with directory path, output path and web view
+	  2018-03-27  ImportPhotos 0.6:
+		Clear code
 		
 # Tags are comma separated with spaces allowed
 tags=photos, jpeg, jpg, geotag
