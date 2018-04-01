@@ -10,7 +10,7 @@
 name=ImportPhotos
 qgisMinimumVersion=2.0
 description=Import Photos
-version=0.6
+version=0.7
 author=Marios S. Kyriakou, George A. Christou, KIOS Research and Innovation Center of Excellence (KIOS CoE)
 email=mariosmsk@gmail.com, george.a.christou@gmail.com
 
@@ -32,7 +32,9 @@ changelog=2018-02-20  ImportPhotos 0.2:
 		Fix issues with directory path, output path and web view
 	  2018-03-27  ImportPhotos 0.6:
 		Clear code
-		
+	  2018-04-01  ImportPhotos 0.7:
+		Fix error for linux
+
 # Tags are comma separated with spaces allowed
 tags=photos, jpeg, jpg, geotag
 

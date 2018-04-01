@@ -10,7 +10,6 @@
         copyright            : (C) 2017 by KIOS Research Center
         email                : mariosmsk@gmail.com
  ***************************************************************************/
-
 /***************************************************************************
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -52,21 +51,23 @@ class MouseClick(QgsMapTool):
         self.drawSelf.rb = None
         self.screensize = []
         try:
-            user32 = ctypes.windll.user32
-            self.screensize = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+            if platform.system() == 'Windows':
+                user32 = ctypes.windll.user32
+                self.screensize = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+            elif platform.system() == 'Darwin':
+                self.screensize.append(NSScreen.mainScreen().frame().size.width)
+                self.screensize.append(NSScreen.mainScreen().frame().size.height)
         except:
-            self.screensize.append(NSScreen.mainScreen().frame().size.width)
-            self.screensize.append(NSScreen.mainScreen().frame().size.height)
+            self.screensize.append(self.drawSelf.iface.mainWindow().size().width())
+            self.screensize.append(self.drawSelf.iface.mainWindow().size().height())
 
     def canvasPressEvent(self, event):
         if event.button() == 1:
             self.drawSelf.refresh()
 
-            try:
-                if platform.system() == 'Darwin':
-                    self.drawSelf.photosDLG.webView.history().clear()
-            except:
-                pass
+            if platform.system() == 'Darwin':
+                self.drawSelf.photosDLG.webView.history().clear()
+
     def canvasMoveEvent(self, event):
         pass
 
@@ -94,10 +95,12 @@ class MouseClick(QgsMapTool):
             layersSelected = []
 
             for layer in layers:
-                #try:
                 if (layer.name() in self.drawSelf.layernamePhotos)==True:
                     lRect = self.canvas.mapSettings().mapToLayerCoordinates(layer, rect)
-                    layer.select(lRect, False)
+                    try:
+                        layer.selectByRect(lRect, False)
+                    except:
+                        layer.select(lRect, False)
                     selected_features = layer.selectedFeatures()
                     if selected_features != []:
                         layersSelected.append(layer)
@@ -114,7 +117,7 @@ class MouseClick(QgsMapTool):
                                 if width>self.screensize[0]:
                                     width = self.screensize[0]*0.6
                                 else:
-                                    width = width*0.252#width/(width/1000)
+                                    width = width*0.252 
                             elif width<200:
                                 width = 200
                                 x=113
@@ -142,8 +145,6 @@ class MouseClick(QgsMapTool):
                         self.drawSelf.photosDLG.webView.setMaximumSize(QSize(width, height))
                         self.drawSelf.photosDLG.webView.history().clear()
                         self.drawSelf.photosDLG.webView.load(QUrl("file:///"+imPath))
-                        dateTrue = ''
-                        timeTrue = ''
                         try:
                             dateTrue = str(feature.attributes()[feature.fieldNameIndex('Date')].toString('yyyy-MM-dd'))
                         except:

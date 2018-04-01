@@ -326,6 +326,8 @@ class ImportPhotos:
             self.layernamePhotos.append(lphoto)
 
         truePhotosCount = 0
+        self.lon = []
+        self.lat = []
         for count, imgpath in enumerate(photos):
             try:
                 self.dlg.progressBar.setValue(int(count * self.total))
@@ -395,6 +397,8 @@ class ImportPhotos:
                         lat) + '"' + ', "North": ' + '"' + north + '"' + ', "Azimuth": ' + '"' + azimuth + '"' + ', "Path": ' + '"' + imgpath + '"'
                     + ',}, "geometry": { "type": "Point",  "coordinates": ' + '[' + str(lon) + ',' + str(lat) + ']')
                 geoPhotoFile.append('}\n }')
+                self.lon.append(lon)
+                self.lat.append(lat)
 
                 f = open(self.outDirectoryPhotosShapefile, "w")
                 for line in geoPhotoFile:
@@ -428,7 +432,7 @@ class ImportPhotos:
         except:
             pass
         try:
-            self.iface.mapCanvas().setExtent(QgsRectangle(lon, lat, lon, lat))
+            self.iface.mapCanvas().setExtent(QgsRectangle(min(self.lon), min(self.lat), max(self.lon), max(self.lat)))
         except:
             pass
         self.dlg.progressBar.setValue(100)
