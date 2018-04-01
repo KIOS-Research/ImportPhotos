@@ -251,7 +251,7 @@ class ImportPhotos:
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Warning)
         msgBox.setWindowTitle('Warning')
-        msgBox.setText('Please write ouptut shapefile.')
+        msgBox.setText('Please define output file location.')
         msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
         msgBox.exec_()
         return True
@@ -271,6 +271,7 @@ class ImportPhotos:
                 return
 
         self.outDirectoryPhotosShapefile = self.dlg.out.text()
+        self.directoryPhotos = self.dlg.imp.text()
         try:
             f = open(self.outDirectoryPhotosShapefile, "w")
             f.close()
@@ -432,7 +433,12 @@ class ImportPhotos:
         except:
             pass
         try:
-            self.iface.mapCanvas().setExtent(QgsRectangle(min(self.lon), min(self.lat), max(self.lon), max(self.lat)))
+            xmin = min(self.lon)
+            ymin = min(self.lat)
+            xmax = max(self.lon)
+            ymax = max(self.lat)
+            self.iface.mapCanvas().zoomToSelected(self.layerPhotos)
+            self.iface.mapCanvas().setExtent(QgsRectangle(xmin, ymin, xmax, ymax))
         except:
             pass
         self.dlg.progressBar.setValue(100)
