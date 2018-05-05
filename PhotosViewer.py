@@ -4,6 +4,10 @@ from PyQt4.QtGui import QGraphicsView, QGraphicsScene, QPainterPath, \
 
 
 class PhotosViewer(QGraphicsView):
+    afterLeftClick = pyqtSignal()
+    afterLeftClickReleased = pyqtSignal()
+    afterDoubleClick = pyqtSignal()
+    
     def __init__(self):
         QGraphicsView.__init__(self)
 
@@ -21,6 +25,7 @@ class PhotosViewer(QGraphicsView):
         sc_pos = self.mapToScene(event.pos())
         if self.zoom:
             self.setDragMode(QGraphicsView.RubberBandDrag)
+        self.afterLeftClick.emit(sc_pos.x(), sc_pos.y())
         QGraphicsView.mousePressEvent(self, event)
 
     def mouseDoubleClickEvent(self, event):
@@ -28,6 +33,7 @@ class PhotosViewer(QGraphicsView):
         if self.zoom:
             self.zoom_data = []
             self.fitInView(self.sceneRect(), Qt.KeepAspectRatio)
+        self.afterDoubleClick.emit(sc_pos.x(), sc_pos.y())
         QGraphicsView.mouseDoubleClickEvent(self, event)
 
     def mouseReleaseEvent(self, event):
@@ -43,6 +49,7 @@ class PhotosViewer(QGraphicsView):
                 self.zoom_data = selection_bb
                 self.fitInView(self.zoom_data, Qt.KeepAspectRatio)
         self.setDragMode(QGraphicsView.NoDrag)
+        self.afterLeftClickReleased.emit(sc_pos.x(), sc_pos.y())
 
     def resizeEvent(self, event):
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
