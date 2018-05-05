@@ -4,9 +4,9 @@ from PyQt4.QtGui import QGraphicsView, QGraphicsScene, QPainterPath, \
 
 
 class PhotosViewer(QGraphicsView):
-    afterLeftClick = pyqtSignal()
-    afterLeftClickReleased = pyqtSignal()
-    afterDoubleClick = pyqtSignal()
+    afterLeftClick = pyqtSignal(float, float)
+    afterLeftClickReleased = pyqtSignal(float, float)
+    afterDoubleClick = pyqtSignal(float, float)
     
     def __init__(self):
         QGraphicsView.__init__(self)
