@@ -10,7 +10,7 @@
 name=ImportPhotos
 qgisMinimumVersion=2.0
 description=Import Photos
-version=0.7
+version=0.8
 author=Marios S. Kyriakou, George A. Christou, KIOS Research and Innovation Center of Excellence (KIOS CoE)
 email=mariosmsk@gmail.com, george.a.christou@gmail.com
 
