@@ -25,19 +25,9 @@ from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 from qgis.core import QgsRectangle
 from qgis.gui import QgsMapTool, QgsRubberBand
+from PhotosViewer import PhotoWindow
 from qgis.PyQt import QtCore
-from PIL import Image
-import ctypes
-import platform
 
-try:
-    from AppKit import NSScreen
-except:
-    pass
-try:
-    _fromUtf8 = QtCore.QString.fromUtf8
-except AttributeError:
-    _fromUtf8 = lambda s: s
 
 class MouseClick(QgsMapTool):
     afterLeftClick = pyqtSignal()
@@ -49,24 +39,10 @@ class MouseClick(QgsMapTool):
         self.canvas = canvas
         self.drawSelf = drawSelf
         self.drawSelf.rb = None
-        self.screensize = []
-        try:
-            if platform.system() == 'Windows':
-                user32 = ctypes.windll.user32
-                self.screensize = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
-            elif platform.system() == 'Darwin':
-                self.screensize.append(NSScreen.mainScreen().frame().size.width)
-                self.screensize.append(NSScreen.mainScreen().frame().size.height)
-        except:
-            self.screensize.append(self.drawSelf.iface.mainWindow().size().width())
-            self.screensize.append(self.drawSelf.iface.mainWindow().size().height())
 
     def canvasPressEvent(self, event):
         if event.button() == 1:
             self.drawSelf.refresh()
-
-            if platform.system() == 'Darwin':
-                self.drawSelf.photosDLG.webView.history().clear()
 
     def canvasMoveEvent(self, event):
         pass
@@ -95,7 +71,8 @@ class MouseClick(QgsMapTool):
             layersSelected = []
 
             for layer in layers:
-                if (layer.name() in self.drawSelf.layernamePhotos)==True:
+                fields = [field.name() for field in layer.pendingFields()]
+                if set(fields).issubset(self.drawSelf.fields):
                     lRect = self.canvas.mapSettings().mapToLayerCoordinates(layer, rect)
                     try:
                         layer.selectByRect(lRect, False)
@@ -106,45 +83,16 @@ class MouseClick(QgsMapTool):
                         layersSelected.append(layer)
                         ########## SHOW PHOTOS ############
                         feature = selected_features[0]
+                        self.photosDLG = PhotoWindow()
 
                         imPath = feature.attributes()[feature.fieldNameIndex('Path')]
-                        im = Image.open(imPath)
-                        width, height = im.size
-                        x=0
-                        y=0
-                        if height < width:
-                            if width>1000:
-                                if width>self.screensize[0]:
-                                    width = self.screensize[0]*0.6
-                                else:
-                                    width = width*0.252 
-                            elif width<200:
-                                width = 200
-                                x=113
-                            if height>700:
-                                if height>self.screensize[1]:
-                                    height = self.screensize[1]*0.8
-                                else:
-                                    height = height*0.252
 
-                            elif height < 200:
-                                height = 200
-                                y=60
-                        elif width < height:
-                            if height>1000:
-                                height = 756
-                                width = 0.793*height
-                        else:
-                            height = 756
-                            width = 0.9758 * height
+                        self.photosDLG.viewer.scene.clear()
+                        pixmap = QPixmap.fromImage(QImage(imPath))
+                        self.photosDLG.viewer.scene.addPixmap(pixmap)
+                        self.photosDLG.viewer.setSceneRect(QRectF(pixmap.rect()))
+                        self.photosDLG.viewer.resizeEvent([])
 
-                        self.drawSelf.photosDLG.setMinimumSize(QSize(width, height))
-                        self.drawSelf.photosDLG.setMaximumSize(QSize(width, height))
-                        self.drawSelf.photosDLG.webView.setGeometry(QRect(x, y, width, height))
-                        self.drawSelf.photosDLG.webView.setMinimumSize(QSize(width, height))
-                        self.drawSelf.photosDLG.webView.setMaximumSize(QSize(width, height))
-                        self.drawSelf.photosDLG.webView.history().clear()
-                        self.drawSelf.photosDLG.webView.load(QUrl("file:///"+imPath))
                         try:
                             dateTrue = str(feature.attributes()[feature.fieldNameIndex('Date')].toString('yyyy-MM-dd'))
                         except:
@@ -154,19 +102,18 @@ class MouseClick(QgsMapTool):
                         except:
                             timeTrue = str(feature.attributes()[feature.fieldNameIndex('Time')])
 
-                        self.drawSelf.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
-                        self.drawSelf.photosDLG.infoPhoto2.setText('Time: ' + timeTrue)
+                        self.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
+                        self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue)
 
                         altitude = str(feature.attributes()[feature.fieldNameIndex('Altitude')])
                         if str(feature.attributes()[feature.fieldNameIndex('Altitude')])=='':
                             altitude = "None"
-                            self.drawSelf.photosDLG.infoPhoto3.setText("Altitude: "+altitude)
+                            self.photosDLG.infoPhoto3.setText("Altitude: "+altitude)
                         else:
-                            self.drawSelf.photosDLG.infoPhoto3.setText("Altitude: "+altitude+' m')
+                            self.photosDLG.infoPhoto3.setText("Altitude: "+altitude+' m')
 
-                        self.drawSelf.photosDLG.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-                        self.drawSelf.photosDLG.exec_()
-                        self.drawSelf.photosDLG.webView.history().clear()
+                        self.photosDLG.showNormal()
+                        self.photosDLG.show()
                         return
 
     def deactivate(self):

@@ -34,6 +34,8 @@ changelog=2018-02-20  ImportPhotos 0.2:
 		Clear code
 	  2018-04-01  ImportPhotos 0.7:
 		Fix error for linux
+	  2018-05-05  ImportPhotos 0.8:
+		Update window file of photo. Fix reopen project
 
 # Tags are comma separated with spaces allowed
 tags=photos, jpeg, jpg, geotag

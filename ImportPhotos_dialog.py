@@ -23,16 +23,17 @@
 
 import os, sys
 
-from PyQt4 import QtGui, uic, QtCore
+from qgis.PyQt import QtGui, uic, QtCore
+from qgis.PyQt.QtWidgets import QDialog
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'impphotos.ui'))
 
 
-class ImportPhotosDialog(QtGui.QDialog, FORM_CLASS):
+class ImportPhotosDialog(QDialog, FORM_CLASS):
     def __init__(self, parent=None):
         # """Constructor."""
-        QtGui.QDialog.__init__(self, None, QtCore.Qt.WindowStaysOnTopHint)
+        QDialog.__init__(self, None, QtCore.Qt.WindowStaysOnTopHint)
         super(ImportPhotosDialog, self).__init__(parent)
         # Set up the user interface from Designer.
         # After setupUI you can access any designer object by doing

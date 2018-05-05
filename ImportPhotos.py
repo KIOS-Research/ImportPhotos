@@ -28,9 +28,7 @@ from qgis.core import QgsMapLayerRegistry, QgsRectangle
 import resources
 # Import the code for the dialog
 from ImportPhotos_dialog import ImportPhotosDialog
-
 from MouseClick import MouseClick
-from Photos_dialog import PhotosDialog
 import os.path
 from PIL import Image
 from PIL.ExifTags import TAGS
@@ -189,14 +187,20 @@ class ImportPhotos:
         self.dlg.toolButtonOut.clicked.connect(self.toolButtonOut)
 
         self.clickPhotos.setCheckable(True)
-        self.clickPhotos.setEnabled(False)
-        self.photosDLG = PhotosDialog()
+        self.clickPhotos.setEnabled(True)
 
         self.layernamePhotos = []
         self.listPhotos = []
         self.toolMouseClick = MouseClick(self.iface.mapCanvas(), self)
 
+        self.fields = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Maker',
+                       'Camera Model', 'Path']
+
     def mouseClick(self):
+        try:
+            self.iface.setActiveLayer(self.iface.mapCanvas().layers()[0])
+        except:
+            pass
         self.iface.mapCanvas().setMapTool(self.toolMouseClick)
         self.clickPhotos.setChecked(True)
 
