@@ -106,7 +106,7 @@ class PhotoWindow(QWidget):
         self.pan.setSizePolicy(sizePolicy)
         self.pan.setCheckable(True)
         self.pan.setChecked(False)
-        self.pan.setIcon(QIcon(self.path+'//svg//pan.svg'))
+        self.pan.setIcon(QIcon(self.path+'//svg//mActionPan.svg'))
         self.pan.clicked.connect(self.panbutton)
 
         # Arrange layout
