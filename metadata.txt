@@ -11,7 +11,7 @@ name=ImportPhotos
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
 description=Import Photos
-version=1.0
+version=1.1
 author=Marios S. Kyriakou, George A. Christou, KIOS Research and Innovation Center of Excellence (KIOS CoE)
 email=mariosmsk@gmail.com, george.a.christou@gmail.com
 
@@ -33,6 +33,8 @@ changelog=2018-02-20  ImportPhotos 0.2:
 		Issue fixes and migration code to QGIS3
 		Fix error with replace file and clear code
 		Add attributes field Camera Maker and Model
+	  2018-05-08  ImportPhotos 1.1:
+		Update window file of photo, fix reopen project, add zoom, pan and extend buttons
 		
 # Tags are comma separated with spaces allowed
 tags=photos, jpeg, jpg, geotag

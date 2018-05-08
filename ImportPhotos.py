@@ -26,12 +26,11 @@ from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication,
 from qgis.core import QgsProject, QgsRectangle
 
 # Initialize Qt resources from file resources.py
-from . import resources_rc
+from . import resources
 # Import the code for the dialog
 from .ImportPhotos_dialog import ImportPhotosDialog
 
 from .MouseClick import MouseClick
-from .Photos_dialog import PhotosDialog
 import os.path
 import exifread
 import uuid
@@ -185,14 +184,20 @@ class ImportPhotos:
         self.dlg.toolButtonOut.clicked.connect(self.toolButtonOut)
 
         self.clickPhotos.setCheckable(True)
-        self.clickPhotos.setEnabled(False)
-        self.photosDLG = PhotosDialog()
+        self.clickPhotos.setEnabled(True)
 
-        self.layernamePhotos = []
         self.listPhotos = []
+        self.layernamePhotos = []
         self.toolMouseClick = MouseClick(self.iface.mapCanvas(), self)
 
+        self.fields = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Maker',
+                       'Camera Model', 'Path']
+
     def mouseClick(self):
+        try:
+            self.iface.setActiveLayer(self.iface.mapCanvas().layers()[0])
+        except:
+            pass
         self.iface.mapCanvas().setMapTool(self.toolMouseClick)
         self.clickPhotos.setChecked(True)
 
@@ -280,7 +285,7 @@ class ImportPhotos:
             msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
             msgBox.exec_()
             return 
-            
+
         self.dlg.ok.setEnabled(False)
         self.dlg.closebutton.setEnabled(False)
         self.dlg.toolButtonImport.setEnabled(False)
