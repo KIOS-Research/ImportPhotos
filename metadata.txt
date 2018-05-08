@@ -10,7 +10,7 @@
 name=ImportPhotos
 qgisMinimumVersion=2.0
 description=Import Photos
-version=0.8
+version=0.9
 author=Marios S. Kyriakou, George A. Christou, KIOS Research and Innovation Center of Excellence (KIOS CoE)
 email=mariosmsk@gmail.com, george.a.christou@gmail.com
 
@@ -36,7 +36,9 @@ changelog=2018-02-20  ImportPhotos 0.2:
 		Fix error for linux
 	  2018-05-05  ImportPhotos 0.8:
 		Update window file of photo. Fix reopen project
-
+	  2018-05-08  ImportPhotos 0.9:
+		Add zoom, pan and extend buttons
+		
 # Tags are comma separated with spaces allowed
 tags=photos, jpeg, jpg, geotag
 
