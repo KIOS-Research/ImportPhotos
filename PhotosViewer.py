@@ -2,8 +2,7 @@ from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLay
     QLineEdit, QSizePolicy, QPushButton
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QPainterPath, QIcon
-
-import os
+import os.path
 
 class PhotosViewer(QGraphicsView):
     afterLeftClick = pyqtSignal(float, float)
@@ -69,7 +68,7 @@ class PhotoWindow(QWidget):
 
         self.setWindowTitle('Photo')
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
-        self.setWindowIcon(QIcon(self.path+"//icon.png"))
+        self.setWindowIcon(QIcon(self.path + "//icon.png"))
 
         self.infoPhoto1 = QLineEdit(self)
         sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
@@ -84,31 +83,25 @@ class PhotoWindow(QWidget):
         self.infoPhoto2.setReadOnly(True)
         self.infoPhoto2.setMouseTracking(False)
 
-        self.infoPhoto3 = QLineEdit(self)
-        self.infoPhoto3.setSizePolicy(sizePolicy)
-        self.infoPhoto3.setFrame(True)
-        self.infoPhoto3.setReadOnly(True)
-        self.infoPhoto3.setMouseTracking(False)
-
         self.extent = QPushButton(self)
         self.extent.setSizePolicy(sizePolicy)
         self.extent.setCheckable(True)
         self.extent.setChecked(True)
-        self.extent.setIcon(QIcon(self.path+'//svg//mActionZoomFullExtent.svg'))
+        self.extent.setIcon(QIcon(self.path + '//svg//mActionZoomFullExtent.svg'))
         self.extent.clicked.connect(self.extentbutton)
 
         self.zoom = QPushButton(self)
         self.zoom.setSizePolicy(sizePolicy)
         self.zoom.setCheckable(True)
         self.zoom.setChecked(False)
-        self.zoom.setIcon(QIcon(self.path+'//svg//mActionZoomIn.svg'))
+        self.zoom.setIcon(QIcon(self.path + '//svg//mActionZoomToSelected.svg'))
         self.zoom.clicked.connect(self.zoombutton)
 
         self.pan = QPushButton(self)
         self.pan.setSizePolicy(sizePolicy)
         self.pan.setCheckable(True)
         self.pan.setChecked(False)
-        self.pan.setIcon(QIcon(self.path+'//svg//mActionPan.svg'))
+        self.pan.setIcon(QIcon(self.path + '//svg//mActionPan.svg'))
         self.pan.clicked.connect(self.panbutton)
 
         # Arrange layout
@@ -118,7 +111,6 @@ class PhotoWindow(QWidget):
         HBlayout.setAlignment(Qt.AlignCenter)
         HBlayout.addWidget(self.infoPhoto1)
         HBlayout.addWidget(self.infoPhoto2)
-        HBlayout.addWidget(self.infoPhoto3)
         HBlayout.addWidget(self.extent)
         HBlayout.addWidget(self.zoom)
         HBlayout.addWidget(self.pan)

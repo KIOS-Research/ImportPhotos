@@ -105,13 +105,6 @@ class MouseClick(QgsMapTool):
                         self.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
                         self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue)
 
-                        altitude = str(feature.attributes()[feature.fieldNameIndex('Altitude')])
-                        if str(feature.attributes()[feature.fieldNameIndex('Altitude')])=='':
-                            altitude = "None"
-                            self.photosDLG.infoPhoto3.setText("Altitude: "+altitude)
-                        else:
-                            self.photosDLG.infoPhoto3.setText("Altitude: "+altitude+' m')
-
                         self.photosDLG.showNormal()
                         self.photosDLG.show()
                         return

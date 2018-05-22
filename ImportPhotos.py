@@ -310,21 +310,21 @@ class ImportPhotos:
             self.clickPhotos.setChecked(True)
             return
 
-        geoPhotoFile = []
-        geoPhotoFile.append('''{ "type": "FeatureCollection", ''')
-        geoPhotoFile.append(
-          '''"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } }, ''')
-        geoPhotoFile.append('\n')
-        geoPhotoFile.append('"features": [')
-
         self.total = 100.0 / len(photos)
         self.iface.mapCanvas().setMapTool(self.toolMouseClick)
         basename = os.path.basename(self.outDirectoryPhotosShapefile)
         lphoto = basename[:-8]
 
         self.layernamePhotos.append(lphoto)
-
         truePhotosCount = 0
+
+        geoPhotoFile = open(self.outDirectoryPhotosShapefile, "w")
+        geoPhotoFile.write('''{ "type": "FeatureCollection", ''')
+        geoPhotoFile.write(
+            '''"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } }, ''')
+        geoPhotoFile.write('\n')
+        geoPhotoFile.write('"features": [')
+
         for count, imgpath in enumerate(photos):
             self.dlg.progressBar.setValue(int(count * self.total))
 
@@ -373,19 +373,19 @@ class ImportPhotos:
                 pass
 
             truePhotosCount = truePhotosCount + 1
-            geoPhotoFile.append('''{ "type": "Feature", "properties": {  "ID": ''' + '"' + uuid_ + '"' + ', "Name": ' + '"' + name + '"' + ', "Date": ' + '"' + date +
-                '"' + ', "Time": ' + '"' + time_ + '"' + ', "Lon": ' + '"' +
-                str(lon) + '"' +
-                ', "Lat": ' + '"' + str(lat) + '"' + ', "Altitude": ' + '"' + altitude + '"' + ', "North": ' + '"' + north + '"' + ', "Azimuth": ' + '"' + azimuth + '"' + ', "Camera Maker": ' + '"' + str(maker) + '"' + ', "Camera Model": ' + '"' + str(model) + '"' + ', "Path": ' + '"' + imgpath + '"'
-                + ',}, "geometry": { "type": "Point",  "coordinates": ' + '[' + str(lon) + ',' + str(lat) + ']')
+            geoPhotoFile.write('''{ "type": "Feature", "properties": {  "ID": ''' + '"' + uuid_ + '"' + ', "Name": ' +
+                               '"' + name + '"' + ', "Date": ' + '"' + date + '"' + ', "Time": ' + '"' + time_ + '"' +
+                               ', "Lon": ' + '"' + str(lon) + '"' + ', "Lat": ' + '"' + str(lat) + '"' + ', "Altitude":'
+                               ' ' + '"' + altitude + '"' + ', "North": ' + '"' + north + '"' + ', "Azimuth": ' + '"' +
+                               azimuth + '"' + ', "Camera Maker": ' + '"' + str(maker) + '"' + ', "Camera Model": ' +
+                               '"' + str(model) + '"' + ', "Path": ' + '"' + imgpath + '"'+ ',}, "geometry": { "type": '
+                               '"Point",  "coordinates": ' + '[' + str(lon) + ',' + str(lat) + ']')
 
-            geoPhotoFile.append('}\n }')
-            f = open(self.outDirectoryPhotosShapefile, "w")
-            for line in geoPhotoFile:
-                f.write(line)
-            f.write('\n]\n}\n')
-            f.close()
-            geoPhotoFile.append(',\n')
+            geoPhotoFile.write('}\n }')
+            geoPhotoFile.write(',\n')
+
+        geoPhotoFile.write('\n]\n}\n')
+        geoPhotoFile.close()
 
         if len(QgsProject.instance().mapLayersByName(lphoto)) == 0:
             self.layerPhotos = self.iface.addVectorLayer(self.outDirectoryPhotosShapefile, lphoto, "ogr")
