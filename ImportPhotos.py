@@ -34,6 +34,8 @@ from .MouseClick import MouseClick
 import os.path
 import exifread
 import uuid
+import json
+
 
 class ImportPhotos:
     """QGIS Plugin Implementation."""
@@ -227,11 +229,11 @@ class ImportPhotos:
 
     def toolButtonOut(self):
 
-        self.outDirectoryPhotosShapefile = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
+        self.outDirectoryPhotosGeoJSON = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
             os.path.join(os.path.expanduser('~')),
             'Desktop'), 'GeoJSON (*.geojson *.GEOJSON)')
-        self.outDirectoryPhotosShapefile = self.outDirectoryPhotosShapefile[0]
-        self.dlg.out.setText(self.outDirectoryPhotosShapefile)
+        self.outDirectoryPhotosGeoJSON = self.outDirectoryPhotosGeoJSON[0]
+        self.dlg.out.setText(self.outDirectoryPhotosGeoJSON)
 
     def toolButtonImport(self):
         # try:
@@ -273,9 +275,16 @@ class ImportPhotos:
         if os.path.isabs(self.dlg.out.text())==False:
             if self.selectOutp():
                 return
-        self.outDirectoryPhotosShapefile = self.dlg.out.text()
+        self.outDirectoryPhotosGeoJSON = self.dlg.out.text()
+
+        #if os.path.exists(self.outDirectoryPhotosGeoJSON) == True:
+        #    with open(self.outDirectoryPhotosGeoJSON) as f:
+        #        geoPhotos = json.load(f)
+        #else:
+         #   geoPhotos = []
+
         try:
-            f = open(self.outDirectoryPhotosShapefile, "w")
+            f = open(self.outDirectoryPhotosGeoJSON, "w")
             f.close()
         except:
             msgBox = QMessageBox()
@@ -284,7 +293,7 @@ class ImportPhotos:
             msgBox.setText('Please define output file location.')
             msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
             msgBox.exec_()
-            return 
+            return
 
         self.dlg.ok.setEnabled(False)
         self.dlg.closebutton.setEnabled(False)
@@ -295,8 +304,9 @@ class ImportPhotos:
         for root, dirs, files in os.walk(self.directoryPhotos):
             photos.extend(os.path.join(root, name) for name in files
                           if name.lower().endswith(tuple(extens)))
+        initphotos = len(photos)
 
-        if len(photos) == 0:
+        if initphotos == 0:
             msgBox = QMessageBox()
             msgBox.setIcon(QMessageBox.Warning)
             msgBox.setWindowTitle('Warning')
@@ -310,21 +320,14 @@ class ImportPhotos:
             self.clickPhotos.setChecked(True)
             return
 
-        self.total = 100.0 / len(photos)
+        self.total = 100.0 / initphotos
         self.iface.mapCanvas().setMapTool(self.toolMouseClick)
-        basename = os.path.basename(self.outDirectoryPhotosShapefile)
+        basename = os.path.basename(self.outDirectoryPhotosGeoJSON)
         lphoto = basename[:-8]
 
         self.layernamePhotos.append(lphoto)
-        truePhotosCount = 0
-
-        geoPhotoFile = open(self.outDirectoryPhotosShapefile, "w")
-        geoPhotoFile.write('''{ "type": "FeatureCollection", ''')
-        geoPhotoFile.write(
-            '''"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } }, ''')
-        geoPhotoFile.write('\n')
-        geoPhotoFile.write('"features": [')
-
+        self.truePhotosCount = 0
+        geoPhotos = []
         for count, imgpath in enumerate(photos):
             self.dlg.progressBar.setValue(int(count * self.total))
 
@@ -337,11 +340,10 @@ class ImportPhotos:
             imgpath = imgpath.replace('\\', '/')
             lat, lon = self.get_exif_location(tags, "lonlat")
             try:
-                altitude = str(float(tags["GPS GPSAltitude"].values[0].num) / float(tags["GPS GPSAltitude"].values[0].den))
+                altitude = float(tags["GPS GPSAltitude"].values[0].num) / float(tags["GPS GPSAltitude"].values[0].den)
             except:
                 altitude = ''
             uuid_ = str(uuid.uuid4())
-
             try:
                 dt1, dt2 = tags["Image DateTime"].values.split()
                 date = dt1.replace(':', '/')
@@ -354,41 +356,39 @@ class ImportPhotos:
                 except:
                     date = ''
                     time_ = ''
-
             try:
-                azimuth = str(tags["GPS GPSImgDirection"].values[0])
+                azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(tags["GPS GPSImgDirection"].values[0].den)
             except:
                 azimuth = ''
             try:
                 north = str(tags["GPS GPSImgDirectionRef"].values)
             except:
                 north = ''
-
-            maker = ''
-            model = ''
             try:
                 maker = tags['Image Make']
+            except:
+                maker = ''
+            try:
                 model = tags['Image Model']
             except:
-                pass
+                model = ''
 
-            truePhotosCount = truePhotosCount + 1
-            geoPhotoFile.write('''{ "type": "Feature", "properties": {  "ID": ''' + '"' + uuid_ + '"' + ', "Name": ' +
-                               '"' + name + '"' + ', "Date": ' + '"' + date + '"' + ', "Time": ' + '"' + time_ + '"' +
-                               ', "Lon": ' + '"' + str(lon) + '"' + ', "Lat": ' + '"' + str(lat) + '"' + ', "Altitude":'
-                               ' ' + '"' + altitude + '"' + ', "North": ' + '"' + north + '"' + ', "Azimuth": ' + '"' +
-                               azimuth + '"' + ', "Camera Maker": ' + '"' + str(maker) + '"' + ', "Camera Model": ' +
-                               '"' + str(model) + '"' + ', "Path": ' + '"' + imgpath + '"'+ ',}, "geometry": { "type": '
-                               '"Point",  "coordinates": ' + '[' + str(lon) + ',' + str(lat) + ']')
+            self.truePhotosCount = self.truePhotosCount + 1
+            geo_info = {"properties": {'ID': uuid_, 'Name': name, 'Date': date, 'Time': time_, 'Lon': lon,
+                                             'Lat': lat, 'Altitude': altitude, 'North': north, 'Azimuth': azimuth,
+                                             'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': imgpath},
+                              "geometry": {"coordinates": [lon, lat], "type": "Point"}}
+            geoPhotos.append(geo_info)
 
-            geoPhotoFile.write('}\n }')
-            geoPhotoFile.write(',\n')
-
-        geoPhotoFile.write('\n]\n}\n')
-        geoPhotoFile.close()
+        geojson = {"type": "FeatureCollection", "crs": {"type": "name", "properties": {"name": "crs:OGC:1.3:CRS84"}},
+                   "features": geoPhotos}
+        geofile = open(self.outDirectoryPhotosGeoJSON, 'w')
+        json.dump(geojson, geofile)
+        del geoPhotos, photos
+        geofile.close()
 
         if len(QgsProject.instance().mapLayersByName(lphoto)) == 0:
-            self.layerPhotos = self.iface.addVectorLayer(self.outDirectoryPhotosShapefile, lphoto, "ogr")
+            self.layerPhotos = self.iface.addVectorLayer(self.outDirectoryPhotosGeoJSON, lphoto, "ogr")
         else:
             for x in self.iface.mapCanvas().layers():
                 if x.name() == lphoto:
@@ -403,8 +403,9 @@ class ImportPhotos:
             msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
             msgBox.exec_()
             return
+
         try:
-            self.layerPhotos.setReadOnly()
+            self.layerPhotos.setReadOnly(False)
             self.layerPhotos.reload()
             self.layerPhotos.triggerRepaint()
         except:
@@ -416,21 +417,20 @@ class ImportPhotos:
         self.dlg.progressBar.setValue(100)
         self.dlg.progressBar.setValue(0)
         ###########################################
-        initphotos = len(photos)
-        noLocationPhotosCounter = initphotos - truePhotosCount
-        if truePhotosCount == noLocationPhotosCounter == 0 or truePhotosCount == 0:
+        noLocationPhotosCounter = initphotos - self.truePhotosCount
+        if self.truePhotosCount == noLocationPhotosCounter == 0 or self.truePhotosCount == 0:
             msgBox = QMessageBox()
             msgBox.setIcon(QMessageBox.Information)
             msgBox.setWindowTitle('Import Photos')
             msgBox.setText('Import Completed.\n\nDetails:\n  No new photos were added.')
             msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
             msgBox.exec_()
-        elif (truePhotosCount == initphotos) or ((noLocationPhotosCounter + truePhotosCount) == initphotos):
+        elif (self.truePhotosCount == initphotos) or ((noLocationPhotosCounter + self.truePhotosCount) == initphotos):
             msgBox = QMessageBox()
             msgBox.setIcon(QMessageBox.Information)
             msgBox.setWindowTitle('Import Photos')
             msgBox.setText(
-                'Import Completed.\n\nDetails:\n  ' + str(truePhotosCount) + ' photo(s) added without error.\n  ' + str(
+                'Import Completed.\n\nDetails:\n  ' + str(self.truePhotosCount) + ' photo(s) added without error.\n  ' + str(
                     noLocationPhotosCounter) + ' photo(s) skipped (because of missing location).')
             msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
             msgBox.exec_()

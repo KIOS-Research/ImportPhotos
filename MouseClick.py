@@ -71,8 +71,8 @@ class MouseClick(QgsMapTool):
             layersSelected = []
 
             for layer in layers:
-                fields = [field.name() for field in layer.fields()]
-                if set(fields).issubset(self.drawSelf.fields):
+                fields = [field.name().upper() for field in layer.fields()]
+                if 'PATH' in fields:
                     lRect = self.canvas.mapSettings().mapToLayerCoordinates(layer, rect)
                     try:
                         layer.selectByRect(lRect, False)

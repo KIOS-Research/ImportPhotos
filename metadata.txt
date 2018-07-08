@@ -38,6 +38,7 @@ changelog=2018-02-20  ImportPhotos 0.2:
 	  2018-05-22  ImportPhotos 1.2:
 		Remove Altitude from photo window
 		Replace Zoom In icon with Zoom To Selected
+		Fix azimuth ratio in field
 		
 # Tags are comma separated with spaces allowed
 tags=photos, jpeg, jpg, geotag
