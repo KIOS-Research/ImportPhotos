@@ -10,7 +10,7 @@ QGIS 2
 
 Mac Users. Requires the following Python Modules to be installed: UnixImageIO, FreeType, PIL Please visit: http://www.kyngchaos.com/software/python
 
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/D0Dmo9RfXL0/0.jpg)](https://www.youtube.com/watch?v=D0Dmo9RfXL0)
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/Y3R8gHJUrrk/0.jpg)](https://www.youtube.com/watch?v=Y3R8gHJUrrk)
 
 
 
