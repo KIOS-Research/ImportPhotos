@@ -5,7 +5,7 @@
                                  A QGIS plugin
  Import photos jpegs
                               -------------------
-        begin                : 2017-10-17
+        begin                : 2018-05-17
         git sha              : $Format:%H$
         copyright            : (C) 2017 by KIOS Research Center
         email                : mariosmsk@gmail.com
@@ -26,7 +26,6 @@ from qgis.PyQt.QtCore import *
 from qgis.core import QgsRectangle
 from qgis.gui import QgsMapTool, QgsRubberBand
 from .PhotosViewer import PhotoWindow
-from qgis.PyQt import QtCore
 
 
 class MouseClick(QgsMapTool):
@@ -56,7 +55,7 @@ class MouseClick(QgsMapTool):
             try:
                 selected_features = layer.selectedFeatures()
             except:
-                self.drawSelf.iface.setActiveLayer(self.drawSelf.layerPhotos)
+                self.drawSelf.iface.setActiveLayer(self.drawSelf.layerPhotos_final)
                 selected_features=[]
         except:
             return
@@ -72,7 +71,7 @@ class MouseClick(QgsMapTool):
 
             for layer in layers:
                 fields = [field.name().upper() for field in layer.fields()]
-                if 'PATH' in fields:
+                if 'PATH' or 'PHOTO' in fields:
                     lRect = self.canvas.mapSettings().mapToLayerCoordinates(layer, rect)
                     try:
                         layer.selectByRect(lRect, False)
@@ -85,7 +84,12 @@ class MouseClick(QgsMapTool):
                         feature = selected_features[0]
                         self.photosDLG = PhotoWindow()
 
-                        imPath = feature.attributes()[feature.fieldNameIndex('Path')]
+                        if 'PATH' in fields:
+                            imPath = feature.attributes()[feature.fieldNameIndex('Path')]
+                        elif 'PHOTO' in fields:
+                            imPath = feature.attributes()[feature.fieldNameIndex('photo')]
+                        else:
+                            return
 
                         self.photosDLG.viewer.scene.clear()
                         pixmap = QPixmap.fromImage(QImage(imPath))
@@ -102,11 +106,12 @@ class MouseClick(QgsMapTool):
                         except:
                             timeTrue = str(feature.attributes()[feature.fieldNameIndex('Time')])
 
-                        self.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
-                        self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue)
-
+                        try:
+                            self.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
+                            self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue)
+                        except:
+                            pass
                         self.photosDLG.showNormal()
-                        self.photosDLG.show()
                         return
 
     def deactivate(self):

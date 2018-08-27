@@ -5,9 +5,9 @@
                                  A QGIS plugin
  Import photos jpegs
                               -------------------
-        begin                : 2017-10-17
+        begin                : 2018-08-25
         git sha              : $Format:%H$
-        copyright            : (C) 2017 by KIOS Research Center
+        copyright            : (C) 2018 by KIOS Research Center
         email                : mariosmsk@gmail.com
  ***************************************************************************/
 

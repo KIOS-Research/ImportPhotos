@@ -5,9 +5,9 @@
                                  A QGIS plugin
  Import photos jpegs
                               -------------------
-        begin                : 2017-10-17
+        begin                : 2018-02-20
         git sha              : $Format:%H$
-        copyright            : (C) 2017 by KIOS Research Center
+        copyright            : (C) 2018 by KIOS Research Center
         email                : mariosmsk@gmail.com
  ***************************************************************************/
 
@@ -20,22 +20,33 @@
  *                                                                         *
  ***************************************************************************/
 """
+
 from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt
-from qgis.core import QgsProject, QgsRectangle
-
+from qgis.core import QgsRectangle, QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsVectorLayer, \
+    QgsLayerTreeLayer
 # Initialize Qt resources from file resources.py
 from . import resources
 # Import the code for the dialog
 from .ImportPhotos_dialog import ImportPhotosDialog
-
 from .MouseClick import MouseClick
 import os.path
-import exifread
 import uuid
 import json
 
+try:
+    # qgis 3
+    import exifread
+    from qgis.utils import Qgis
+    from qgis.core import QgsProject
+except:
+    # qgis 2
+    from PIL import Image
+    from PIL.ExifTags import TAGS
+    import platform
+    from qgis.utils import QGis as Qgis  #  for QGIS 2
+    from qgis.core import QgsMapLayerRegistry
 
 class ImportPhotos:
     """QGIS Plugin Implementation."""
@@ -190,17 +201,29 @@ class ImportPhotos:
 
         self.listPhotos = []
         self.layernamePhotos = []
-        self.toolMouseClick = MouseClick(self.iface.mapCanvas(), self)
+        self.canvas = self.iface.mapCanvas()
+        self.toolMouseClick = MouseClick(self.canvas, self)
 
         self.fields = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Maker',
                        'Camera Model', 'Path']
 
+        self.extension_switch = {
+            ".geojson": "GeoJSON",
+            ".shp": "ESRI Shapefile",
+            ".gpkg":"GPKG",
+            ".csv": "CSV",
+            ".gml": "GML",
+            ".kml": "KML",
+            ".tab": "MapInfo File",
+            ".ods": "ODS"
+        }
+
     def mouseClick(self):
         try:
-            self.iface.setActiveLayer(self.iface.mapCanvas().layers()[0])
+            self.iface.setActiveLayer(self.canvas.layers()[0])
         except:
             pass
-        self.iface.mapCanvas().setMapTool(self.toolMouseClick)
+        self.canvas.setMapTool(self.toolMouseClick)
         self.clickPhotos.setChecked(True)
 
     def unload(self):
@@ -228,27 +251,32 @@ class ImportPhotos:
         self.dlg.close()
 
     def toolButtonOut(self):
-
-        self.outDirectoryPhotosGeoJSON = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
+        self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
             os.path.join(os.path.expanduser('~')),
-            'Desktop'), 'GeoJSON (*.geojson *.GEOJSON)')
-        self.outDirectoryPhotosGeoJSON = self.outDirectoryPhotosGeoJSON[0]
-        self.dlg.out.setText(self.outDirectoryPhotosGeoJSON)
+            'Desktop'), 'GeoJSON (*.geojson *.GEOJSON);;'
+                        'ESRI Shapefile (*.shp *.SHP);;'
+                        'GeoPackage (*.gpkg *.GPKG);;'
+                        'Comma Separated Value (*.csv *.CSV);;'
+                        'Geography Markup Language (*.gml *.GML);;'
+                        'Keyhole Markup Language (*.kml *.KML);;'
+                        'Mapinfo TAB (*.tab *.TAB);;'
+                        'Open Document Spreadsheet (*.ods *.ODS)')
+
+        if Qgis.QGIS_VERSION >= '3.0':
+            self.outputPath = self.outputPath[0]
+        self.dlg.out.setText(self.outputPath)
 
     def toolButtonImport(self):
-        # try:
         self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
                                                                 os.path.join(os.path.join(os.path.expanduser('~')),
                                                                              'Desktop'), QFileDialog.ShowDirsOnly)
-        if self.directoryPhotos == "":
-            return
         self.dlg.imp.setText(self.directoryPhotos)
 
     def selectDir(self):
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Warning)
         msgBox.setWindowTitle('Warning')
-        msgBox.setText('Please select a folder with photos.')
+        msgBox.setText('Please select a directory photos.')
         msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
         msgBox.exec_()
         return True
@@ -275,25 +303,14 @@ class ImportPhotos:
         if os.path.isabs(self.dlg.out.text())==False:
             if self.selectOutp():
                 return
-        self.outDirectoryPhotosGeoJSON = self.dlg.out.text()
 
-        #if os.path.exists(self.outDirectoryPhotosGeoJSON) == True:
-        #    with open(self.outDirectoryPhotosGeoJSON) as f:
-        #        geoPhotos = json.load(f)
-        #else:
-         #   geoPhotos = []
+        tmpbasename, self.file_extension = os.path.splitext(self.outputPath)
+        basename = os.path.basename(self.outputPath)
+        lphoto = basename[:-len(self.file_extension)]
 
-        try:
-            f = open(self.outDirectoryPhotosGeoJSON, "w")
-            f.close()
-        except:
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Warning)
-            msgBox.setWindowTitle('Warning')
-            msgBox.setText('Please define output file location.')
-            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-            msgBox.exec_()
-            return
+        self.outputPath = self.dlg.out.text()
+        self.directoryPhotos = self.dlg.imp.text()
+        self.outDirectoryPhotosGeoJSON = self.plugin_dir + '/tmp.geojson'
 
         self.dlg.ok.setEnabled(False)
         self.dlg.closebutton.setEnabled(False)
@@ -310,7 +327,7 @@ class ImportPhotos:
             msgBox = QMessageBox()
             msgBox.setIcon(QMessageBox.Warning)
             msgBox.setWindowTitle('Warning')
-            msgBox.setText('No images.')
+            msgBox.setText('No photos.')
             msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
             msgBox.exec_()
             self.dlg.ok.setEnabled(True)
@@ -321,62 +338,153 @@ class ImportPhotos:
             return
 
         self.total = 100.0 / initphotos
-        self.iface.mapCanvas().setMapTool(self.toolMouseClick)
-        basename = os.path.basename(self.outDirectoryPhotosGeoJSON)
-        lphoto = basename[:-8]
+        self.canvas.setMapTool(self.toolMouseClick)
 
         self.layernamePhotos.append(lphoto)
         self.truePhotosCount = 0
+        self.lon = []
+        self.lat = []
         geoPhotos = []
+        #try:
+        #    json_data = open(self.outputPath, 'r')
+        #    dj = json.load(json_data)
+        #    json_data.close()
+         #   for lgeoph in dj['features']:
+        #        geo_info = {"properties": {'ID': lgeoph['ID'], 'Name': lgeoph['Name'], 'Date': lgeoph['Date'],
+        #                                   'Time': lgeoph['Time'], 'Lon': lgeoph['Lon'], 'Lat': lgeoph['Lat'],
+         #                                  'Altitude': lgeoph['Altitude'], 'North': lgeoph['North'], 'Azimuth': lgeoph['Azimuth'],
+         #                                  'Camera Maker': str(lgeoph['Camera Maker']), 'Camera Model': str(lgeoph['Camera Model']),
+        #                                   'Path': lgeoph['Path']}, "geometry": {"coordinates":
+         #                                   [lgeoph['lon'], lgeoph['lat']], "type": "Point"}}
+        #        geoPhotos.append(geo_info)
+        #except:
+        #    try:
+         #       json_data.close()
+         #   except:
+        #        pass
+
+        if Qgis.QGIS_VERSION >= '3.0':
+            Qpr_inst = QgsProject.instance()
+        else:
+            # something for QGIS 2
+            Qpr_inst = QgsMapLayerRegistry.instance()
+            if platform.system()=='Darwin':
+                self.layernamePhotos.append(lphoto+' OGRGeoJSON Point')
+            else:
+                self.layernamePhotos.append(lphoto)
+
         for count, imgpath in enumerate(photos):
             self.dlg.progressBar.setValue(int(count * self.total))
-
-            with open(imgpath, 'rb') as imgpathF:
-                tags = exifread.process_file(imgpathF, details=False)
-            if not tags.keys() & {"GPS GPSLongitude", "GPS GPSLatitude"}:
-                continue
-
             name = os.path.basename(imgpath)
             imgpath = imgpath.replace('\\', '/')
-            lat, lon = self.get_exif_location(tags, "lonlat")
-            try:
-                altitude = float(tags["GPS GPSAltitude"].values[0].num) / float(tags["GPS GPSAltitude"].values[0].den)
-            except:
-                altitude = ''
-            uuid_ = str(uuid.uuid4())
-            try:
-                dt1, dt2 = tags["Image DateTime"].values.split()
-                date = dt1.replace(':', '/')
-                time_ = dt2
-            except:
-                try:
-                    date = tags["GPS GPSDate"].values.replace(':', '/')
-                    tt = [str(i) for i in tags["GPS GPSTimeStamp"].values]
-                    time_ = "{:0>2}:{:0>2}:{:0>2}".format(tt[0], tt[1], tt[2])
-                except:
-                    date = ''
-                    time_ = ''
-            try:
-                azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(tags["GPS GPSImgDirection"].values[0].den)
-            except:
-                azimuth = ''
-            try:
-                north = str(tags["GPS GPSImgDirectionRef"].values)
-            except:
-                north = ''
-            try:
-                maker = tags['Image Make']
-            except:
-                maker = ''
-            try:
-                model = tags['Image Model']
-            except:
-                model = ''
+            if Qgis.QGIS_VERSION >= '3.0':
+                with open(imgpath, 'rb') as imgpathF:
+                    tags = exifread.process_file(imgpathF, details=False)
+                if not tags.keys() & {"GPS GPSLongitude", "GPS GPSLatitude"}:
+                    continue
 
+                lat, lon = self.get_exif_location(tags, "lonlat")
+                try:
+                    altitude = float(tags["GPS GPSAltitude"].values[0].num) / float(tags["GPS GPSAltitude"].values[0].den)
+                except:
+                    altitude = ''
+                uuid_ = str(uuid.uuid4())
+                try:
+                    dt1, dt2 = tags["Image DateTime"].values.split()
+                    date = dt1.replace(':', '/')
+                    time_ = dt2
+                except:
+                    try:
+                        date = tags["GPS GPSDate"].values.replace(':', '/')
+                        tt = [str(i) for i in tags["GPS GPSTimeStamp"].values]
+                        time_ = "{:0>2}:{:0>2}:{:0>2}".format(tt[0], tt[1], tt[2])
+                    except:
+                        date = ''
+                        time_ = ''
+                try:
+                    azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(tags["GPS GPSImgDirection"].values[0].den)
+                except:
+                    azimuth = ''
+                try:
+                    north = str(tags["GPS GPSImgDirectionRef"].values)
+                except:
+                    north = ''
+                try:
+                    maker = tags['Image Make']
+                except:
+                    maker = ''
+                try:
+                    model = tags['Image Model']
+                except:
+                    model = ''
+
+            else:
+                # something for QGIS 2
+                a = {}
+                info = Image.open(imgpath)
+                info = info._getexif()
+
+                if info == None:
+                    continue
+
+                for tag, value in info.items():
+                    if TAGS.get(tag, tag) == 'GPSInfo' or TAGS.get(tag, tag) == 'DateTime' or TAGS.get(tag,
+                                                                                                       tag) == 'DateTimeOriginal':
+                        a[TAGS.get(tag, tag)] = value
+
+                if a == {}:
+                    continue
+
+                if a['GPSInfo'] != {}:
+                    if 1 and 2 and 3 and 4 in a['GPSInfo']:
+                        lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
+                        latref = a['GPSInfo'][1]
+                        lon = [float(x) / float(y) for x, y in a['GPSInfo'][4]]
+                        lonref = a['GPSInfo'][3]
+
+                        lat = lat[0] + lat[1] / 60 + lat[2] / 3600
+                        lon = lon[0] + lon[1] / 60 + lon[2] / 3600
+
+                        if latref == 'S':
+                            lat = -lat
+                        if lonref == 'W':
+                            lon = -lon
+                    else:
+                        continue
+
+                    uuid_ = str(uuid.uuid4())
+                    if 'DateTime' or 'DateTimeOriginal' in a:
+                        if 'DateTime' in a:
+                            dt1, dt2 = a['DateTime'].split()
+                        elif 'DateTimeOriginal' in a:
+                            dt1, dt2 = a['DateTimeOriginal'].split()
+                        date = dt1.replace(':', '/')
+                        time_ = dt2
+
+                    if 6 in a['GPSInfo']:
+                        if len(a['GPSInfo'][6]) > 1:
+                            mAltitude = float(a['GPSInfo'][6][0])
+                            mAltitudeDec = float(a['GPSInfo'][6][1])
+                            altitude = str(mAltitude / mAltitudeDec)
+                    else:
+                        altitude = ''
+
+                    if 16 and 17 in a['GPSInfo']:
+                        north = str(a['GPSInfo'][16])
+                        azimuth = str(a['GPSInfo'][17][0])
+                    else:
+                        north = ''
+                        azimuth = ''
+
+                    maker = ''
+                    model = ''
+
+            self.lon.append(lon)
+            self.lat.append(lat)
             self.truePhotosCount = self.truePhotosCount + 1
             geo_info = {"properties": {'ID': uuid_, 'Name': name, 'Date': date, 'Time': time_, 'Lon': lon,
-                                             'Lat': lat, 'Altitude': altitude, 'North': north, 'Azimuth': azimuth,
-                                             'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': imgpath},
+                         'Lat': lat, 'Altitude': altitude, 'North': north, 'Azimuth': azimuth,
+                         'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': imgpath},
                               "geometry": {"coordinates": [lon, lat], "type": "Point"}}
             geoPhotos.append(geo_info)
 
@@ -387,14 +495,34 @@ class ImportPhotos:
         del geoPhotos, photos
         geofile.close()
 
-        if len(QgsProject.instance().mapLayersByName(lphoto)) == 0:
-            self.layerPhotos = self.iface.addVectorLayer(self.outDirectoryPhotosGeoJSON, lphoto, "ogr")
-        else:
-            for x in self.iface.mapCanvas().layers():
-                if x.name() == lphoto:
-                    self.layerPhotos = x
         try:
-            self.layerPhotos.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
+            os.remove(self.outputPath)
+        except:
+            pass
+        self.layerPhotos = QgsVectorLayer(self.outDirectoryPhotosGeoJSON, 'temp', "ogr")
+        QgsVectorFileWriter.writeAsVectorFormat(self.layerPhotos, self.outputPath, "utf-8",
+                                                    QgsCoordinateReferenceSystem(self.layerPhotos.crs().authid()),
+                                                    self.extension_switch[self.file_extension.lower()])
+        self.layerPhotos_final = QgsVectorLayer(self.outputPath, lphoto, "ogr")
+        #if not len(Qpr_inst.mapLayersByName(lphoto)):
+        layers = Qpr_inst.instance().mapLayersByName(lphoto)
+        try:
+            Qpr_inst.instance().removeMapLayer(layers[0])
+        except:
+            pass
+        Qpr_inst.addMapLayers([self.layerPhotos_final])
+
+        #else:
+        #    for x in self.canvas.layers():
+        #        if x.name() == lphoto:
+         #           self.layerPhotos = x
+
+        # clear temp.geojson file
+        f = open(self.outDirectoryPhotosGeoJSON, 'r+')
+        f.truncate(0)  # need '0' when using r+
+
+        try:
+            self.layerPhotos_final.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
         except:
             msgBox = QMessageBox()
             msgBox.setIcon(QMessageBox.Warning)
@@ -404,16 +532,16 @@ class ImportPhotos:
             msgBox.exec_()
             return
 
-        try:
-            self.layerPhotos.setReadOnly(False)
-            self.layerPhotos.reload()
-            self.layerPhotos.triggerRepaint()
-        except:
-            pass
-        try:
-            self.iface.mapCanvas().setExtent(QgsRectangle(lon, lat, lon, lat))
-        except:
-            pass
+        self.layerPhotos_final.setReadOnly(False)
+        self.layerPhotos_final.reload()
+        self.layerPhotos_final.triggerRepaint()
+        xmin = min(self.lon)
+        ymin = min(self.lat)
+        xmax = max(self.lon)
+        ymax = max(self.lat)
+        self.canvas.zoomToSelected(self.layerPhotos_final)
+        self.canvas.setExtent(QgsRectangle(xmin, ymin, xmax, ymax))
+
         self.dlg.progressBar.setValue(100)
         self.dlg.progressBar.setValue(0)
         ###########################################
@@ -442,7 +570,7 @@ class ImportPhotos:
         self.clickPhotos.setChecked(True)
 
     def refresh(self):  # Deselect features
-        mc = self.iface.mapCanvas()
+        mc = self.canvas
         for layer in mc.layers():
             if layer.type() == layer.VectorLayer:
                 layer.removeSelection()

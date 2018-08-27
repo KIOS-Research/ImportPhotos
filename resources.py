@@ -6,7 +6,10 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore
+try:
+    from PyQt5 import QtCore
+except:
+    from PyQt4 import QtCore
 
 qt_resource_data = b"\
 \x00\x00\xcc\x5b\

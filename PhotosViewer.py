@@ -1,7 +1,34 @@
-from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
-    QLineEdit, QSizePolicy, QPushButton
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QPainterPath, QIcon
+# -*- coding: utf-8 -*-
+"""
+/***************************************************************************
+ ImportPhotos
+                                 A QGIS plugin
+ Import photos jpegs
+                              -------------------
+        begin                : 2018-08-27
+        git sha              : $Format:%H$
+        copyright            : (C) 2018 by KIOS Research Center
+        email                : mariosmsk@gmail.com
+ ***************************************************************************/
+
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+"""
+try:
+    from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
+        QLineEdit, QSizePolicy, QPushButton
+    from PyQt5.QtCore import Qt, pyqtSignal
+    from PyQt5.QtGui import QPainterPath, QIcon
+except:
+    from PyQt4.QtCore import Qt, pyqtSignal, QRect
+    from PyQt4.QtGui import QGraphicsView, QGraphicsScene, QPainterPath, \
+        QVBoxLayout, QWidget, QLineEdit, QSizePolicy, QIcon, QHBoxLayout, QPushButton
 import os.path
 
 class PhotosViewer(QGraphicsView):

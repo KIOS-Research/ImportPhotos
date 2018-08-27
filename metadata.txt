@@ -8,7 +8,7 @@
 
 [general]
 name=ImportPhotos
-qgisMinimumVersion=2.99
+qgisMinimumVersion=2.0
 qgisMaximumVersion=3.99
 description=Import Photos
 version=1.2
@@ -39,6 +39,8 @@ changelog=2018-02-20  ImportPhotos 0.2:
 		Remove Altitude from photo window
 		Replace Zoom In icon with Zoom To Selected
 		Fix azimuth ratio in field
+		Add save as GeoJSON, SHP, GPKG, CSV, GML, KML, TAB, ODS type of files
+		Merge QGIS 2 with QGIS 3 ImportPhotos plugin
 		
 # Tags are comma separated with spaces allowed
 tags=photos, jpeg, jpg, geotag
