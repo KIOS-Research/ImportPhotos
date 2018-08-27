@@ -5,12 +5,11 @@
                                  A QGIS plugin
  Import photos jpegs
                               -------------------
-        begin                : 2017-10-17
+        begin                : 2018-05-17
         git sha              : $Format:%H$
         copyright            : (C) 2017 by KIOS Research Center
         email                : mariosmsk@gmail.com
  ***************************************************************************/
-
 /***************************************************************************
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -26,14 +25,8 @@ from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 from qgis.core import QgsRectangle
 from qgis.gui import QgsMapTool, QgsRubberBand
-from qgis.PyQt import QtCore
-import qgis.utils
-import exifread
+from .PhotosViewer import PhotoWindow
 
-try:
-    _fromUtf8 = QtCore.QString.fromUtf8
-except AttributeError:
-    _fromUtf8 = lambda s: s
 
 class MouseClick(QgsMapTool):
     afterLeftClick = pyqtSignal()
@@ -62,7 +55,7 @@ class MouseClick(QgsMapTool):
             try:
                 selected_features = layer.selectedFeatures()
             except:
-                self.drawSelf.iface.setActiveLayer(self.drawSelf.layerPhotos)
+                self.drawSelf.iface.setActiveLayer(self.drawSelf.layerPhotos_final)
                 selected_features=[]
         except:
             return
@@ -75,70 +68,35 @@ class MouseClick(QgsMapTool):
             except:
                 return
             layersSelected = []
-            widthScreen = qgis.utils.iface.mainWindow().size().width()
-            heightScreen = qgis.utils.iface.mainWindow().size().height()
+
             for layer in layers:
-                if (layer.name() in self.drawSelf.layernamePhotos)==True:
+                fields = [field.name().upper() for field in layer.fields()]
+                if 'PATH' or 'PHOTO' in fields:
                     lRect = self.canvas.mapSettings().mapToLayerCoordinates(layer, rect)
-                    layer.selectByRect(lRect, False)
+                    try:
+                        layer.selectByRect(lRect, False)
+                    except:
+                        layer.select(lRect, False)
                     selected_features = layer.selectedFeatures()
                     if selected_features != []:
                         layersSelected.append(layer)
                         ########## SHOW PHOTOS ############
                         feature = selected_features[0]
+                        self.photosDLG = PhotoWindow()
 
-                        imPath = feature.attributes()[feature.fieldNameIndex('Path')]
-                        try:
-                            f = open(imPath, 'rb')
-                            tags = exifread.process_file(f, details=False)
-                        except:
-                            pass
-                        try:
-                            height = tags['EXIF ExifImageLength'].values[0]
-                            width = tags['EXIF ExifImageWidth'].values[0]
-                        except:
-                            try:
-                                width = tags['Image ImageWidth'].values[0]
-                                height = tags['Image ImageLength'].values[0]
-                            except:
-                                width, height = 4000, 3000
-                        x=0
-                        y=0
-                        if height < width:
-                            if width>1000:
-                                if width>widthScreen:
-                                    width = widthScreen*0.5658
-                                else:
-                                    width = width*0.252 
-                            elif width<200:
-                                width = 200
-                                x=113
-                            if height>700:
-                                if height>heightScreen:
-                                    height = heightScreen*0.8
-                                else:
-                                    height = height*0.252
-
-                            elif height < 200:
-                                height = 200
-                                y=60
-                        elif width < height:
-                            if height>1000:
-                                height = 756
-                                width = 0.793*height
+                        if 'PATH' in fields:
+                            imPath = feature.attributes()[feature.fieldNameIndex('Path')]
+                        elif 'PHOTO' in fields:
+                            imPath = feature.attributes()[feature.fieldNameIndex('photo')]
                         else:
-                            height = 756
-                            width = 0.9758 * height
+                            return
 
-                        self.drawSelf.photosDLG.setMinimumSize(QSize(width, height))
-                        self.drawSelf.photosDLG.setMaximumSize(QSize(width, height))
-                        self.drawSelf.photosDLG.webView.setGeometry(QRect(x, y, width, height))
-                        self.drawSelf.photosDLG.webView.setMinimumSize(QSize(width, height))
-                        self.drawSelf.photosDLG.webView.setMaximumSize(QSize(width, height))
-                        self.drawSelf.photosDLG.webView.history().clear()
-                        self.drawSelf.photosDLG.webView.load(QUrl("file:///"+imPath))
-                        dateTrue = ''
-                        timeTrue = ''
+                        self.photosDLG.viewer.scene.clear()
+                        pixmap = QPixmap.fromImage(QImage(imPath))
+                        self.photosDLG.viewer.scene.addPixmap(pixmap)
+                        self.photosDLG.viewer.setSceneRect(QRectF(pixmap.rect()))
+                        self.photosDLG.viewer.resizeEvent([])
+
                         try:
                             dateTrue = str(feature.attributes()[feature.fieldNameIndex('Date')].toString('yyyy-MM-dd'))
                         except:
@@ -148,19 +106,12 @@ class MouseClick(QgsMapTool):
                         except:
                             timeTrue = str(feature.attributes()[feature.fieldNameIndex('Time')])
 
-                        self.drawSelf.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
-                        self.drawSelf.photosDLG.infoPhoto2.setText('Time: ' + timeTrue)
-
-                        altitude = str(feature.attributes()[feature.fieldNameIndex('Altitude')])
-                        if str(feature.attributes()[feature.fieldNameIndex('Altitude')])=='':
-                            altitude = "None"
-                            self.drawSelf.photosDLG.infoPhoto3.setText("Altitude: "+altitude)
-                        else:
-                            self.drawSelf.photosDLG.infoPhoto3.setText("Altitude: "+altitude+' m')
-
-                        self.drawSelf.photosDLG.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-                        self.drawSelf.photosDLG.exec_()
-                        self.drawSelf.photosDLG.webView.history().clear()
+                        try:
+                            self.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
+                            self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue)
+                        except:
+                            pass
+                        self.photosDLG.showNormal()
                         return
 
     def deactivate(self):

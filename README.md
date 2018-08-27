@@ -1,4 +1,4 @@
-# ImportPhotos
+﻿# ImportPhotos
 
 QGIS plugin
 
@@ -8,4 +8,17 @@ This tool can be used to import Geo-Tagged photos (jpg or jpeg) as points to QGI
 
 QGIS 2
 
+
+
 Mac Users. Requires the following Python Modules to be installed: UnixImageIO, FreeType, PIL Please visit: http://www.kyngchaos.com/software/python
+
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/Y3R8gHJUrrk/0.jpg)](https://www.youtube.com/watch?v=Y3R8gHJUrrk)
+
+
+
+QGIS 3
+
+
+
+(to be completed)
+=======
