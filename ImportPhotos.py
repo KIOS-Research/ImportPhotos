@@ -538,12 +538,16 @@ class ImportPhotos:
         self.layerPhotos_final.setReadOnly(False)
         self.layerPhotos_final.reload()
         self.layerPhotos_final.triggerRepaint()
-        xmin = min(self.lon)
-        ymin = min(self.lat)
-        xmax = max(self.lon)
-        ymax = max(self.lat)
-        self.canvas.zoomToSelected(self.layerPhotos_final)
-        self.canvas.setExtent(QgsRectangle(xmin, ymin, xmax, ymax))
+
+        try:
+            xmin = min(self.lon)
+            ymin = min(self.lat)
+            xmax = max(self.lon)
+            ymax = max(self.lat)
+            self.canvas.zoomToSelected(self.layerPhotos_final)
+            self.canvas.setExtent(QgsRectangle(xmin, ymin, xmax, ymax))
+        except:
+            pass
 
         self.dlg.progressBar.setValue(100)
         self.dlg.progressBar.setValue(0)
