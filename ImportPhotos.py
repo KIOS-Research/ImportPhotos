@@ -42,11 +42,18 @@ try:
     from qgis.core import QgsProject
 except:
     # qgis 2
-    from PIL import Image
-    from PIL.ExifTags import TAGS
-    import platform
-    from qgis.utils import QGis as Qgis  #  for QGIS 2
-    from qgis.core import QgsMapLayerRegistry
+    try:
+        from PIL import Image
+        from PIL.ExifTags import TAGS
+        import platform
+        from qgis.utils import QGis as Qgis  #  for QGIS 2
+        from qgis.core import QgsMapLayerRegistry
+    except:
+        from PIL import Image
+        from PIL.ExifTags import TAGS
+        import platform
+        from qgis.utils import Qgis # QGIS 3
+        from qgis.core import QgsProject
 
 class ImportPhotos:
     """QGIS Plugin Implementation."""

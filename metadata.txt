@@ -11,7 +11,7 @@ name=ImportPhotos
 qgisMinimumVersion=2.0
 qgisMaximumVersion=3.99
 description=Import Photos
-version=1.4
+version=1.5
 author=Marios S. Kyriakou, George A. Christou, KIOS Research and Innovation Center of Excellence (KIOS CoE)
 email=mariosmsk@gmail.com, george.a.christou@gmail.com
 
@@ -45,6 +45,8 @@ changelog=2018-02-20  ImportPhotos 0.2:
 		Fix an issue with images without gps info
 	  2018-09-25  ImportPhotos 1.4:
 		Another fix of the issue with images without gps info
+	  2018-10-01  ImportPhotos 1.5:
+		Fix issue with exifread
 		
 # Tags are comma separated with spaces allowed
 tags=photos, jpeg, jpg, geotag
