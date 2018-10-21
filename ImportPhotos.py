@@ -32,6 +32,7 @@ from . import resources
 from .ImportPhotos_dialog import ImportPhotosDialog
 from .MouseClick import MouseClick
 import os.path
+import platform
 import uuid
 import json
 
@@ -45,13 +46,11 @@ except:
     try:
         from PIL import Image
         from PIL.ExifTags import TAGS
-        import platform
         from qgis.utils import QGis as Qgis  #  for QGIS 2
         from qgis.core import QgsMapLayerRegistry
     except:
         from PIL import Image
         from PIL.ExifTags import TAGS
-        import platform
         from qgis.utils import Qgis # QGIS 3
         from qgis.core import QgsProject
 
@@ -258,16 +257,15 @@ class ImportPhotos:
         self.dlg.close()
 
     def toolButtonOut(self):
-        self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File', os.path.join(
-            os.path.join(os.path.expanduser('~')),
-            'Desktop'), 'GeoJSON (*.geojson *.GEOJSON);;'
-                        'ESRI Shapefile (*.shp *.SHP);;'
-                        'GeoPackage (*.gpkg *.GPKG);;'
-                        'Comma Separated Value (*.csv *.CSV);;'
-                        'Geography Markup Language (*.gml *.GML);;'
-                        'Keyhole Markup Language (*.kml *.KML);;'
-                        'Mapinfo TAB (*.tab *.TAB);;'
-                        'Open Document Spreadsheet (*.ods *.ODS)')
+        typefiles = 'GeoJSON (*.geojson *.GEOJSON);; ESRI Shapefile (*.shp *.SHP);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Geography Markup Language (*.gml *.GML);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB);; Open Document Spreadsheet (*.ods *.ODS)'
+        if platform.system() == 'Linux':
+            self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File', os.path.join(
+                os.path.join(os.path.expanduser('~')),
+                'Desktop'), typefiles)
+        else:
+            self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
+                os.path.join(os.path.expanduser('~')),
+                'Desktop'), typefiles)
 
         if Qgis.QGIS_VERSION >= '3.0':
             self.outputPath = self.outputPath[0]
@@ -305,8 +303,13 @@ class ImportPhotos:
             if self.selectOutp():
                 return
 
-        lphoto = os.path.basename(self.outputPath)
-        self.extension = '.'+self.extension.split()[-1][2:-1].lower()
+        if platform.system()=='Linux':
+            lphoto = os.path.basename(self.outputPath)
+            self.extension = '.'+self.extension.split()[-1][2:-1].lower()
+        else:
+            tmpbasename, self.extension = os.path.splitext(self.outputPath)
+            basename = os.path.basename(self.outputPath)
+            lphoto = basename[:-len(self.extension)]
 
         self.outputPath = self.dlg.out.text()
         self.directoryPhotos = self.dlg.imp.text()
@@ -483,8 +486,12 @@ class ImportPhotos:
         except:
             pass
 
-        self.outputPath = self.outputPath + self.extension
-        self.extension = self.extension_switch[self.extension]
+        if platform.system() == 'Linux':
+            self.outputPath = self.outputPath + self.extension
+            self.extension = self.extension_switch[self.extension]
+        else:
+            self.extension = self.extension_switch[self.extension.lower()]
+
         self.layerPhotos = QgsVectorLayer(self.outDirectoryPhotosGeoJSON, 'temp', "ogr")
         QgsVectorFileWriter.writeAsVectorFormat(self.layerPhotos, self.outputPath, "utf-8",
                                                     QgsCoordinateReferenceSystem(self.layerPhotos.crs().authid()),
