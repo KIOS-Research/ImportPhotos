@@ -45,8 +45,9 @@ changelog=2018-02-20  ImportPhotos 0.2:
 		Fix an issue with images without gps info
 	  2018-09-25  ImportPhotos 1.4:
 		Another fix of the issue with images without gps info
-	  2018-10-01  ImportPhotos 1.5:
+	  2018-10-22  ImportPhotos 1.5:
 		Fix issue with exifread
+		Fix issue for linux platform
 		
 # Tags are comma separated with spaces allowed
 tags=photos, jpeg, jpg, geotag
