@@ -26,7 +26,7 @@ from qgis.PyQt.QtCore import *
 from qgis.core import QgsRectangle
 from qgis.gui import QgsMapTool, QgsRubberBand
 from .PhotosViewer import PhotoWindow
-
+import os
 
 class MouseClick(QgsMapTool):
     afterLeftClick = pyqtSignal()
@@ -91,10 +91,11 @@ class MouseClick(QgsMapTool):
                         else:
                             return
 
-                        if imPath == []:
+                        if os.path.exists(imPath) == False:
                             title = 'Warning'
                             msg = 'No image path found.'
                             self.drawSelf.showMessage(title, msg, 'Warning')
+                            return
 
                         self.photosDLG.viewer.scene.clear()
                         pixmap = QPixmap.fromImage(QImage(imPath))
