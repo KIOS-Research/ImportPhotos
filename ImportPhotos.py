@@ -258,7 +258,7 @@ class ImportPhotos:
         self.dlg.close()
 
     def toolButtonOut(self):
-        self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
+        self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File', os.path.join(
             os.path.join(os.path.expanduser('~')),
             'Desktop'), 'GeoJSON (*.geojson *.GEOJSON);;'
                         'ESRI Shapefile (*.shp *.SHP);;'
@@ -305,9 +305,8 @@ class ImportPhotos:
             if self.selectOutp():
                 return
 
-        tmpbasename, self.file_extension = os.path.splitext(self.outputPath)
-        basename = os.path.basename(self.outputPath)
-        lphoto = basename[:-len(self.file_extension)]
+        lphoto = os.path.basename(self.outputPath)
+        self.extension = '.'+self.extension.split()[-1][2:-1].lower()
 
         self.outputPath = self.dlg.out.text()
         self.directoryPhotos = self.dlg.imp.text()
@@ -343,23 +342,6 @@ class ImportPhotos:
         self.lon = []
         self.lat = []
         geoPhotos = []
-        #try:
-        #    json_data = open(self.outputPath, 'r')
-        #    dj = json.load(json_data)
-        #    json_data.close()
-         #   for lgeoph in dj['features']:
-        #        geo_info = {"properties": {'ID': lgeoph['ID'], 'Name': lgeoph['Name'], 'Date': lgeoph['Date'],
-        #                                   'Time': lgeoph['Time'], 'Lon': lgeoph['Lon'], 'Lat': lgeoph['Lat'],
-         #                                  'Altitude': lgeoph['Altitude'], 'North': lgeoph['North'], 'Azimuth': lgeoph['Azimuth'],
-         #                                  'Camera Maker': str(lgeoph['Camera Maker']), 'Camera Model': str(lgeoph['Camera Model']),
-        #                                   'Path': lgeoph['Path']}, "geometry": {"coordinates":
-         #                                   [lgeoph['lon'], lgeoph['lat']], "type": "Point"}}
-        #        geoPhotos.append(geo_info)
-        #except:
-        #    try:
-         #       json_data.close()
-         #   except:
-        #        pass
 
         if Qgis.QGIS_VERSION >= '3.0':
             Qpr_inst = QgsProject.instance()
@@ -500,11 +482,15 @@ class ImportPhotos:
             os.remove(self.outputPath)
         except:
             pass
+
+        self.outputPath = self.outputPath + self.extension
+        self.extension = self.extension_switch[self.extension]
         self.layerPhotos = QgsVectorLayer(self.outDirectoryPhotosGeoJSON, 'temp', "ogr")
         QgsVectorFileWriter.writeAsVectorFormat(self.layerPhotos, self.outputPath, "utf-8",
                                                     QgsCoordinateReferenceSystem(self.layerPhotos.crs().authid()),
-                                                    self.extension_switch[self.file_extension.lower()])
+                                                    self.extension)
         self.layerPhotos_final = QgsVectorLayer(self.outputPath, lphoto, "ogr")
+
         #if not len(Qpr_inst.mapLayersByName(lphoto)):
         layers = Qpr_inst.instance().mapLayersByName(lphoto)
         try:
@@ -512,11 +498,6 @@ class ImportPhotos:
         except:
             pass
         Qpr_inst.addMapLayers([self.layerPhotos_final])
-
-        #else:
-        #    for x in self.canvas.layers():
-        #        if x.name() == lphoto:
-         #           self.layerPhotos = x
 
         # clear temp.geojson file
         f = open(self.outDirectoryPhotosGeoJSON, 'r+')
