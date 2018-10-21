@@ -280,21 +280,15 @@ class ImportPhotos:
         self.dlg.imp.setText(self.directoryPhotos)
 
     def selectDir(self):
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Warning)
-        msgBox.setWindowTitle('Warning')
-        msgBox.setText('Please select a directory photos.')
-        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-        msgBox.exec_()
+        title = 'Warning'
+        msg = 'Please select a directory photos.'
+        self.showMessage(title, msg, 'Warning')
         return True
 
     def selectOutp(self):
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Warning)
-        msgBox.setWindowTitle('Warning')
-        msgBox.setText('Please define output file location.')
-        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-        msgBox.exec_()
+        title = 'Warning'
+        msg = 'Please define output file location.'
+        self.showMessage(title, msg, 'Warning')
         return True
 
     def ok(self):
@@ -331,12 +325,9 @@ class ImportPhotos:
         initphotos = len(photos)
 
         if initphotos == 0:
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Warning)
-            msgBox.setWindowTitle('Warning')
-            msgBox.setText('No photos.')
-            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-            msgBox.exec_()
+            title = 'Warning'
+            msg = 'No photos.'
+            self.showMessage(title, msg, 'Warning')
             self.dlg.ok.setEnabled(True)
             self.dlg.closebutton.setEnabled(True)
             self.dlg.toolButtonImport.setEnabled(True)
@@ -534,12 +525,9 @@ class ImportPhotos:
         try:
             self.layerPhotos_final.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
         except:
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Warning)
-            msgBox.setWindowTitle('Warning')
-            msgBox.setText('No geo-tagged images were detected.')
-            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-            msgBox.exec_()
+            title = 'Warning'
+            msg = 'No geo-tagged images were detected.'
+            self.showMessage(title, msg, 'Warning')
             return
 
         self.layerPhotos_final.setReadOnly(False)
@@ -561,21 +549,15 @@ class ImportPhotos:
         ###########################################
         noLocationPhotosCounter = initphotos - self.truePhotosCount
         if self.truePhotosCount == noLocationPhotosCounter == 0 or self.truePhotosCount == 0:
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Information)
-            msgBox.setWindowTitle('Import Photos')
-            msgBox.setText('Import Completed.\n\nDetails:\n  No new photos were added.')
-            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-            msgBox.exec_()
+            title = 'Import Photos'
+            msg='Import Completed.\n\nDetails:\n  No new photos were added.'
+            self.showMessage(title, msg, 'Information')
         elif (self.truePhotosCount == initphotos) or ((noLocationPhotosCounter + self.truePhotosCount) == initphotos):
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Information)
-            msgBox.setWindowTitle('Import Photos')
-            msgBox.setText(
-                'Import Completed.\n\nDetails:\n  ' + str(self.truePhotosCount) + ' photo(s) added without error.\n  ' + str(
-                    noLocationPhotosCounter) + ' photo(s) skipped (because of missing location).')
-            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-            msgBox.exec_()
+            title = 'Import Photos'
+            msg='Import Completed.\n\nDetails:\n  ' + str(
+                self.truePhotosCount) + ' photo(s) added without error.\n  ' + str(
+                noLocationPhotosCounter) + ' photo(s) skipped (because of missing location).'
+            self.showMessage(title, msg, 'Information')
 
         self.dlg.ok.setEnabled(True)
         self.dlg.closebutton.setEnabled(True)
@@ -590,6 +572,18 @@ class ImportPhotos:
                 layer.removeSelection()
         mc.refresh()
 
+    def showMessage(self, title, msg, icon):
+        if icon == 'Warning':
+            icon = QMessageBox.Warning
+        elif icon == 'Information':
+            icon = QMessageBox.Information
+
+        msgBox = QMessageBox()
+        msgBox.setIcon(icon)
+        msgBox.setWindowTitle(title)
+        msgBox.setText(msg)
+        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+        msgBox.exec_()
 
 
 ######################################################
