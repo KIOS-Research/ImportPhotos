@@ -32,6 +32,7 @@ from . import resources
 from .ImportPhotos_dialog import ImportPhotosDialog
 from .MouseClick import MouseClick
 import os.path
+import platform
 import uuid
 import json
 
@@ -45,13 +46,11 @@ except:
     try:
         from PIL import Image
         from PIL.ExifTags import TAGS
-        import platform
         from qgis.utils import QGis as Qgis  #  for QGIS 2
         from qgis.core import QgsMapLayerRegistry
     except:
         from PIL import Image
         from PIL.ExifTags import TAGS
-        import platform
         from qgis.utils import Qgis # QGIS 3
         from qgis.core import QgsProject
 
@@ -258,16 +257,15 @@ class ImportPhotos:
         self.dlg.close()
 
     def toolButtonOut(self):
-        self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
-            os.path.join(os.path.expanduser('~')),
-            'Desktop'), 'GeoJSON (*.geojson *.GEOJSON);;'
-                        'ESRI Shapefile (*.shp *.SHP);;'
-                        'GeoPackage (*.gpkg *.GPKG);;'
-                        'Comma Separated Value (*.csv *.CSV);;'
-                        'Geography Markup Language (*.gml *.GML);;'
-                        'Keyhole Markup Language (*.kml *.KML);;'
-                        'Mapinfo TAB (*.tab *.TAB);;'
-                        'Open Document Spreadsheet (*.ods *.ODS)')
+        typefiles = 'GeoJSON (*.geojson *.GEOJSON);; ESRI Shapefile (*.shp *.SHP);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Geography Markup Language (*.gml *.GML);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB);; Open Document Spreadsheet (*.ods *.ODS)'
+        if platform.system() == 'Linux':
+            self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File', os.path.join(
+                os.path.join(os.path.expanduser('~')),
+                'Desktop'), typefiles)
+        else:
+            self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
+                os.path.join(os.path.expanduser('~')),
+                'Desktop'), typefiles)
 
         if Qgis.QGIS_VERSION >= '3.0':
             self.outputPath = self.outputPath[0]
@@ -280,21 +278,15 @@ class ImportPhotos:
         self.dlg.imp.setText(self.directoryPhotos)
 
     def selectDir(self):
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Warning)
-        msgBox.setWindowTitle('Warning')
-        msgBox.setText('Please select a directory photos.')
-        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-        msgBox.exec_()
+        title = 'Warning'
+        msg = 'Please select a directory photos.'
+        self.showMessage(title, msg, 'Warning')
         return True
 
     def selectOutp(self):
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Warning)
-        msgBox.setWindowTitle('Warning')
-        msgBox.setText('Please define output file location.')
-        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-        msgBox.exec_()
+        title = 'Warning'
+        msg = 'Please define output file location.'
+        self.showMessage(title, msg, 'Warning')
         return True
 
     def ok(self):
@@ -311,9 +303,13 @@ class ImportPhotos:
             if self.selectOutp():
                 return
 
-        tmpbasename, self.file_extension = os.path.splitext(self.outputPath)
-        basename = os.path.basename(self.outputPath)
-        lphoto = basename[:-len(self.file_extension)]
+        if platform.system()=='Linux':
+            lphoto = os.path.basename(self.outputPath)
+            self.extension = '.'+self.extension.split()[-1][2:-1].lower()
+        else:
+            tmpbasename, self.extension = os.path.splitext(self.outputPath)
+            basename = os.path.basename(self.outputPath)
+            lphoto = basename[:-len(self.extension)]
 
         self.outputPath = self.dlg.out.text()
         self.directoryPhotos = self.dlg.imp.text()
@@ -331,12 +327,9 @@ class ImportPhotos:
         initphotos = len(photos)
 
         if initphotos == 0:
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Warning)
-            msgBox.setWindowTitle('Warning')
-            msgBox.setText('No photos.')
-            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-            msgBox.exec_()
+            title = 'Warning'
+            msg = 'No photos.'
+            self.showMessage(title, msg, 'Warning')
             self.dlg.ok.setEnabled(True)
             self.dlg.closebutton.setEnabled(True)
             self.dlg.toolButtonImport.setEnabled(True)
@@ -352,23 +345,6 @@ class ImportPhotos:
         self.lon = []
         self.lat = []
         geoPhotos = []
-        #try:
-        #    json_data = open(self.outputPath, 'r')
-        #    dj = json.load(json_data)
-        #    json_data.close()
-         #   for lgeoph in dj['features']:
-        #        geo_info = {"properties": {'ID': lgeoph['ID'], 'Name': lgeoph['Name'], 'Date': lgeoph['Date'],
-        #                                   'Time': lgeoph['Time'], 'Lon': lgeoph['Lon'], 'Lat': lgeoph['Lat'],
-         #                                  'Altitude': lgeoph['Altitude'], 'North': lgeoph['North'], 'Azimuth': lgeoph['Azimuth'],
-         #                                  'Camera Maker': str(lgeoph['Camera Maker']), 'Camera Model': str(lgeoph['Camera Model']),
-        #                                   'Path': lgeoph['Path']}, "geometry": {"coordinates":
-         #                                   [lgeoph['lon'], lgeoph['lat']], "type": "Point"}}
-        #        geoPhotos.append(geo_info)
-        #except:
-        #    try:
-         #       json_data.close()
-         #   except:
-        #        pass
 
         if Qgis.QGIS_VERSION >= '3.0':
             Qpr_inst = QgsProject.instance()
@@ -509,11 +485,19 @@ class ImportPhotos:
             os.remove(self.outputPath)
         except:
             pass
+
+        if platform.system() == 'Linux':
+            self.outputPath = self.outputPath + self.extension
+            self.extension = self.extension_switch[self.extension]
+        else:
+            self.extension = self.extension_switch[self.extension.lower()]
+
         self.layerPhotos = QgsVectorLayer(self.outDirectoryPhotosGeoJSON, 'temp', "ogr")
         QgsVectorFileWriter.writeAsVectorFormat(self.layerPhotos, self.outputPath, "utf-8",
                                                     QgsCoordinateReferenceSystem(self.layerPhotos.crs().authid()),
-                                                    self.extension_switch[self.file_extension.lower()])
+                                                    self.extension)
         self.layerPhotos_final = QgsVectorLayer(self.outputPath, lphoto, "ogr")
+
         #if not len(Qpr_inst.mapLayersByName(lphoto)):
         layers = Qpr_inst.instance().mapLayersByName(lphoto)
         try:
@@ -522,11 +506,6 @@ class ImportPhotos:
             pass
         Qpr_inst.addMapLayers([self.layerPhotos_final])
 
-        #else:
-        #    for x in self.canvas.layers():
-        #        if x.name() == lphoto:
-         #           self.layerPhotos = x
-
         # clear temp.geojson file
         f = open(self.outDirectoryPhotosGeoJSON, 'r+')
         f.truncate(0)  # need '0' when using r+
@@ -534,12 +513,9 @@ class ImportPhotos:
         try:
             self.layerPhotos_final.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
         except:
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Warning)
-            msgBox.setWindowTitle('Warning')
-            msgBox.setText('No geo-tagged images were detected.')
-            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-            msgBox.exec_()
+            title = 'Warning'
+            msg = 'No geo-tagged images were detected.'
+            self.showMessage(title, msg, 'Warning')
             return
 
         self.layerPhotos_final.setReadOnly(False)
@@ -561,21 +537,15 @@ class ImportPhotos:
         ###########################################
         noLocationPhotosCounter = initphotos - self.truePhotosCount
         if self.truePhotosCount == noLocationPhotosCounter == 0 or self.truePhotosCount == 0:
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Information)
-            msgBox.setWindowTitle('Import Photos')
-            msgBox.setText('Import Completed.\n\nDetails:\n  No new photos were added.')
-            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-            msgBox.exec_()
+            title = 'Import Photos'
+            msg='Import Completed.\n\nDetails:\n  No new photos were added.'
+            self.showMessage(title, msg, 'Information')
         elif (self.truePhotosCount == initphotos) or ((noLocationPhotosCounter + self.truePhotosCount) == initphotos):
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Information)
-            msgBox.setWindowTitle('Import Photos')
-            msgBox.setText(
-                'Import Completed.\n\nDetails:\n  ' + str(self.truePhotosCount) + ' photo(s) added without error.\n  ' + str(
-                    noLocationPhotosCounter) + ' photo(s) skipped (because of missing location).')
-            msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-            msgBox.exec_()
+            title = 'Import Photos'
+            msg='Import Completed.\n\nDetails:\n  ' + str(
+                self.truePhotosCount) + ' photo(s) added without error.\n  ' + str(
+                noLocationPhotosCounter) + ' photo(s) skipped (because of missing location).'
+            self.showMessage(title, msg, 'Information')
 
         self.dlg.ok.setEnabled(True)
         self.dlg.closebutton.setEnabled(True)
@@ -590,6 +560,18 @@ class ImportPhotos:
                 layer.removeSelection()
         mc.refresh()
 
+    def showMessage(self, title, msg, icon):
+        if icon == 'Warning':
+            icon = QMessageBox.Warning
+        elif icon == 'Information':
+            icon = QMessageBox.Information
+
+        msgBox = QMessageBox()
+        msgBox.setIcon(icon)
+        msgBox.setWindowTitle(title)
+        msgBox.setText(msg)
+        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+        msgBox.exec_()
 
 
 ######################################################
