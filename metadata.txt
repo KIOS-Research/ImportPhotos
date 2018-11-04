@@ -48,6 +48,8 @@ changelog=2018-02-20  ImportPhotos 0.2:
 	  2018-10-22  ImportPhotos 1.5:
 		Fix issue with exifread
 		Fix issue for linux platform
+	  2018-10-22  ImportPhotos 1.6:
+		Fix issue with empty attribute for qgis 3.4
 		
 # Tags are comma separated with spaces allowed
 tags=photos, jpeg, jpg, geotag
