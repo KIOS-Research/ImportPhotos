@@ -54,6 +54,17 @@ except:
         from qgis.utils import Qgis # QGIS 3
         from qgis.core import QgsProject
 
+try:
+    import osgeo.ogr as ogr
+except:
+    import ogr
+
+try:
+    import osgeo.osr as osr
+except:
+    import osr
+
+
 class ImportPhotos:
     """QGIS Plugin Implementation."""
 
@@ -218,7 +229,6 @@ class ImportPhotos:
             ".shp": "ESRI Shapefile",
             ".gpkg":"GPKG",
             ".csv": "CSV",
-            ".gml": "GML",
             ".kml": "KML",
             ".tab": "MapInfo File",
             ".ods": "ODS"
@@ -257,11 +267,16 @@ class ImportPhotos:
         self.dlg.close()
 
     def toolButtonOut(self):
-        typefiles = 'GeoJSON (*.geojson *.GEOJSON);; ESRI Shapefile (*.shp *.SHP);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Geography Markup Language (*.gml *.GML);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB);; Open Document Spreadsheet (*.ods *.ODS)'
+        typefiles = 'GeoJSON (*.geojson *.GEOJSON);; ESRI Shapefile (*.shp *.SHP);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB);; Open Document Spreadsheet (*.ods *.ODS)'
         if platform.system() == 'Linux':
-            self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File', os.path.join(
-                os.path.join(os.path.expanduser('~')),
-                'Desktop'), typefiles)
+            try:
+                self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File', os.path.join(
+                    os.path.join(os.path.expanduser('~')),
+                    'Desktop'), typefiles)
+            except:
+                self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
+                    os.path.join(os.path.expanduser('~')),
+                    'Desktop'), typefiles)
         else:
             self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
                 os.path.join(os.path.expanduser('~')),
@@ -355,6 +370,37 @@ class ImportPhotos:
                 self.layernamePhotos.append(lphoto+' OGRGeoJSON Point')
             else:
                 self.layernamePhotos.append(lphoto)
+
+        if Qgis.QGIS_VERSION >= '3.3':
+            # Using ogr
+            driver = ogr.GetDriverByName('geojson')
+            if os.path.exists(self.outDirectoryPhotosGeoJSON):
+                try:
+                    os.remove(self.outDirectoryPhotosGeoJSON)
+                except:
+                    pass
+                driver.DeleteDataSource(self.outDirectoryPhotosGeoJSON)
+
+            Shp = driver.CreateDataSource(self.outDirectoryPhotosGeoJSON)
+
+            SR = osr.SpatialReference()
+            SR.ImportFromEPSG(4326)
+            try:
+                os.remove(self.outDirectoryPhotosGeoJSON)
+            except:
+                pass
+            layer = Shp.CreateLayer(os.path.basename(self.outputPath), SR, ogr.wkbPoint)
+
+            # Create attribute fields
+            realcolumns = ['Lon', 'Lat', 'Altitude', 'Azimuth']
+
+            # Create ID Field and add it to Layer
+            for col in self.fields:
+                if col in realcolumns:
+                    fieldDefn = ogr.FieldDefn(col, ogr.OFTReal)
+                else:
+                    fieldDefn = ogr.FieldDefn(col, ogr.OFTString)
+                layer.CreateField(fieldDefn)
 
         for count, imgpath in enumerate(photos):
             try:
@@ -466,23 +512,63 @@ class ImportPhotos:
                 self.lon.append(lon)
                 self.lat.append(lat)
                 self.truePhotosCount = self.truePhotosCount + 1
-                geo_info = {"properties": {'ID': uuid_, 'Name': name, 'Date': date, 'Time': time_, 'Lon': lon,
-                             'Lat': lat, 'Altitude': altitude, 'North': north, 'Azimuth': azimuth,
-                             'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': imgpath},
-                                  "geometry": {"coordinates": [lon, lat], "type": "Point"}}
-                geoPhotos.append(geo_info)
+
+                if Qgis.QGIS_VERSION >= '3.3':
+                    # get Layer type
+                    featureDefn = layer.GetLayerDefn()
+
+                    # Create Feature
+                    feature = ogr.Feature(featureDefn)
+
+                    # Set fields
+                    feature.SetField("ID", uuid_)
+                    feature.SetField("Name", name)
+                    feature.SetField("Date", date)
+                    feature.SetField("Time", time_)
+                    feature.SetField("Lon", str(lon))
+                    feature.SetField("Lat", str(lat))
+                    feature.SetField("Altitude", altitude)
+                    feature.SetField("North", north)
+                    feature.SetField("Azimuth", azimuth)
+                    feature.SetField("Camera Maker", str(maker))
+                    feature.SetField("Camera Model", str(model))
+                    feature.SetField("Path", imgpath)
+
+                    # create the point
+                    point = ogr.Geometry(ogr.wkbPoint)
+                    point.AddPoint(lon, lat)
+
+                    # add point
+                    feature.SetGeometry(point)
+
+                    # add new feature to layer
+                    layer.CreateFeature(feature)
+                else:
+                    geo_info = {"properties": {'ID': uuid_, 'Name': name, 'Date': date, 'Time': time_, 'Lon': lon,
+                                               'Lat': lat, 'Altitude': altitude, 'North': north, 'Azimuth': azimuth,
+                                               'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': imgpath},
+                                "geometry": {"coordinates": [lon, lat], "type": "Point"}}
+                    geoPhotos.append(geo_info)
+
             except:
                 pass
-
-        geojson = {"type": "FeatureCollection", "crs": {"type": "name", "properties": {"name": "crs:OGC:1.3:CRS84"}},
-                   "features": geoPhotos}
-        geofile = open(self.outDirectoryPhotosGeoJSON, 'w')
-        json.dump(geojson, geofile)
-        del geoPhotos, photos
-        geofile.close()
+        # Destroy
+        if Qgis.QGIS_VERSION >= '3.3':
+            del photos, Shp, point, feature, layer
+        else:
+            geojson = {"type": "FeatureCollection",
+                       "crs": {"type": "name", "properties": {"name": "crs:OGC:1.3:CRS84"}},
+                       "features": geoPhotos}
+            geofile = open(self.outDirectoryPhotosGeoJSON, 'w')
+            json.dump(geojson, geofile)
+            del geoPhotos, photos
+            geofile.close()
 
         try:
-            os.remove(self.outputPath)
+            for layer in self.canvas.layers():
+                if layer.publicSource() == self.outputPath:
+                    Qpr_inst.instance().removeMapLayer(layer.id())
+                    os.remove(self.outputPath)
         except:
             pass
 
@@ -493,22 +579,19 @@ class ImportPhotos:
             self.extension = self.extension_switch[self.extension.lower()]
 
         self.layerPhotos = QgsVectorLayer(self.outDirectoryPhotosGeoJSON, 'temp', "ogr")
+
         QgsVectorFileWriter.writeAsVectorFormat(self.layerPhotos, self.outputPath, "utf-8",
                                                     QgsCoordinateReferenceSystem(self.layerPhotos.crs().authid()),
                                                     self.extension)
+        del self.layerPhotos
         self.layerPhotos_final = QgsVectorLayer(self.outputPath, lphoto, "ogr")
 
-        #if not len(Qpr_inst.mapLayersByName(lphoto)):
-        layers = Qpr_inst.instance().mapLayersByName(lphoto)
-        try:
-            Qpr_inst.instance().removeMapLayer(layers[0])
-        except:
-            pass
-        Qpr_inst.addMapLayers([self.layerPhotos_final])
+        if Qgis.QGIS_VERSION < '3.3':
+            # clear temp.geojson file
+            f = open(self.outDirectoryPhotosGeoJSON, 'r+')
+            f.truncate(0)  # need '0' when using r+
 
-        # clear temp.geojson file
-        f = open(self.outDirectoryPhotosGeoJSON, 'r+')
-        f.truncate(0)  # need '0' when using r+
+        Qpr_inst.addMapLayers([self.layerPhotos_final])
 
         try:
             self.layerPhotos_final.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
