@@ -34,6 +34,7 @@ from .MouseClick import MouseClick
 import os.path
 import platform
 import uuid
+import json
 
 try:
     # qgis 3
@@ -358,6 +359,7 @@ class ImportPhotos:
         self.truePhotosCount = 0
         self.lon = []
         self.lat = []
+        geoPhotos = []
 
         if Qgis.QGIS_VERSION >= '3.0':
             Qpr_inst = QgsProject.instance()
@@ -369,35 +371,36 @@ class ImportPhotos:
             else:
                 self.layernamePhotos.append(lphoto)
 
-        # Using ogr
-        driver = ogr.GetDriverByName('geojson')
-        if os.path.exists(self.outDirectoryPhotosGeoJSON):
+        if Qgis.QGIS_VERSION >= '3.3':
+            # Using ogr
+            driver = ogr.GetDriverByName('geojson')
+            if os.path.exists(self.outDirectoryPhotosGeoJSON):
+                try:
+                    os.remove(self.outDirectoryPhotosGeoJSON)
+                except:
+                    pass
+                driver.DeleteDataSource(self.outDirectoryPhotosGeoJSON)
+
+            Shp = driver.CreateDataSource(self.outDirectoryPhotosGeoJSON)
+
+            SR = osr.SpatialReference()
+            SR.ImportFromEPSG(4326)
             try:
                 os.remove(self.outDirectoryPhotosGeoJSON)
             except:
                 pass
-            driver.DeleteDataSource(self.outDirectoryPhotosGeoJSON)
+            layer = Shp.CreateLayer(os.path.basename(self.outputPath), SR, ogr.wkbPoint)
 
-        Shp = driver.CreateDataSource(self.outDirectoryPhotosGeoJSON)
+            # Create attribute fields
+            realcolumns = ['Lon', 'Lat', 'Altitude', 'Azimuth']
 
-        SR = osr.SpatialReference()
-        SR.ImportFromEPSG(4326)
-        try:
-            os.remove(self.outDirectoryPhotosGeoJSON)
-        except:
-            pass
-        layer = Shp.CreateLayer(os.path.basename(self.outputPath), SR, ogr.wkbPoint)
-
-        # Create attribute fields
-        realcolumns = ['Lon', 'Lat', 'Altitude', 'Azimuth']
-
-        # Create ID Field and add it to Layer
-        for col in self.fields:
-            if col in realcolumns:
-                fieldDefn = ogr.FieldDefn(col, ogr.OFTReal)
-            else:
-                fieldDefn = ogr.FieldDefn(col, ogr.OFTString)
-            layer.CreateField(fieldDefn)
+            # Create ID Field and add it to Layer
+            for col in self.fields:
+                if col in realcolumns:
+                    fieldDefn = ogr.FieldDefn(col, ogr.OFTReal)
+                else:
+                    fieldDefn = ogr.FieldDefn(col, ogr.OFTString)
+                layer.CreateField(fieldDefn)
 
         for count, imgpath in enumerate(photos):
             try:
@@ -510,40 +513,56 @@ class ImportPhotos:
                 self.lat.append(lat)
                 self.truePhotosCount = self.truePhotosCount + 1
 
-                # get Layer type
-                featureDefn = layer.GetLayerDefn()
+                if Qgis.QGIS_VERSION >= '3.3':
+                    # get Layer type
+                    featureDefn = layer.GetLayerDefn()
 
-                # Create Feature
-                feature = ogr.Feature(featureDefn)
+                    # Create Feature
+                    feature = ogr.Feature(featureDefn)
 
-                # Set fields
-                feature.SetField("ID", uuid_)
-                feature.SetField("Name", name)
-                feature.SetField("Date", date)
-                feature.SetField("Time", time_)
-                feature.SetField("Lon", str(lon))
-                feature.SetField("Lat", str(lat))
-                feature.SetField("Altitude", altitude)
-                feature.SetField("North", north)
-                feature.SetField("Azimuth", azimuth)
-                feature.SetField("Camera Maker", str(maker))
-                feature.SetField("Camera Model", str(model))
-                feature.SetField("Path", imgpath)
+                    # Set fields
+                    feature.SetField("ID", uuid_)
+                    feature.SetField("Name", name)
+                    feature.SetField("Date", date)
+                    feature.SetField("Time", time_)
+                    feature.SetField("Lon", str(lon))
+                    feature.SetField("Lat", str(lat))
+                    feature.SetField("Altitude", altitude)
+                    feature.SetField("North", north)
+                    feature.SetField("Azimuth", azimuth)
+                    feature.SetField("Camera Maker", str(maker))
+                    feature.SetField("Camera Model", str(model))
+                    feature.SetField("Path", imgpath)
 
-                # create the point
-                point = ogr.Geometry(ogr.wkbPoint)
-                point.AddPoint(lon, lat)
+                    # create the point
+                    point = ogr.Geometry(ogr.wkbPoint)
+                    point.AddPoint(lon, lat)
 
-                # add point
-                feature.SetGeometry(point)
+                    # add point
+                    feature.SetGeometry(point)
 
-                # add new feature to layer
-                layer.CreateFeature(feature)
+                    # add new feature to layer
+                    layer.CreateFeature(feature)
+                else:
+                    geo_info = {"properties": {'ID': uuid_, 'Name': name, 'Date': date, 'Time': time_, 'Lon': lon,
+                                               'Lat': lat, 'Altitude': altitude, 'North': north, 'Azimuth': azimuth,
+                                               'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': imgpath},
+                                "geometry": {"coordinates": [lon, lat], "type": "Point"}}
+                    geoPhotos.append(geo_info)
 
             except:
                 pass
         # Destroy
-        del photos, Shp, point, feature, layer
+        if Qgis.QGIS_VERSION >= '3.3':
+            del photos, Shp, point, feature, layer
+        else:
+            geojson = {"type": "FeatureCollection",
+                       "crs": {"type": "name", "properties": {"name": "crs:OGC:1.3:CRS84"}},
+                       "features": geoPhotos}
+            geofile = open(self.outDirectoryPhotosGeoJSON, 'w')
+            json.dump(geojson, geofile)
+            del geoPhotos, photos
+            geofile.close()
 
         try:
             for layer in self.canvas.layers():
@@ -567,12 +586,11 @@ class ImportPhotos:
         del self.layerPhotos
         self.layerPhotos_final = QgsVectorLayer(self.outputPath, lphoto, "ogr")
 
-        #if not len(Qpr_inst.mapLayersByName(lphoto)):
-        layers = Qpr_inst.instance().mapLayersByName(lphoto)
-        #try:
-        #    Qpr_inst.instance().removeMapLayer(layers[0])
-        #except:
-        #    pass
+        if Qgis.QGIS_VERSION < '3.3':
+            # clear temp.geojson file
+            f = open(self.outDirectoryPhotosGeoJSON, 'r+')
+            f.truncate(0)  # need '0' when using r+
+
         Qpr_inst.addMapLayers([self.layerPhotos_final])
 
         try:
