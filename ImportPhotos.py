@@ -34,7 +34,6 @@ from .MouseClick import MouseClick
 import os.path
 import platform
 import uuid
-import json
 
 try:
     # qgis 3
@@ -229,7 +228,6 @@ class ImportPhotos:
             ".shp": "ESRI Shapefile",
             ".gpkg":"GPKG",
             ".csv": "CSV",
-            ".gml": "GML",
             ".kml": "KML",
             ".tab": "MapInfo File",
             ".ods": "ODS"
@@ -268,11 +266,16 @@ class ImportPhotos:
         self.dlg.close()
 
     def toolButtonOut(self):
-        typefiles = 'GeoJSON (*.geojson *.GEOJSON);; ESRI Shapefile (*.shp *.SHP);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Geography Markup Language (*.gml *.GML);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB);; Open Document Spreadsheet (*.ods *.ODS)'
+        typefiles = 'GeoJSON (*.geojson *.GEOJSON);; ESRI Shapefile (*.shp *.SHP);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB);; Open Document Spreadsheet (*.ods *.ODS)'
         if platform.system() == 'Linux':
-            self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File', os.path.join(
-                os.path.join(os.path.expanduser('~')),
-                'Desktop'), typefiles)
+            try:
+                self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File', os.path.join(
+                    os.path.join(os.path.expanduser('~')),
+                    'Desktop'), typefiles)
+            except:
+                self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
+                    os.path.join(os.path.expanduser('~')),
+                    'Desktop'), typefiles)
         else:
             self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
                 os.path.join(os.path.expanduser('~')),
@@ -373,22 +376,27 @@ class ImportPhotos:
                 os.remove(self.outDirectoryPhotosGeoJSON)
             except:
                 pass
-            
             driver.DeleteDataSource(self.outDirectoryPhotosGeoJSON)
-        driver = ogr.GetDriverByName('geojson')
 
         Shp = driver.CreateDataSource(self.outDirectoryPhotosGeoJSON)
 
         SR = osr.SpatialReference()
         SR.ImportFromEPSG(4326)
+        try:
+            os.remove(self.outDirectoryPhotosGeoJSON)
+        except:
+            pass
         layer = Shp.CreateLayer(os.path.basename(self.outputPath), SR, ogr.wkbPoint)
-        # COLUMNS CREATION
-        columns = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Maker',
-                   'Camera Model', 'Path']
+
+        # Create attribute fields
+        realcolumns = ['Lon', 'Lat', 'Altitude', 'Azimuth']
 
         # Create ID Field and add it to Layer
-        for col in columns:
-            fieldDefn = ogr.FieldDefn(col, ogr.OFTString)
+        for col in self.fields:
+            if col in realcolumns:
+                fieldDefn = ogr.FieldDefn(col, ogr.OFTReal)
+            else:
+                fieldDefn = ogr.FieldDefn(col, ogr.OFTString)
             layer.CreateField(fieldDefn)
 
         for count, imgpath in enumerate(photos):
@@ -538,11 +546,10 @@ class ImportPhotos:
         del photos, Shp, point, feature, layer
 
         try:
-            try:
-                Qpr_inst.instance().removeMapLayer(os.path.basename(self.outputPath))
-            except:
-                pass
-            os.remove(self.outputPath)
+            for layer in self.canvas.layers():
+                if layer.publicSource() == self.outputPath:
+                    Qpr_inst.instance().removeMapLayer(layer.id())
+                    os.remove(self.outputPath)
         except:
             pass
 
@@ -553,6 +560,7 @@ class ImportPhotos:
             self.extension = self.extension_switch[self.extension.lower()]
 
         self.layerPhotos = QgsVectorLayer(self.outDirectoryPhotosGeoJSON, 'temp', "ogr")
+
         QgsVectorFileWriter.writeAsVectorFormat(self.layerPhotos, self.outputPath, "utf-8",
                                                     QgsCoordinateReferenceSystem(self.layerPhotos.crs().authid()),
                                                     self.extension)
@@ -561,10 +569,10 @@ class ImportPhotos:
 
         #if not len(Qpr_inst.mapLayersByName(lphoto)):
         layers = Qpr_inst.instance().mapLayersByName(lphoto)
-        try:
-            Qpr_inst.instance().removeMapLayer(layers[0])
-        except:
-            pass
+        #try:
+        #    Qpr_inst.instance().removeMapLayer(layers[0])
+        #except:
+        #    pass
         Qpr_inst.addMapLayers([self.layerPhotos_final])
 
         try:
