@@ -22,20 +22,31 @@
 """
 try:
     from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
-        QLineEdit, QSizePolicy, QPushButton
-    from PyQt5.QtCore import Qt, pyqtSignal
-    from PyQt5.QtGui import QPainterPath, QIcon
+        QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame
+    from PyQt5.QtCore import Qt, pyqtSignal, QRectF
+    from PyQt5.QtGui import QPainterPath, QIcon, QPixmap, QImage
 except:
-    from PyQt4.QtCore import Qt, pyqtSignal, QRect
+    from PyQt4.QtCore import Qt, pyqtSignal, QRect, QFrame
     from PyQt4.QtGui import QGraphicsView, QGraphicsScene, QPainterPath, \
-        QVBoxLayout, QWidget, QLineEdit, QSizePolicy, QIcon, QHBoxLayout, QPushButton
+        QVBoxLayout, QWidget, QLineEdit, QLabel, QSizePolicy, QIcon, QHBoxLayout, QPushButton, QPixmap, QImage
 import os.path
+
+try:
+    # qgis 3
+    from qgis.utils import Qgis
+except:
+    # qgis 2
+    try:
+        from qgis.utils import QGis as Qgis  #  for QGIS 2
+    except:
+        from qgis.utils import Qgis # QGIS 3
 
 class PhotosViewer(QGraphicsView):
     afterLeftClick = pyqtSignal(float, float)
     afterLeftClickReleased = pyqtSignal(float, float)
     afterDoubleClick = pyqtSignal(float, float)
-    
+    keyPressed = pyqtSignal(int)
+
     def __init__(self, selfwindow):
         QGraphicsView.__init__(self)
 
@@ -86,29 +97,79 @@ class PhotosViewer(QGraphicsView):
     def resizeEvent(self, event):
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
 
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_Right:
+            self.selfwindow.drawSelf.featureIndex = self.selfwindow.drawSelf.featureIndex+1
+
+            if self.selfwindow.drawSelf.featureIndex > len(self.selfwindow.allpictures)-1:
+                self.selfwindow.drawSelf.featureIndex = 0
+            self.selfwindow.updateWindow()
+
+        if e.key() == Qt.Key_Left:
+            self.selfwindow.drawSelf.featureIndex = self.selfwindow.drawSelf.featureIndex - 1
+
+            if self.selfwindow.drawSelf.featureIndex < 0:
+                self.selfwindow.drawSelf.featureIndex = len(self.selfwindow.allpictures)-1
+            self.selfwindow.updateWindow()
+
+        if e.key() == Qt.Key_Escape:
+            self.selfwindow.close()
+
+        if e.key() == Qt.Key_F11:
+            if self.selfwindow.isFullScreen():
+                self.selfwindow.showMaximized()
+            else:
+                self.selfwindow.showFullScreen()
 
 class PhotoWindow(QWidget):
-    def __init__(self):
+    def __init__(self, drawSelf):
         super(PhotoWindow, self).__init__()
+        self.drawSelf = drawSelf
         self.path = os.path.abspath(os.path.join(os.path.dirname(__file__)))
         self.viewer = PhotosViewer(self)
+
+        ## Update for photo
+        self.allpictures = []
+        self.allpicturesdates = []
+        self.allpicturestimes = []
+        self.allpicturesImpath= []
+        for i, f in enumerate(self.drawSelf.layerActive.getFeatures()):
+            if 'PATH' in self.drawSelf.fields:
+                imPath = f.attributes()[f.fieldNameIndex('Path')]
+            elif 'PHOTO' in self.drawSelf.fields :
+                imPath = f.attributes()[f.fieldNameIndex('photo')]
+            else:
+                imPath = ''
+            try:
+                dateTrue = str(f.attributes()[f.fieldNameIndex('Date')].toString('yyyy-MM-dd'))
+            except:
+                dateTrue = str(f.attributes()[f.fieldNameIndex('Date')])
+            try:
+                timeTrue = str(f.attributes()[f.fieldNameIndex('Time')].toString('hh:mm:ss'))
+            except:
+                timeTrue = str(f.attributes()[f.fieldNameIndex('Time')])
+            self.allpictures.append(f.attributes()[f.fieldNameIndex('Name')])
+            self.allpicturesdates.append(dateTrue)
+            self.allpicturestimes.append(timeTrue)
+            self.allpicturesImpath.append(imPath)
+        ######################################################################################
 
         self.setWindowTitle('Photo')
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.setWindowIcon(QIcon(self.path + "//icon.png"))
 
-        self.infoPhoto1 = QLineEdit(self)
+        self.infoPhoto1 = QLabel(self)
         sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.infoPhoto1.setSizePolicy(sizePolicy)
-        self.infoPhoto1.setFrame(True)
-        self.infoPhoto1.setReadOnly(True)
-        self.infoPhoto1.setMouseTracking(False)
+        self.infoPhoto1.setFrameShape(QFrame.Box)
 
-        self.infoPhoto2 = QLineEdit(self)
+        self.infoPhoto2 = QLabel(self)
         self.infoPhoto2.setSizePolicy(sizePolicy)
-        self.infoPhoto2.setFrame(True)
-        self.infoPhoto2.setReadOnly(True)
-        self.infoPhoto2.setMouseTracking(False)
+        self.infoPhoto2.setFrameShape(QFrame.Box)
+
+        self.infoPhoto3 = QLabel(self)
+        self.infoPhoto3.setSizePolicy(sizePolicy)
+        self.infoPhoto3.setFrameShape(QFrame.Box)
 
         self.extent = QPushButton(self)
         self.extent.setSizePolicy(sizePolicy)
@@ -131,18 +192,65 @@ class PhotoWindow(QWidget):
         self.pan.setIcon(QIcon(self.path + '//svg//mActionPan.svg'))
         self.pan.clicked.connect(self.panbutton)
 
+        sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.rightClick = QPushButton(self)
+        self.rightClick.setSizePolicy(sizePolicy)
+        self.rightClick.setIcon(QIcon(self.path+'//svg//arrowRight.png'))
+        self.rightClick.clicked.connect(self.rightClickButton)
+
+        self.leftClick = QPushButton(self)
+        self.leftClick.setSizePolicy(sizePolicy)
+        self.leftClick.setIcon(QIcon(self.path+'//svg//arrowLeft.png'))
+        self.leftClick.clicked.connect(self.leftClickButton)
+
         # Arrange layout
         VBlayout = QVBoxLayout(self)
         HBlayout = QHBoxLayout()
-        VBlayout.addWidget(self.viewer)
+        HBlayout2 = QHBoxLayout()
+        HBlayout2.addWidget(self.leftClick)
+        HBlayout2.addWidget(self.viewer)
+        HBlayout2.addWidget(self.rightClick)
         HBlayout.setAlignment(Qt.AlignCenter)
         HBlayout.addWidget(self.infoPhoto1)
         HBlayout.addWidget(self.infoPhoto2)
+        HBlayout.addWidget(self.infoPhoto3)
         HBlayout.addWidget(self.extent)
         HBlayout.addWidget(self.zoom)
         HBlayout.addWidget(self.pan)
 
+        VBlayout.addLayout(HBlayout2)
         VBlayout.addLayout(HBlayout)
+
+    def leftClickButton(self):
+        self.drawSelf.featureIndex = self.drawSelf.featureIndex - 1
+        if self.drawSelf.featureIndex < 0:
+            self.drawSelf.featureIndex = len(self.allpictures) - 1
+        self.updateWindow()
+
+    def rightClickButton(self):
+        self.drawSelf.featureIndex = self.drawSelf.featureIndex + 1
+        if self.drawSelf.featureIndex > len(self.allpictures) - 1:
+            self.drawSelf.featureIndex = 0
+        self.updateWindow()
+
+    def updateWindow(self):
+        imPath = self.allpicturesImpath[self.drawSelf.featureIndex]
+        self.viewer.scene.clear()
+        pixmap = QPixmap.fromImage(QImage(imPath))
+        self.viewer.scene.addPixmap(pixmap)
+        if Qgis.QGIS_VERSION >= '3.0':
+            self.viewer.setSceneRect(QRectF(pixmap.rect()))
+            self.drawSelf.layerActive.selectByIds([self.drawSelf.featureIndex])
+        else:
+            self.viewer.setSceneRect(QRect(pixmap.rect()))
+            self.drawSelf.layerActive.setSelectedFeatures([self.drawSelf.featureIndex])
+
+        self.viewer.resizeEvent([])
+        self.extentbutton()
+        self.infoPhoto1.setText(
+            'Date: ' + self.allpicturesdates[self.drawSelf.featureIndex])
+        self.infoPhoto2.setText(
+            'Time: ' + self.allpicturestimes[self.drawSelf.featureIndex])
 
     def panbutton(self):
         self.viewer.panSelect = True

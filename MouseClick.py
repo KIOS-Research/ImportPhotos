@@ -50,75 +50,68 @@ class MouseClick(QgsMapTool):
         pass
 
     def canvasDoubleClickEvent(self, event):
-        layer = self.drawSelf.iface.activeLayer()
+
+        layers = self.canvas.layers()
+        p = self.toMapCoordinates(event.pos())
+        w = self.canvas.mapUnitsPerPixel() * 10
         try:
-            try:
-                selected_features = layer.selectedFeatures()
-            except:
-                self.drawSelf.iface.setActiveLayer(self.drawSelf.layerPhotos_final)
-                selected_features=[]
+            rect = QgsRectangle(p.x() - w, p.y() - w, p.x() + w, p.y() + w)
         except:
             return
-        if selected_features == []:
-            layers = self.canvas.layers()
-            p = self.toMapCoordinates(event.pos())
-            w = self.canvas.mapUnitsPerPixel() * 10
-            try:
-                rect = QgsRectangle(p.x() - w, p.y() - w, p.x() + w, p.y() + w)
-            except:
-                return
-            layersSelected = []
+        layersSelected = []
+        for layer in layers:
+            fields = [field.name().upper() for field in layer.fields()]
+            if 'PATH' or 'PHOTO' in fields:
+                lRect = self.canvas.mapSettings().mapToLayerCoordinates(layer, rect)
+                try:
+                    layer.selectByRect(lRect, False)
+                except:
+                    layer.select(lRect, False)
+                selected_features = layer.selectedFeatures()
+                if selected_features != []:
+                    layersSelected.append(layer)
+                    ########## SHOW PHOTOS ############
+                    feature = selected_features[0]
+                    self.drawSelf.featureIndex = feature.id()
+                    self.drawSelf.layerActive = layer
+                    self.drawSelf.fields = fields
+                    self.photosDLG = PhotoWindow(self.drawSelf)
 
-            for layer in layers:
-                fields = [field.name().upper() for field in layer.fields()]
-                if 'PATH' or 'PHOTO' in fields:
-                    lRect = self.canvas.mapSettings().mapToLayerCoordinates(layer, rect)
-                    try:
-                        layer.selectByRect(lRect, False)
-                    except:
-                        layer.select(lRect, False)
-                    selected_features = layer.selectedFeatures()
-                    if selected_features != []:
-                        layersSelected.append(layer)
-                        ########## SHOW PHOTOS ############
-                        feature = selected_features[0]
-                        self.photosDLG = PhotoWindow()
-
-                        if 'PATH' in fields:
-                            imPath = feature.attributes()[feature.fieldNameIndex('Path')]
-                        elif 'PHOTO' in fields:
-                            imPath = feature.attributes()[feature.fieldNameIndex('photo')]
-                        else:
-                            return
-
-                        if os.path.exists(imPath) == False:
-                            title = 'Warning'
-                            msg = 'No image path found.'
-                            self.drawSelf.showMessage(title, msg, 'Warning')
-                            return
-
-                        self.photosDLG.viewer.scene.clear()
-                        pixmap = QPixmap.fromImage(QImage(imPath))
-                        self.photosDLG.viewer.scene.addPixmap(pixmap)
-                        self.photosDLG.viewer.setSceneRect(QRectF(pixmap.rect()))
-                        self.photosDLG.viewer.resizeEvent([])
-
-                        try:
-                            dateTrue = str(feature.attributes()[feature.fieldNameIndex('Date')].toString('yyyy-MM-dd'))
-                        except:
-                            dateTrue = str(feature.attributes()[feature.fieldNameIndex('Date')])
-                        try:
-                            timeTrue = str(feature.attributes()[feature.fieldNameIndex('Time')].toString('hh:mm:ss'))
-                        except:
-                            timeTrue = str(feature.attributes()[feature.fieldNameIndex('Time')])
-
-                        try:
-                            self.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
-                            self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue)
-                        except:
-                            pass
-                        self.photosDLG.showNormal()
+                    if 'PATH' in fields:
+                        imPath = feature.attributes()[feature.fieldNameIndex('Path')]
+                    elif 'PHOTO' in fields:
+                        imPath = feature.attributes()[feature.fieldNameIndex('photo')]
+                    else:
                         return
+
+                    if os.path.exists(imPath) == False:
+                        title = 'Warning'
+                        msg = 'No image path found.'
+                        self.drawSelf.showMessage(title, msg, 'Warning')
+                        return
+
+                    self.photosDLG.viewer.scene.clear()
+                    pixmap = QPixmap.fromImage(QImage(imPath))
+                    self.photosDLG.viewer.scene.addPixmap(pixmap)
+                    self.photosDLG.viewer.setSceneRect(QRectF(pixmap.rect()))
+                    self.photosDLG.viewer.resizeEvent([])
+
+                    try:
+                        dateTrue = str(feature.attributes()[feature.fieldNameIndex('Date')].toString('yyyy-MM-dd'))
+                    except:
+                        dateTrue = str(feature.attributes()[feature.fieldNameIndex('Date')])
+                    try:
+                        timeTrue = str(feature.attributes()[feature.fieldNameIndex('Time')].toString('hh:mm:ss'))
+                    except:
+                        timeTrue = str(feature.attributes()[feature.fieldNameIndex('Time')])
+
+                    try:
+                        self.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
+                        self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue)
+                    except:
+                        pass
+                    self.photosDLG.showNormal()
+                    return
 
     def deactivate(self):
         self.drawSelf.clickPhotos.setChecked(False)
