@@ -320,7 +320,10 @@ class ImportPhotos:
 
         if platform.system()=='Linux':
             lphoto = os.path.basename(self.outputPath)
-            self.extension = '.'+self.extension.split()[-1][2:-1].lower()
+            try:
+                self.extension = '.'+self.extension.split()[-1][2:-1].lower()
+            except:
+                self.extension = '.shp'
         else:
             tmpbasename, self.extension = os.path.splitext(self.outputPath)
             basename = os.path.basename(self.outputPath)
@@ -544,7 +547,7 @@ class ImportPhotos:
                     # add new feature to layer
                     layer.CreateFeature(feature)
                 else:
-                    geo_info = {"properties": {'ID': uuid_, 'Name': name, 'Date': date, 'Time': time_, 'Lon': lon,
+                    geo_info = {"type": "Feature", "properties": {'ID': uuid_, 'Name': name, 'Date': date, 'Time': time_, 'Lon': lon,
                                                'Lat': lat, 'Altitude': altitude, 'North': north, 'Azimuth': azimuth,
                                                'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': imgpath},
                                 "geometry": {"coordinates": [lon, lat], "type": "Point"}}
@@ -557,6 +560,7 @@ class ImportPhotos:
             del photos, Shp, point, feature, layer
         else:
             geojson = {"type": "FeatureCollection",
+                       "name": lphoto,
                        "crs": {"type": "name", "properties": {"name": "crs:OGC:1.3:CRS84"}},
                        "features": geoPhotos}
             geofile = open(self.outDirectoryPhotosGeoJSON, 'w')

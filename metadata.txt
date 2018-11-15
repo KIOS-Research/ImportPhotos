@@ -8,7 +8,7 @@
 
 [general]
 name=ImportPhotos
-qgisMinimumVersion=2.00
+qgisMinimumVersion=2.18.25
 qgisMaximumVersion=3.99
 description=Import Photos
 version=1.7
