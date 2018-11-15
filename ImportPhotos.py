@@ -501,7 +501,7 @@ class ImportPhotos:
 
                         if 16 and 17 in a['GPSInfo']:
                             north = str(a['GPSInfo'][16])
-                            azimuth = str(a['GPSInfo'][17][0])
+                            azimuth = str(float(a['GPSInfo'][17][0])/float(a['GPSInfo'][17][1]))
                         else:
                             north = ''
                             azimuth = ''
@@ -594,7 +594,10 @@ class ImportPhotos:
         Qpr_inst.addMapLayers([self.layerPhotos_final])
 
         try:
-            self.layerPhotos_final.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
+            if Qgis.QGIS_VERSION >= '3.0':
+                self.layerPhotos_final.loadNamedStyle(self.plugin_dir + "/svg/photos3.qml")
+            else:
+                self.layerPhotos_final.loadNamedStyle(self.plugin_dir + "/svg/photos2.qml")
         except:
             title = 'Warning'
             msg = 'No geo-tagged images were detected.'
