@@ -26,9 +26,9 @@ try:
     from PyQt5.QtCore import Qt, pyqtSignal, QRectF
     from PyQt5.QtGui import QPainterPath, QIcon, QPixmap, QImage
 except:
-    from PyQt4.QtCore import Qt, pyqtSignal, QRect, QFrame
+    from PyQt4.QtCore import Qt, pyqtSignal, QRectF
     from PyQt4.QtGui import QGraphicsView, QGraphicsScene, QPainterPath, \
-        QVBoxLayout, QWidget, QLineEdit, QLabel, QSizePolicy, QIcon, QHBoxLayout, QPushButton, QPixmap, QImage
+        QVBoxLayout, QWidget, QLineEdit, QLabel, QSizePolicy, QIcon, QHBoxLayout, QPushButton, QPixmap, QImage, QFrame
 import os.path
 
 try:
@@ -238,11 +238,10 @@ class PhotoWindow(QWidget):
         self.viewer.scene.clear()
         pixmap = QPixmap.fromImage(QImage(imPath))
         self.viewer.scene.addPixmap(pixmap)
+        self.viewer.setSceneRect(QRectF(pixmap.rect()))
         if Qgis.QGIS_VERSION >= '3.0':
-            self.viewer.setSceneRect(QRectF(pixmap.rect()))
             self.drawSelf.layerActive.selectByIds([self.drawSelf.featureIndex])
         else:
-            self.viewer.setSceneRect(QRect(pixmap.rect()))
             self.drawSelf.layerActive.setSelectedFeatures([self.drawSelf.featureIndex])
 
         self.viewer.resizeEvent([])
