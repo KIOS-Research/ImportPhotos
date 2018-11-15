@@ -320,7 +320,10 @@ class ImportPhotos:
 
         if platform.system()=='Linux':
             lphoto = os.path.basename(self.outputPath)
-            self.extension = '.'+self.extension.split()[-1][2:-1].lower()
+            try:
+                self.extension = '.'+self.extension.split()[-1][2:-1].lower()
+            except:
+                self.extension = '.shp'
         else:
             tmpbasename, self.extension = os.path.splitext(self.outputPath)
             basename = os.path.basename(self.outputPath)
