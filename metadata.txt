@@ -8,7 +8,7 @@
 
 [general]
 name=ImportPhotos
-qgisMinimumVersion=2.00
+qgisMinimumVersion=2.18.25
 qgisMaximumVersion=3.99
 description=Import Photos
 version=1.7
@@ -27,7 +27,6 @@ changelog=2018-11-15  ImportPhotos 1.7:
 			Update view window, add next/previous-buttons and key shortcut
 			Press F11 to enter fullscreen, Escape to exit
 			Remove the modal window
-			Azimuth indication on symbology
 	  2018-11-05  ImportPhotos 1.6:
 			Fix issue with empty attribute for qgis 3.4
 	  2018-10-22  ImportPhotos 1.5:

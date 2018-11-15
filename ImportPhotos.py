@@ -544,7 +544,7 @@ class ImportPhotos:
                     # add new feature to layer
                     layer.CreateFeature(feature)
                 else:
-                    geo_info = {"properties": {'ID': uuid_, 'Name': name, 'Date': date, 'Time': time_, 'Lon': lon,
+                    geo_info = {"type": "Feature", "properties": {'ID': uuid_, 'Name': name, 'Date': date, 'Time': time_, 'Lon': lon,
                                                'Lat': lat, 'Altitude': altitude, 'North': north, 'Azimuth': azimuth,
                                                'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': imgpath},
                                 "geometry": {"coordinates": [lon, lat], "type": "Point"}}
@@ -557,6 +557,7 @@ class ImportPhotos:
             del photos, Shp, point, feature, layer
         else:
             geojson = {"type": "FeatureCollection",
+                       "name": lphoto,
                        "crs": {"type": "name", "properties": {"name": "crs:OGC:1.3:CRS84"}},
                        "features": geoPhotos}
             geofile = open(self.outDirectoryPhotosGeoJSON, 'w')
