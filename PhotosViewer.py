@@ -155,7 +155,7 @@ class PhotoWindow(QWidget):
         ######################################################################################
 
         self.setWindowTitle('Photo')
-        self.setWindowFlags(Qt.WindowStaysOnTopHint)
+        #self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.setWindowIcon(QIcon(self.path + "//icon.png"))
 
         self.infoPhoto1 = QLabel(self)
@@ -251,6 +251,7 @@ class PhotoWindow(QWidget):
             'Date: ' + self.allpicturesdates[self.drawSelf.featureIndex])
         self.infoPhoto2.setText(
             'Time: ' + self.allpicturestimes[self.drawSelf.featureIndex])
+        self.infoPhoto3.setText('Layer: ' + self.drawSelf.layerActiveName)
 
     def panbutton(self):
         self.viewer.panSelect = True

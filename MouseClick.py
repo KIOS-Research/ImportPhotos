@@ -75,6 +75,11 @@ class MouseClick(QgsMapTool):
                     self.drawSelf.featureIndex = feature.id()
                     self.drawSelf.layerActive = layer
                     self.drawSelf.fields = fields
+                    self.drawSelf.maxlen = len(self.drawSelf.layerActive.name())
+                    self.drawSelf.layerActiveName = layer.name()
+                    if self.drawSelf.maxlen>13:
+                        self.drawSelf.maxlen = 14
+                        self.drawSelf.layerActiveName = self.drawSelf.layerActive.name()+'...'
                     self.photosDLG = PhotoWindow(self.drawSelf)
 
                     if 'PATH' in fields:
@@ -110,6 +115,7 @@ class MouseClick(QgsMapTool):
                         self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue)
                     except:
                         pass
+                    self.photosDLG.infoPhoto3.setText('Layer: ' + self.drawSelf.layerActiveName)
                     self.photosDLG.showNormal()
                     return
 
