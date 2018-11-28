@@ -8,10 +8,10 @@
 
 [general]
 name=ImportPhotos
-qgisMinimumVersion=2.18.25
+qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
 description=Import Photos
-version=1.7
+version=1.8
 author=Marios S. Kyriakou, George A. Christou, Panayiotis S. Kolios, KIOS Research and Innovation Center of Excellence (KIOS CoE)
 email=mariosmsk@gmail.com, george.a.christou@gmail.com, panayiotis.kolios@gmail.com
 
@@ -23,7 +23,11 @@ repository=https://github.com/KIOS-Research/ImportPhotos/
 
 # Recommended items:
 # Uncomment the following line and add your changelog:
-changelog=2018-11-15  ImportPhotos 1.7:
+changelog=2018-11-28  ImportPhotos 1.8:
+			Drop update for qgis 2
+			Add QgsTask for the ImportPhotos
+			Change main ui file
+	  2018-11-15  ImportPhotos 1.7:
 			Update view window, add next/previous-buttons and key shortcut
 			Press F11 to enter fullscreen, Escape to exit
 			Remove the modal window
