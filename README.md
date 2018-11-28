@@ -12,3 +12,10 @@ Mac Users. Requires the following Python Modules to be installed: UnixImageIO, F
 
 ## Updated version
 ![Example](https://github.com/KIOS-Research/ImportPhotos/blob/v.1.7/example.png)
+
+# Contributors #
+* Marios S. Kyriakou, [KIOS Research Center for Intelligent Systems and Networks, University of Cyprus (KIOS CoE)](http://www.kios.ucy.ac.cy/)
+* George A. Christou, [KIOS Research Center for Intelligent Systems and Networks, University of Cyprus (KIOS CoE)](http://www.kios.ucy.ac.cy/c)
+* Panayiotis S. Kolios, [KIOS Research Center for Intelligent Systems and Networks, University of Cyprus (KIOS CoE)](http://www.kios.ucy.ac.cy/c)
+
+* [QGIS Cyprus](https://www.facebook.com/qgiscyprus/)
