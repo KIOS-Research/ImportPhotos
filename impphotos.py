@@ -2,74 +2,98 @@
 
 # Form implementation generated from reading ui file 'impphotos.ui'
 #
-# Created: Wed Mar 21 17:17:18 2018
-#      by: PyQt4 UI code generator 4.11.3
+# Created by: PyQt5 UI code generator 5.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
-from qgis.PyQt import QtCore, QtGui
-
-try:
-    _fromUtf8 = QtCore.QString.fromUtf8
-except AttributeError:
-    def _fromUtf8(s):
-        return s
-
-try:
-    _encoding = QtGui.QApplication.UnicodeUTF8
-    def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig, _encoding)
-except AttributeError:
-    def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig)
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 class Ui_photosImp(object):
     def setupUi(self, photosImp):
-        photosImp.setObjectName(_fromUtf8("photosImp"))
+        photosImp.setObjectName("photosImp")
         photosImp.setWindowModality(QtCore.Qt.ApplicationModal)
         photosImp.resize(377, 164)
         photosImp.setMinimumSize(QtCore.QSize(377, 164))
         photosImp.setMaximumSize(QtCore.QSize(377, 164))
-        photosImp.setWhatsThis(_fromUtf8(""))
+        photosImp.setWhatsThis("")
         photosImp.setSizeGripEnabled(False)
-        self.label = QtGui.QLabel(photosImp)
-        self.label.setGeometry(QtCore.QRect(10, 20, 101, 16))
-        self.label.setObjectName(_fromUtf8("label"))
-        self.label_2 = QtGui.QLabel(photosImp)
-        self.label_2.setGeometry(QtCore.QRect(10, 50, 101, 21))
-        self.label_2.setObjectName(_fromUtf8("label_2"))
-        self.imp = QtGui.QLineEdit(photosImp)
-        self.imp.setGeometry(QtCore.QRect(130, 20, 151, 20))
-        self.imp.setObjectName(_fromUtf8("imp"))
-        self.toolButtonImport = QtGui.QToolButton(photosImp)
-        self.toolButtonImport.setGeometry(QtCore.QRect(300, 20, 60, 19))
-        self.toolButtonImport.setObjectName(_fromUtf8("toolButtonImport"))
-        self.out = QtGui.QLineEdit(photosImp)
-        self.out.setGeometry(QtCore.QRect(130, 50, 151, 20))
-        self.out.setObjectName(_fromUtf8("out"))
-        self.toolButtonOut = QtGui.QToolButton(photosImp)
-        self.toolButtonOut.setGeometry(QtCore.QRect(300, 50, 60, 19))
-        self.toolButtonOut.setObjectName(_fromUtf8("toolButtonOut"))
-        self.progressBar = QtGui.QProgressBar(photosImp)
-        self.progressBar.setGeometry(QtCore.QRect(10, 90, 351, 21))
-        self.progressBar.setProperty("value", 0)
-        self.progressBar.setObjectName(_fromUtf8("progressBar"))
-        self.ok = QtGui.QPushButton(photosImp)
-        self.ok.setGeometry(QtCore.QRect(10, 130, 75, 23))
-        self.ok.setObjectName(_fromUtf8("ok"))
-        self.closebutton = QtGui.QPushButton(photosImp)
-        self.closebutton.setGeometry(QtCore.QRect(290, 130, 75, 23))
-        self.closebutton.setObjectName(_fromUtf8("closebutton"))
+        self.widget = QtWidgets.QWidget(photosImp)
+        self.widget.setGeometry(QtCore.QRect(10, 20, 361, 71))
+        self.widget.setObjectName("widget")
+        self.gridLayout = QtWidgets.QGridLayout(self.widget)
+        self.gridLayout.setContentsMargins(0, 0, 0, 0)
+        self.gridLayout.setObjectName("gridLayout")
+        self.label = QtWidgets.QLabel(self.widget)
+        self.label.setObjectName("label")
+        self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
+        self.imp = QtWidgets.QLineEdit(self.widget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.imp.sizePolicy().hasHeightForWidth())
+        self.imp.setSizePolicy(sizePolicy)
+        self.imp.setObjectName("imp")
+        self.gridLayout.addWidget(self.imp, 0, 1, 1, 1)
+        self.toolButtonImport = QtWidgets.QToolButton(self.widget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.toolButtonImport.sizePolicy().hasHeightForWidth())
+        self.toolButtonImport.setSizePolicy(sizePolicy)
+        self.toolButtonImport.setObjectName("toolButtonImport")
+        self.gridLayout.addWidget(self.toolButtonImport, 0, 2, 1, 1)
+        self.label_2 = QtWidgets.QLabel(self.widget)
+        self.label_2.setObjectName("label_2")
+        self.gridLayout.addWidget(self.label_2, 1, 0, 1, 1)
+        self.out = QtWidgets.QLineEdit(self.widget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.out.sizePolicy().hasHeightForWidth())
+        self.out.setSizePolicy(sizePolicy)
+        self.out.setObjectName("out")
+        self.gridLayout.addWidget(self.out, 1, 1, 1, 1)
+        self.toolButtonOut = QtWidgets.QToolButton(self.widget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.toolButtonOut.sizePolicy().hasHeightForWidth())
+        self.toolButtonOut.setSizePolicy(sizePolicy)
+        self.toolButtonOut.setObjectName("toolButtonOut")
+        self.gridLayout.addWidget(self.toolButtonOut, 1, 2, 1, 1)
+        self.widget1 = QtWidgets.QWidget(photosImp)
+        self.widget1.setGeometry(QtCore.QRect(190, 110, 171, 41))
+        self.widget1.setObjectName("widget1")
+        self.horizontalLayout = QtWidgets.QHBoxLayout(self.widget1)
+        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.ok = QtWidgets.QPushButton(self.widget1)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.ok.sizePolicy().hasHeightForWidth())
+        self.ok.setSizePolicy(sizePolicy)
+        self.ok.setObjectName("ok")
+        self.horizontalLayout.addWidget(self.ok)
+        self.closebutton = QtWidgets.QPushButton(self.widget1)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.closebutton.sizePolicy().hasHeightForWidth())
+        self.closebutton.setSizePolicy(sizePolicy)
+        self.closebutton.setObjectName("closebutton")
+        self.horizontalLayout.addWidget(self.closebutton)
 
         self.retranslateUi(photosImp)
         QtCore.QMetaObject.connectSlotsByName(photosImp)
 
     def retranslateUi(self, photosImp):
-        photosImp.setWindowTitle(_translate("photosImp", "ImportPhotos", None))
-        self.label.setText(_translate("photosImp", "Input folder location", None))
-        self.label_2.setText(_translate("photosImp", "Output file location", None))
-        self.toolButtonImport.setText(_translate("photosImp", "Browse...", None))
-        self.toolButtonOut.setText(_translate("photosImp", "Browse...", None))
-        self.ok.setText(_translate("photosImp", "OK", None))
-        self.closebutton.setText(_translate("photosImp", "Close", None))
+        _translate = QtCore.QCoreApplication.translate
+        photosImp.setWindowTitle(_translate("photosImp", "ImportPhotos"))
+        self.label.setText(_translate("photosImp", "Input folder location"))
+        self.toolButtonImport.setText(_translate("photosImp", "Browse..."))
+        self.label_2.setText(_translate("photosImp", "Output file location"))
+        self.toolButtonOut.setText(_translate("photosImp", "Browse..."))
+        self.ok.setText(_translate("photosImp", "OK"))
+        self.closebutton.setText(_translate("photosImp", "Close"))
 
