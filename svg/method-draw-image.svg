@@ -1,0 +1,25 @@
+<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+
+ <g>
+  <title>background</title>
+  <rect fill="none" id="canvas_background" height="402" width="582" y="-1" x="-1"/>
+ </g>
+ <g>
+  <title>Layer 1</title>
+  <rect stroke-dasharray="2,2" id="svg_13" height="14.224136" width="17.241377" y="1.102908" x="1.116378" stroke-width="1.5" stroke="#4c4c4c" fill="none"/>
+  <g id="svg_1">
+   <path id="svg_2" opacity="0.8" fill="#e6e6e6" stroke="#505050" stroke-width="0.752183" stroke-linecap="round" stroke-linejoin="round" stroke-dashoffset="7" d="m22.499999,9.498365c0,4.418276 -3.581723,7.999996 -8,7.999996c-4.418277,0 -8,-3.58172 -8,-7.999996c0,-4.418276 3.581723,-7.999996 8,-7.999996c4.418277,0 8,3.58172 8,7.999996z"/>
+   <path id="svg_3" opacity="0.7" fill-rule="evenodd" fill="#fcffff" d="m10,5c2,-3 4.44225,-3.39805 6,-2c1.55775,1.39805 -2,1 -4,3c-2,2 0,6 -2,6c-2,0 -2,-4 0,-7z"/>
+   <path id="svg_4" fill="none" stroke="#000" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round" d="m14.5,5.2l0,8.6"/>
+   <path id="svg_5" stroke-linejoin="round" stroke-linecap="round" stroke="#fcffff" opacity="0.5" d="m2,21l4,-4"/>
+   <path id="svg_6" fill="none" stroke="#000" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round" d="m10.2,9.5l8.6,0"/>
+   <path id="svg_7" fill="none" stroke="#6d97c4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="m10.2,9.5l8.6,0"/>
+   <g id="svg_8" stroke-linejoin="round">
+    <path id="svg_9" stroke="#505050" fill-rule="evenodd" fill="#ffcc30" d="m7.500003,14.500004c0,2 2,2 2,2c0,0 -7,7 -7,7l-2,-2l7,-7z"/>
+    <path id="svg_10" stroke="#505050" fill-rule="evenodd" d="m6.000003,16.000004l2,-2l2,2l-2,2l-2,-2z"/>
+    <path id="svg_11" stroke-linecap="round" stroke="#fcffff" opacity="0.5" d="m2.000003,21.000004l4,-4"/>
+   </g>
+   <path id="svg_12" fill="none" stroke="#6d97c4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="m14.5,5.2l0,8.6"/>
+  </g>
+ </g>
+</svg>

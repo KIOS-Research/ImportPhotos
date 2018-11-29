@@ -20,26 +20,18 @@
  *                                                                         *
  ***************************************************************************/
 """
-try:
-    from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
-        QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame
-    from PyQt5.QtCore import Qt, pyqtSignal, QRectF
-    from PyQt5.QtGui import QPainterPath, QIcon, QPixmap, QImage
-except:
-    from PyQt4.QtCore import Qt, pyqtSignal, QRectF
-    from PyQt4.QtGui import QGraphicsView, QGraphicsScene, QPainterPath, \
-        QVBoxLayout, QWidget, QLineEdit, QLabel, QSizePolicy, QIcon, QHBoxLayout, QPushButton, QPixmap, QImage, QFrame
+from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
+    QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame
+from PyQt5.QtCore import Qt, pyqtSignal, QRectF
+from PyQt5.QtGui import QPainterPath, QIcon, QPixmap, QImage
 import os.path
 
 try:
     # qgis 3
     from qgis.utils import Qgis
 except:
-    # qgis 2
-    try:
-        from qgis.utils import QGis as Qgis  #  for QGIS 2
-    except:
-        from qgis.utils import Qgis # QGIS 3
+    pass
+
 
 class PhotosViewer(QGraphicsView):
     afterLeftClick = pyqtSignal(float, float)
@@ -133,6 +125,7 @@ class PhotoWindow(QWidget):
         self.allpicturesdates = []
         self.allpicturestimes = []
         self.allpicturesImpath= []
+        self.allpicturesAzimuth=[]
         for i, f in enumerate(self.drawSelf.layerActive.getFeatures()):
             if 'PATH' in self.drawSelf.fields:
                 imPath = f.attributes()[f.fieldNameIndex('Path')]
@@ -148,10 +141,14 @@ class PhotoWindow(QWidget):
                 timeTrue = str(f.attributes()[f.fieldNameIndex('Time')].toString('hh:mm:ss'))
             except:
                 timeTrue = str(f.attributes()[f.fieldNameIndex('Time')])
+
+            Azimuth = f.attributes()[f.fieldNameIndex('Azimuth')]
             self.allpictures.append(f.attributes()[f.fieldNameIndex('Name')])
             self.allpicturesdates.append(dateTrue)
             self.allpicturestimes.append(timeTrue)
             self.allpicturesImpath.append(imPath)
+            self.allpicturesAzimuth.append(Azimuth)
+
         ######################################################################################
 
         self.setWindowTitle('Photo')
@@ -173,24 +170,33 @@ class PhotoWindow(QWidget):
 
         self.extent = QPushButton(self)
         self.extent.setSizePolicy(sizePolicy)
-        self.extent.setCheckable(True)
-        self.extent.setChecked(True)
         self.extent.setIcon(QIcon(self.path + '//svg//mActionZoomFullExtent.svg'))
         self.extent.clicked.connect(self.extentbutton)
 
         self.zoom = QPushButton(self)
         self.zoom.setSizePolicy(sizePolicy)
-        self.zoom.setCheckable(True)
-        self.zoom.setChecked(False)
-        self.zoom.setIcon(QIcon(self.path + '//svg//mActionZoomToSelected.svg'))
+        self.zoom.setIcon(QIcon(self.path + '//svg//method-draw-image.svg'))
         self.zoom.clicked.connect(self.zoombutton)
 
         self.pan = QPushButton(self)
         self.pan.setSizePolicy(sizePolicy)
-        self.pan.setCheckable(True)
-        self.pan.setChecked(False)
         self.pan.setIcon(QIcon(self.path + '//svg//mActionPan.svg'))
         self.pan.clicked.connect(self.panbutton)
+
+        self.zoom_to_select = QPushButton(self)
+        self.zoom_to_select.setSizePolicy(sizePolicy)
+        self.zoom_to_select.setIcon(QIcon(self.path + '//svg//mActionZoomToSelected.svg'))
+        self.zoom_to_select.clicked.connect(self.zoom_to_selectbutton)
+
+        self.rotate_option = QPushButton(self)
+        self.rotate_option.setSizePolicy(sizePolicy)
+        self.rotate_option.setIcon(QIcon(self.path + '//svg//rotate.png'))
+        self.rotate_option.clicked.connect(self.rotatebutton)
+
+        self.rotate_azimuth = QPushButton(self)
+        self.rotate_azimuth.setSizePolicy(sizePolicy)
+        self.rotate_azimuth.setIcon(QIcon(self.path + '//svg//tonorth.png'))
+        self.rotate_azimuth.clicked.connect(self.rotate_azimuthbutton)
 
         sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.rightClick = QPushButton(self)
@@ -202,6 +208,16 @@ class PhotoWindow(QWidget):
         self.leftClick.setSizePolicy(sizePolicy)
         self.leftClick.setIcon(QIcon(self.path+'//svg//arrowLeft.png'))
         self.leftClick.clicked.connect(self.leftClickButton)
+
+        # Add tips on buttons
+        self.extent.setToolTip('Extent photo')
+        self.zoom.setToolTip('Select area to zoom')
+        self.pan.setToolTip('Pan')
+        self.zoom_to_select.setToolTip('Zoom to selected photo')
+        self.rotate_option.setToolTip('Rotate 45°')
+        self.rotate_azimuth.setToolTip('Rotate to azimuth')
+        self.rightClick.setToolTip('Show next photo')
+        self.leftClick.setToolTip('Show previous photo')
 
         # Arrange layout
         VBlayout = QVBoxLayout(self)
@@ -217,6 +233,9 @@ class PhotoWindow(QWidget):
         HBlayout.addWidget(self.extent)
         HBlayout.addWidget(self.zoom)
         HBlayout.addWidget(self.pan)
+        HBlayout.addWidget(self.zoom_to_select)
+        HBlayout.addWidget(self.rotate_option)
+        HBlayout.addWidget(self.rotate_azimuth)
 
         VBlayout.addLayout(HBlayout2)
         VBlayout.addLayout(HBlayout)
@@ -252,32 +271,36 @@ class PhotoWindow(QWidget):
             'Time: ' + self.allpicturestimes[self.drawSelf.featureIndex])
         self.infoPhoto3.setText('Layer: ' + self.drawSelf.layerActiveName)
 
+        if self.allpicturesAzimuth[self.drawSelf.featureIndex] is str:
+            self.rotate_azimuth.setEnabled(True)
+        else:
+            self.rotate_azimuth.setEnabled(False)
+
+    def rotatebutton(self):
+        self.viewer.rotate(90)
+
+    def rotate_azimuthbutton(self):
+        print ('Set azimuth')
+
+    def zoom_to_selectbutton(self):
+        self.drawSelf.iface.actionZoomToSelected().trigger()
+
     def panbutton(self):
         self.viewer.panSelect = True
         self.viewer.zoomSelect = False
         self.viewer.setCursor(Qt.OpenHandCursor)
         self.viewer.setDragMode(QGraphicsView.ScrollHandDrag)
-        self.pan.setChecked(True)
-        self.zoom.setChecked(False)
-        self.extent.setChecked(False)
 
     def zoombutton(self):
         self.viewer.panSelect = False
         self.viewer.zoomSelect = True
         self.viewer.setCursor(Qt.CrossCursor)
         self.viewer.setDragMode(QGraphicsView.RubberBandDrag)
-        self.extent.setChecked(False)
-        self.zoom.setChecked(True)
-        self.pan.setChecked(False)
 
     def extentbutton(self):
         self.viewer.zoom_data = []
         self.viewer.fitInView(self.viewer.sceneRect(), Qt.KeepAspectRatio)
-
         self.viewer.panSelect = False
         self.viewer.zoomSelect = False
         self.viewer.setCursor(Qt.ArrowCursor)
         self.viewer.setDragMode(QGraphicsView.NoDrag)
-        self.extent.setChecked(True)
-        self.zoom.setChecked(False)
-        self.pan.setChecked(False)

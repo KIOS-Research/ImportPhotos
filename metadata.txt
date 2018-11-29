@@ -27,6 +27,8 @@ changelog=2018-11-28  ImportPhotos 1.8:
 			Drop update for qgis 2
 			Add QgsTask for the ImportPhotos
 			Change main ui file
+			Set default save file, shapefile
+			Add zoom to selected, rotation, rotation azimuth
 	  2018-11-15  ImportPhotos 1.7:
 			Update view window, add next/previous-buttons and key shortcut
 			Press F11 to enter fullscreen, Escape to exit

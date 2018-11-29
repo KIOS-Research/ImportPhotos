@@ -116,6 +116,13 @@ class MouseClick(QgsMapTool):
                     except:
                         pass
                     self.photosDLG.infoPhoto3.setText('Layer: ' + self.drawSelf.layerActiveName)
+
+                    azimuth = feature.attributes()[feature.fieldNameIndex('Azimuth')]
+                    if azimuth is str:
+                        self.photosDLG.rotate_azimuth.setEnabled(True)
+                    else:
+                        self.photosDLG.rotate_azimuth.setEnabled(False)
+
                     self.photosDLG.showNormal()
                     return
 

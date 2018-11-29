@@ -218,8 +218,8 @@ class ImportPhotos:
                        'Camera Model', 'Path']
 
         self.extension_switch = {
-            ".geojson": "GeoJSON",
             ".shp": "ESRI Shapefile",
+            ".geojson": "GeoJSON",
             ".gpkg":"GPKG",
             ".csv": "CSV",
             ".kml": "KML",
@@ -259,7 +259,7 @@ class ImportPhotos:
         self.dlg.close()
 
     def toolButtonOut(self):
-        typefiles = 'GeoJSON (*.geojson *.GEOJSON);; ESRI Shapefile (*.shp *.SHP);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB);; Open Document Spreadsheet (*.ods *.ODS)'
+        typefiles = 'ESRI Shapefile (*.shp *.SHP);; GeoJSON (*.geojson *.GEOJSON);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB);; Open Document Spreadsheet (*.ods *.ODS)'
         if platform.system() == 'Linux':
             try:
                 self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File', os.path.join(
@@ -316,9 +316,9 @@ class ImportPhotos:
             try:
                 self.extension = '.'+self.extension.split()[-1][2:-1].lower()
             except:
-                self.extension = '.geojson' #hack line, temporary
+                self.extension = '.shp' #hack line, temporary
         else:
-            tmpbasename, self.extension = os.path.splitext(self.outputPath)
+            _ , self.extension = os.path.splitext(self.outputPath)
             basename = os.path.basename(self.outputPath)
             self.lphoto = basename[:-len(self.extension)]
 
@@ -420,14 +420,13 @@ class ImportPhotos:
         except:
             pass
 
-        self.Qpr_inst.addMapLayers([self.layerPhotos_final])
-
         try:
             self.layerPhotos_final.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
         except:
             title = 'Warning'
             msg = 'No geo-tagged images were detected.'
             self.showMessage(title, msg, 'Warning')
+            self.taskPhotos.destroyed()
             return
 
         self.layerPhotos_final.setReadOnly(False)
@@ -445,23 +444,27 @@ class ImportPhotos:
             pass
 
         ###########################################
-        noLocationPhotosCounter = self.initphotos - self.truePhotosCount
-        if self.truePhotosCount == noLocationPhotosCounter == 0 or self.truePhotosCount == 0:
-            title = 'Import Photos'
-            msg = 'Import Completed.\n\nDetails:\n  No new photos were added.'
-            self.showMessage(title, msg, 'Information')
-        elif (self.truePhotosCount == self.initphotos) or ((noLocationPhotosCounter + self.truePhotosCount) == self.initphotos):
-            title = 'Import Photos'
-            msg = 'Import Completed.\n\nDetails:\n  ' + str(
-                self.truePhotosCount) + ' photo(s) added without error.\n  ' + str(
-                noLocationPhotosCounter) + ' photo(s) skipped (because of missing location).'
-            self.showMessage(title, msg, 'Information')
-
         self.dlg.ok.setEnabled(True)
         self.dlg.closebutton.setEnabled(True)
         self.dlg.toolButtonImport.setEnabled(True)
         self.dlg.toolButtonOut.setEnabled(True)
         self.clickPhotos.setChecked(True)
+
+        noLocationPhotosCounter = self.initphotos - self.truePhotosCount
+        if self.truePhotosCount == noLocationPhotosCounter == 0 or self.truePhotosCount == 0:
+            title = 'Import Photos'
+            msg = 'Import Completed.\n\nDetails:\n  No new photos were added.'
+            self.showMessage(title, msg, 'Information')
+            self.taskPhotos.destroyed()
+            return
+        elif (self.truePhotosCount == self.initphotos) or ((noLocationPhotosCounter + self.truePhotosCount) == self.initphotos):
+            title = 'Import Photos'
+            msg = 'Import Completed.\n\nDetails:\n  ' + str(
+                int(self.truePhotosCount)) + ' photo(s) added without error.\n  ' + str(
+                int(noLocationPhotosCounter)) + ' photo(s) skipped (because of missing location).'
+            self.showMessage(title, msg, 'Information')
+
+        self.Qpr_inst.addMapLayers([self.layerPhotos_final])
         
         self.taskPhotos.destroyed()
 
@@ -597,12 +600,6 @@ class ImportPhotos:
                                            'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': imgpath},
                             "geometry": {"coordinates": [lon, lat], "type": "Point"}}
                 self.geoPhotos.append(geo_info)
-                # # get Layer type
-                # feature = QgsFeature()
-                # point = QgsPointXY(lon, lat)
-                # feature.setGeometry(QgsGeometry.fromPointXY(point))
-                # feature.setAttributes([uuid_, name, date, time_, lon, lat, altitude, north, azimuth, str(maker), str(model), imgpath])
-                # self.provider.addFeatures([feature])
                 if self.taskPhotos.isCanceled():
                     self.stopped(self.taskPhotos)
                     self.taskPhotos.destroyed()
