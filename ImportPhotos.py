@@ -36,16 +36,20 @@ import os.path
 import platform
 import uuid
 import json
-
 try:
-    # qgis 3
-    import exifread
-    from qgis.utils import Qgis
-except:
-    # qgis 3
     from PIL import Image
     from PIL.ExifTags import TAGS
-    from qgis.utils import Qgis # QGIS 3
+except:
+    pass
+try:
+    import exifread
+except:
+    pass
+
+try:
+    from qgis.utils import Qgis
+except:
+    pass
 
 try:
     import osgeo.ogr as ogr
@@ -498,7 +502,7 @@ class ImportPhotos:
                         altitude = ''
                     uuid_ = str(uuid.uuid4())
                     try:
-                        dt1, dt2 = tags["Image DateTime"].values.split()
+                        dt1, dt2 = tags["EXIF DateTimeOriginal"].values.split()
                         date = dt1.replace(':', '/')
                         time_ = dt2
                     except:
@@ -565,7 +569,7 @@ class ImportPhotos:
                             if 'DateTime' or 'DateTimeOriginal' in a:
                                 if 'DateTime' in a:
                                     dt1, dt2 = a['DateTime'].split()
-                                elif 'DateTimeOriginal' in a:
+                                if 'DateTimeOriginal' in a:
                                     dt1, dt2 = a['DateTimeOriginal'].split()
                                 date = dt1.replace(':', '/')
                                 time_ = dt2
