@@ -330,11 +330,14 @@ class ImportPhotos:
         self.dlg.closebutton.setEnabled(False)
         self.dlg.toolButtonImport.setEnabled(False)
         self.dlg.toolButtonOut.setEnabled(False)
+
+        # get paths of photos
         extens = ['jpg', 'jpeg', 'JPG', 'JPEG']
         self.photos = []
         for root, dirs, files in os.walk(self.directoryPhotos):
             self.photos.extend(os.path.join(root, name) for name in files
                           if name.lower().endswith(tuple(extens)))
+
         self.initphotos = len(self.photos)
 
         if self.initphotos == 0:
@@ -473,10 +476,6 @@ class ImportPhotos:
             'Task "{name}" was canceled'.format(
                 name=task.description()),
             'ImportPhotos', Qgis.Info)
-        try:
-            self.layerPhotos.commitChanges()
-        except:
-            pass
 
     def import_photos_task(self, task, wait_time):
         self.geoPhotos = []

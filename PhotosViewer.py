@@ -20,10 +20,10 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
-    QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame
-from PyQt5.QtCore import Qt, pyqtSignal, QRectF
-from PyQt5.QtGui import QPainterPath, QIcon, QPixmap, QImage
+from PyQt5.QtWidgets import (QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
+    QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame)
+from PyQt5.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize)
+from PyQt5.QtGui import (QPainterPath, QIcon, QPixmap, QImage)
 import os.path
 
 try:
@@ -45,9 +45,28 @@ class PhotosViewer(QGraphicsView):
         self.selfwindow = selfwindow
         self.panSelect = False
         self.zoomSelect = False
+        self.rotate_value = 0
+        self.rotate_azimuth_value = 0
 
         self.zoom_data = []
+        size = 36
         self.scene = QGraphicsScene()
+        self.leftClick = QPushButton(self)
+        self.leftClick.setIcon(QIcon(self.selfwindow.path+'//svg//arrowLeft.png'))
+        self.leftClick.clicked.connect(self.selfwindow.leftClickButton)
+        self.leftClick.setToolTip('Show previous photo')
+        self.leftClick.setStyleSheet("QPushButton{background: transparent;}")
+        self.leftClick.setIconSize(QSize(size, size))
+        self.leftClick.setFocusPolicy(Qt.NoFocus)
+
+        self.rightClick = QPushButton(self)
+        self.rightClick.setIcon(QIcon(self.selfwindow.path+'//svg//arrowRight.png'))
+        self.rightClick.clicked.connect(self.selfwindow.rightClickButton)
+        self.rightClick.setToolTip('Show next photo')
+        self.rightClick.setStyleSheet("QPushButton{background: transparent;}")
+        self.rightClick.setIconSize(QSize(size, size))
+        self.rightClick.setFocusPolicy(Qt.NoFocus)
+
         self.setScene(self.scene)
         self.setMouseTracking(False)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -88,6 +107,27 @@ class PhotosViewer(QGraphicsView):
 
     def resizeEvent(self, event):
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
+        loc = self.viewport().geometry()
+        newloc =  list(loc.getRect())
+        newloc[0] = newloc[0] # x
+        newloc[1] = newloc[3]/2.2 # y
+        newloc[2] = newloc[2]/5 # width
+        newloc[3] = newloc[3]/5 # height
+        self.leftClick.setGeometry(QRect(newloc[0], newloc[1], newloc[2], newloc[3]))
+        newloc =  list(loc.getRect())
+        newloc[0] = newloc[2] - newloc[2]/5 # x
+        newloc[1] = newloc[3]/2.2 # y
+        newloc[2] = newloc[2]/5 # width
+        newloc[3] = newloc[3]/5 # height
+        self.rightClick.setGeometry(QRect(newloc[0], newloc[1], newloc[2], newloc[3]))
+
+        # Fix rotate for the next photo
+        self.rotate(-self.rotate_value)
+        self.rotate_value = 0
+
+        # Fix azimuth rotate for the next photo
+        self.rotate(-self.rotate_azimuth_value)
+        self.rotate_azimuth_value = 0
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Right:
@@ -105,13 +145,19 @@ class PhotosViewer(QGraphicsView):
             self.selfwindow.updateWindow()
 
         if e.key() == Qt.Key_Escape:
-            self.selfwindow.close()
+            if self.selfwindow.isFullScreen():
+                self.selfwindow.showMaximized()
+                return
 
         if e.key() == Qt.Key_F11:
             if self.selfwindow.isFullScreen():
                 self.selfwindow.showMaximized()
             else:
                 self.selfwindow.showFullScreen()
+
+        if e.key() == Qt.Key_Escape:
+            self.selfwindow.close()
+
 
 class PhotoWindow(QWidget):
     def __init__(self, drawSelf):
@@ -198,17 +244,6 @@ class PhotoWindow(QWidget):
         self.rotate_azimuth.setIcon(QIcon(self.path + '//svg//tonorth.png'))
         self.rotate_azimuth.clicked.connect(self.rotate_azimuthbutton)
 
-        sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-        self.rightClick = QPushButton(self)
-        self.rightClick.setSizePolicy(sizePolicy)
-        self.rightClick.setIcon(QIcon(self.path+'//svg//arrowRight.png'))
-        self.rightClick.clicked.connect(self.rightClickButton)
-
-        self.leftClick = QPushButton(self)
-        self.leftClick.setSizePolicy(sizePolicy)
-        self.leftClick.setIcon(QIcon(self.path+'//svg//arrowLeft.png'))
-        self.leftClick.clicked.connect(self.leftClickButton)
-
         # Add tips on buttons
         self.extent.setToolTip('Extent photo')
         self.zoom.setToolTip('Select area to zoom')
@@ -216,16 +251,12 @@ class PhotoWindow(QWidget):
         self.zoom_to_select.setToolTip('Zoom to selected photo')
         self.rotate_option.setToolTip('Rotate 45°')
         self.rotate_azimuth.setToolTip('Rotate to azimuth')
-        self.rightClick.setToolTip('Show next photo')
-        self.leftClick.setToolTip('Show previous photo')
 
         # Arrange layout
         VBlayout = QVBoxLayout(self)
         HBlayout = QHBoxLayout()
         HBlayout2 = QHBoxLayout()
-        HBlayout2.addWidget(self.leftClick)
         HBlayout2.addWidget(self.viewer)
-        HBlayout2.addWidget(self.rightClick)
         HBlayout.setAlignment(Qt.AlignCenter)
         HBlayout.addWidget(self.infoPhoto1)
         HBlayout.addWidget(self.infoPhoto2)
@@ -233,9 +264,9 @@ class PhotoWindow(QWidget):
         HBlayout.addWidget(self.extent)
         HBlayout.addWidget(self.zoom)
         HBlayout.addWidget(self.pan)
-        HBlayout.addWidget(self.zoom_to_select)
         HBlayout.addWidget(self.rotate_option)
         HBlayout.addWidget(self.rotate_azimuth)
+        HBlayout.addWidget(self.zoom_to_select)
 
         VBlayout.addLayout(HBlayout2)
         VBlayout.addLayout(HBlayout)
@@ -271,16 +302,22 @@ class PhotoWindow(QWidget):
             'Time: ' + self.allpicturestimes[self.drawSelf.featureIndex])
         self.infoPhoto3.setText('Layer: ' + self.drawSelf.layerActiveName)
 
-        if self.allpicturesAzimuth[self.drawSelf.featureIndex] is str:
-            self.rotate_azimuth.setEnabled(True)
-        else:
-            self.rotate_azimuth.setEnabled(False)
+        value = self.allpicturesAzimuth[self.drawSelf.featureIndex]
+        if type(value) is float:
+            if value > 0:
+                self.rotate_azimuth.setEnabled(True)
+                return
+        self.rotate_azimuth.setEnabled(False)
 
     def rotatebutton(self):
         self.viewer.rotate(90)
+        self.viewer.rotate_value = self.viewer.rotate_value + 90
+        if self.viewer.rotate_value == 360:
+            self.viewer.rotate_value = 0
 
     def rotate_azimuthbutton(self):
-        print ('Set azimuth')
+        self.viewer.rotate(self.allpicturesAzimuth[self.drawSelf.featureIndex])
+        self.viewer.rotate_azimuth_value = self.allpicturesAzimuth[self.drawSelf.featureIndex]
 
     def zoom_to_selectbutton(self):
         self.drawSelf.iface.actionZoomToSelected().trigger()
