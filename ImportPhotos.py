@@ -27,6 +27,8 @@ from qgis.PyQt.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication
 from qgis.core import (QgsRectangle, QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsVectorLayer, \
                        QgsLayerTreeLayer, QgsProject, QgsTask, QgsApplication, QgsMessageLog, QgsFields, QgsField,
                        QgsWkbTypes, QgsFeature, QgsPointXY, QgsGeometry)
+from qgis.utils import Qgis
+
 # Initialize Qt resources from file resources.py
 from . import resources
 # Import the code for the dialog
@@ -37,6 +39,7 @@ import platform
 import uuid
 import json
 
+# Import python module
 CHECK_MODULE = ''
 try:
     import exifread
@@ -51,21 +54,6 @@ try:
         CHECK_MODULE = 'PIL'
 except:
     pass
-
-try:
-    from qgis.utils import Qgis
-except:
-    pass
-
-try:
-    import osgeo.ogr as ogr
-except:
-    import ogr
-
-try:
-    import osgeo.osr as osr
-except:
-    import osr
 
 
 class ImportPhotos:
@@ -284,9 +272,7 @@ class ImportPhotos:
                 os.path.join(os.path.expanduser('~')),
                 'Desktop'), typefiles)
 
-        if Qgis.QGIS_VERSION >= '3.0':
-            self.outputPath = self.outputPath[0]
-
+        self.outputPath = self.outputPath[0]
         self.dlg.out.setText(self.outputPath)
 
     def toolButtonImport(self):

@@ -26,12 +26,6 @@ from PyQt5.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize)
 from PyQt5.QtGui import (QPainterPath, QIcon, QPixmap, QImage)
 import os.path
 
-try:
-    # qgis 3
-    from qgis.utils import Qgis
-except:
-    pass
-
 
 class PhotosViewer(QGraphicsView):
     afterLeftClick = pyqtSignal(float, float)

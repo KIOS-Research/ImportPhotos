@@ -28,6 +28,7 @@ from qgis.gui import QgsMapTool, QgsRubberBand
 from .PhotosViewer import PhotoWindow
 import os
 
+
 class MouseClick(QgsMapTool):
     afterLeftClick = pyqtSignal()
     afterRightClick = pyqtSignal()
