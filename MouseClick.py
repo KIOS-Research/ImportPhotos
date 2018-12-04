@@ -60,6 +60,8 @@ class MouseClick(QgsMapTool):
             return
         layersSelected = []
         for layer in layers:
+            if layer.type():
+                continue
             fields = [field.name().upper() for field in layer.fields()]
             if 'PATH' or 'PHOTO' in fields:
                 lRect = self.canvas.mapSettings().mapToLayerCoordinates(layer, rect)

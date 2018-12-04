@@ -126,8 +126,9 @@ class PhotosViewer(QGraphicsView):
         self.rotate_value = 0
 
         # Fix azimuth rotate for the next photo
-        self.rotate(-self.rotate_azimuth_value)
-        self.rotate_azimuth_value = 0
+        if self.rotate_azimuth_value > 0:
+            self.rotate(-self.rotate_azimuth_value)
+            self.rotate_azimuth_value = 0
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Right:
@@ -289,10 +290,7 @@ class PhotoWindow(QWidget):
         pixmap = QPixmap.fromImage(QImage(imPath))
         self.viewer.scene.addPixmap(pixmap)
         self.viewer.setSceneRect(QRectF(pixmap.rect()))
-        if Qgis.QGIS_VERSION >= '3.0':
-            self.drawSelf.layerActive.selectByIds([self.drawSelf.featureIndex])
-        else:
-            self.drawSelf.layerActive.setSelectedFeatures([self.drawSelf.featureIndex])
+        self.drawSelf.layerActive.selectByIds([self.drawSelf.featureIndex])
 
         self.viewer.resizeEvent([])
         self.extentbutton()
@@ -316,8 +314,13 @@ class PhotoWindow(QWidget):
             self.viewer.rotate_value = 0
 
     def rotate_azimuthbutton(self):
-        self.viewer.rotate(self.allpicturesAzimuth[self.drawSelf.featureIndex])
-        self.viewer.rotate_azimuth_value = self.allpicturesAzimuth[self.drawSelf.featureIndex]
+        if self.viewer.rotate_azimuth_value == 0:
+            self.viewer.rotate(self.allpicturesAzimuth[self.drawSelf.featureIndex])
+            self.viewer.rotate_azimuth_value = self.allpicturesAzimuth[self.drawSelf.featureIndex]
+            return
+        if self.viewer.rotate_azimuth_value > 0:
+            self.viewer.rotate(-self.viewer.rotate_azimuth_value)
+            self.viewer.rotate_azimuth_value = 0
 
     def zoom_to_selectbutton(self):
         self.drawSelf.iface.actionZoomToSelected().trigger()

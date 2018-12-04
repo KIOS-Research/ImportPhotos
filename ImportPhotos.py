@@ -36,13 +36,19 @@ import os.path
 import platform
 import uuid
 import json
-try:
-    from PIL import Image
-    from PIL.ExifTags import TAGS
-except:
-    pass
+
+CHECK_MODULE = ''
 try:
     import exifread
+    CHECK_MODULE = 'exifread'
+except:
+    pass
+
+try:
+    if CHECK_MODULE == '':
+        from PIL import Image
+        from PIL.ExifTags import TAGS
+        CHECK_MODULE = 'PIL'
 except:
     pass
 
@@ -357,9 +363,7 @@ class ImportPhotos:
 
         self.canvas.setMapTool(self.toolMouseClick)
 
-        self.truePhotosCount = 0.
-        self.lon = []
-        self.lat = []
+        self.truePhotosCount = 0
 
         self.Qpr_inst = QgsProject.instance()
         if platform.system()=='Darwin':
@@ -373,6 +377,13 @@ class ImportPhotos:
         else:
             self.extension = self.extension_switch[self.extension.lower()]
 
+        self.exifread_module = False
+        self.pil_module = False
+
+        if CHECK_MODULE == '':
+            self.showMessage('Python Modules', 'Please install python module "exifread" or "PIL".' , 'Warning')
+
+        #self.import_photos_task('', '')
         self.call_import_photos()
         self.dlg.close()
 
@@ -420,6 +431,18 @@ class ImportPhotos:
                                                     QgsCoordinateReferenceSystem(self.layerPhotos.crs().authid()),
                                                     self.extension)
         self.layerPhotos_final = QgsVectorLayer(self.outputPath, self.lphoto, "ogr")
+
+        ## Sort a layer based on DATE and TIME
+        #featList = []
+        #for feat in self.layerPhotos_final.getFeatures():
+        #    featList.append(feat.attributes())
+
+        #newFeatures = sorted(featList, key=lambda x: [x[2], x[3]])
+        # clear all features
+        #self.layerPhotos_final.dataProvider().truncate()
+        # add sorted features
+        #self.layerPhotos_final.dataProvider().addFeatures(featList)
+
         # clear temp.geojson file
         try:
             f = open(self.outDirectoryPhotosGeoJSON, 'r+')
@@ -483,12 +506,15 @@ class ImportPhotos:
 
     def import_photos_task(self, task, wait_time):
         self.geoPhotos = []
+        self.corr_sort = []
+        self.lon = []
+        self.lat = []
         for count, imgpath in enumerate(self.photos):
             try:
-                try:
+                name = os.path.basename(imgpath)
+                if CHECK_MODULE == 'exifread' and not self.pil_module:
+                    self.exifread_module = True
                     self.taskPhotos.setProgress(count/self.initphotos)
-                    name = os.path.basename(imgpath)
-                    imgpath = imgpath.replace('\\', '/')
                     with open(imgpath, 'rb') as imgpathF:
                         tags = exifread.process_file(imgpathF, details=False)
                     if not tags.keys() & {"GPS GPSLongitude", "GPS GPSLatitude"}:
@@ -531,84 +557,88 @@ class ImportPhotos:
                     except:
                         model = ''
 
-                except:
-                    try:
-                        a = {}
-                        info = Image.open(imgpath)
-                        info = info._getexif()
+                if CHECK_MODULE == 'PIL' and not self.exifread_module:
+                    self.pil_module = True
+                    a = {}
+                    info = Image.open(imgpath)
+                    info = info._getexif()
 
-                        if info == None:
+                    if info == None:
+                        continue
+
+                    for tag, value in info.items():
+                        if TAGS.get(tag, tag) == 'GPSInfo' or TAGS.get(tag, tag) == 'DateTime' or TAGS.get(tag,
+                                                                                                           tag) == 'DateTimeOriginal':
+                            a[TAGS.get(tag, tag)] = value
+
+                    if a == {}:
+                        continue
+
+                    if a['GPSInfo'] != {}:
+                        if 1 and 2 and 3 and 4 in a['GPSInfo']:
+                            lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
+                            latref = a['GPSInfo'][1]
+                            lon = [float(x) / float(y) for x, y in a['GPSInfo'][4]]
+                            lonref = a['GPSInfo'][3]
+
+                            lat = lat[0] + lat[1] / 60 + lat[2] / 3600
+                            lon = lon[0] + lon[1] / 60 + lon[2] / 3600
+
+                            if latref == 'S':
+                                lat = -lat
+                            if lonref == 'W':
+                                lon = -lon
+                        else:
                             continue
 
-                        for tag, value in info.items():
-                            if TAGS.get(tag, tag) == 'GPSInfo' or TAGS.get(tag, tag) == 'DateTime' or TAGS.get(tag,
-                                                                                                               tag) == 'DateTimeOriginal':
-                                a[TAGS.get(tag, tag)] = value
+                        uuid_ = str(uuid.uuid4())
+                        if 'DateTime' or 'DateTimeOriginal' in a:
+                            if 'DateTime' in a:
+                                dt1, dt2 = a['DateTime'].split()
+                            if 'DateTimeOriginal' in a:
+                                dt1, dt2 = a['DateTimeOriginal'].split()
+                            date = dt1.replace(':', '/')
+                            time_ = dt2
 
-                        if a == {}:
-                            continue
+                        if 6 in a['GPSInfo']:
+                            if len(a['GPSInfo'][6]) > 1:
+                                mAltitude = float(a['GPSInfo'][6][0])
+                                mAltitudeDec = float(a['GPSInfo'][6][1])
+                                altitude = mAltitude / mAltitudeDec
+                        else:
+                            altitude = ''
 
-                        if a['GPSInfo'] != {}:
-                            if 1 and 2 and 3 and 4 in a['GPSInfo']:
-                                lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
-                                latref = a['GPSInfo'][1]
-                                lon = [float(x) / float(y) for x, y in a['GPSInfo'][4]]
-                                lonref = a['GPSInfo'][3]
+                        if 16 and 17 in a['GPSInfo']:
+                            north = str(a['GPSInfo'][16])
+                            azimuth = float(a['GPSInfo'][17][0]) / float(a['GPSInfo'][17][1])
+                        else:
+                            north = ''
+                            azimuth = ''
 
-                                lat = lat[0] + lat[1] / 60 + lat[2] / 3600
-                                lon = lon[0] + lon[1] / 60 + lon[2] / 3600
-
-                                if latref == 'S':
-                                    lat = -lat
-                                if lonref == 'W':
-                                    lon = -lon
-                            else:
-                                continue
-
-                            uuid_ = str(uuid.uuid4())
-                            if 'DateTime' or 'DateTimeOriginal' in a:
-                                if 'DateTime' in a:
-                                    dt1, dt2 = a['DateTime'].split()
-                                if 'DateTimeOriginal' in a:
-                                    dt1, dt2 = a['DateTimeOriginal'].split()
-                                date = dt1.replace(':', '/')
-                                time_ = dt2
-
-                            if 6 in a['GPSInfo']:
-                                if len(a['GPSInfo'][6]) > 1:
-                                    mAltitude = float(a['GPSInfo'][6][0])
-                                    mAltitudeDec = float(a['GPSInfo'][6][1])
-                                    altitude = str(mAltitude / mAltitudeDec)
-                            else:
-                                altitude = ''
-
-                            if 16 and 17 in a['GPSInfo']:
-                                north = str(a['GPSInfo'][16])
-                                azimuth = str(float(a['GPSInfo'][17][0]) / float(a['GPSInfo'][17][1]))
-                            else:
-                                north = ''
-                                azimuth = ''
-
-                            maker = ''
-                            model = ''
-                    except:
-                        pass
+                        maker = ''
+                        model = ''
                 self.lon.append(lon)
                 self.lat.append(lat)
                 self.truePhotosCount = self.truePhotosCount + 1
 
-                geo_info = {"type": "Feature",
-                            "properties": {'ID': uuid_, 'Name': name, 'Date': date, 'Time': time_, 'Lon': lon,
-                                           'Lat': lat, 'Altitude': altitude, 'North': north, 'Azimuth': azimuth,
-                                           'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': imgpath},
-                            "geometry": {"coordinates": [lon, lat], "type": "Point"}}
-                self.geoPhotos.append(geo_info)
+                self.corr_sort.append([uuid_, name, date, time_, lon, lat, altitude, north, azimuth, str(maker), str(model), imgpath])
+
                 if self.taskPhotos.isCanceled():
                     self.stopped(self.taskPhotos)
                     self.taskPhotos.destroyed()
                     return None
             except:
                 pass
+        cor = sorted(self.corr_sort, key=lambda x: [x[2], x[3]])
+        #cor.reverse()
+        for value in cor:
+            geo_info = {"type": "Feature",
+                        "properties": {'ID': value[0], 'Name': value[1], 'Date': value[2], 'Time': value[3], 'Lon': value[4],
+                                       'Lat': value[5], 'Altitude': value[6], 'North': value[7], 'Azimuth': value[8],
+                                       'Camera Maker': value[9], 'Camera Model': value[10], 'Path': value[11]},
+                        "geometry": {"coordinates": [value[4], value[5]], "type": "Point"}}
+            self.geoPhotos.append(geo_info)
+
         return True
 
     def call_import_photos(self):
