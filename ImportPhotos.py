@@ -432,17 +432,6 @@ class ImportPhotos:
                                                     self.extension)
         self.layerPhotos_final = QgsVectorLayer(self.outputPath, self.lphoto, "ogr")
 
-        ## Sort a layer based on DATE and TIME
-        #featList = []
-        #for feat in self.layerPhotos_final.getFeatures():
-        #    featList.append(feat.attributes())
-
-        #newFeatures = sorted(featList, key=lambda x: [x[2], x[3]])
-        # clear all features
-        #self.layerPhotos_final.dataProvider().truncate()
-        # add sorted features
-        #self.layerPhotos_final.dataProvider().addFeatures(featList)
-
         # clear temp.geojson file
         try:
             f = open(self.outDirectoryPhotosGeoJSON, 'r+')
@@ -630,7 +619,6 @@ class ImportPhotos:
             except:
                 pass
         cor = sorted(self.corr_sort, key=lambda x: [x[2], x[3]])
-        #cor.reverse()
         for value in cor:
             geo_info = {"type": "Feature",
                         "properties": {'ID': value[0], 'Name': value[1], 'Date': value[2], 'Time': value[3], 'Lon': value[4],
