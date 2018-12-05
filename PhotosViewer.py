@@ -45,21 +45,23 @@ class PhotosViewer(QGraphicsView):
         self.zoom_data = []
         size = 36
         self.scene = QGraphicsScene()
-        self.leftClick = QPushButton(self)
-        self.leftClick.setIcon(QIcon(self.selfwindow.path+'//svg//arrowLeft.png'))
-        self.leftClick.clicked.connect(self.selfwindow.leftClickButton)
-        self.leftClick.setToolTip('Show previous photo')
-        self.leftClick.setStyleSheet("QPushButton{background: transparent;}")
-        self.leftClick.setIconSize(QSize(size, size))
-        self.leftClick.setFocusPolicy(Qt.NoFocus)
 
-        self.rightClick = QPushButton(self)
-        self.rightClick.setIcon(QIcon(self.selfwindow.path+'//svg//arrowRight.png'))
-        self.rightClick.clicked.connect(self.selfwindow.rightClickButton)
-        self.rightClick.setToolTip('Show next photo')
-        self.rightClick.setStyleSheet("QPushButton{background: transparent;}")
-        self.rightClick.setIconSize(QSize(size, size))
-        self.rightClick.setFocusPolicy(Qt.NoFocus)
+        if len(self.selfwindow.allpictures) > 1:
+            self.leftClick = QPushButton(self)
+            self.leftClick.setIcon(QIcon(self.selfwindow.path+'//svg//arrowLeft.png'))
+            self.leftClick.clicked.connect(self.selfwindow.leftClickButton)
+            self.leftClick.setToolTip('Show previous photo')
+            self.leftClick.setStyleSheet("QPushButton{background: transparent;}")
+            self.leftClick.setIconSize(QSize(size, size))
+            self.leftClick.setFocusPolicy(Qt.NoFocus)
+
+            self.rightClick = QPushButton(self)
+            self.rightClick.setIcon(QIcon(self.selfwindow.path+'//svg//arrowRight.png'))
+            self.rightClick.clicked.connect(self.selfwindow.rightClickButton)
+            self.rightClick.setToolTip('Show next photo')
+            self.rightClick.setStyleSheet("QPushButton{background: transparent;}")
+            self.rightClick.setIconSize(QSize(size, size))
+            self.rightClick.setFocusPolicy(Qt.NoFocus)
 
         self.setScene(self.scene)
         self.setMouseTracking(False)
@@ -101,19 +103,21 @@ class PhotosViewer(QGraphicsView):
 
     def resizeEvent(self, event):
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
-        loc = self.viewport().geometry()
-        newloc =  list(loc.getRect())
-        newloc[0] = newloc[0] # x
-        newloc[1] = newloc[3]/2.2 # y
-        newloc[2] = newloc[2]/5 # width
-        newloc[3] = newloc[3]/5 # height
-        self.leftClick.setGeometry(QRect(newloc[0], newloc[1], newloc[2], newloc[3]))
-        newloc =  list(loc.getRect())
-        newloc[0] = newloc[2] - newloc[2]/5 # x
-        newloc[1] = newloc[3]/2.2 # y
-        newloc[2] = newloc[2]/5 # width
-        newloc[3] = newloc[3]/5 # height
-        self.rightClick.setGeometry(QRect(newloc[0], newloc[1], newloc[2], newloc[3]))
+
+        if len(self.selfwindow.allpictures) > 1:
+            loc = self.viewport().geometry()
+            self.left_newloc =  list(loc.getRect())
+            self.left_newloc[0] = self.left_newloc[0] # x
+            self.left_newloc[1] = self.left_newloc[3]/2.4 # y
+            self.left_newloc[2] = self.left_newloc[2]/5 # width
+            self.left_newloc[3] = self.left_newloc[3]/5 # height
+            self.leftClick.setGeometry(QRect(self.left_newloc[0], self.left_newloc[1], self.left_newloc[2], self.left_newloc[3]))
+            newloc =  list(loc.getRect())
+            newloc[0] = newloc[2] - newloc[2]/5 # x
+            newloc[1] = newloc[3]/2.4 # y
+            newloc[2] = newloc[2]/5 # width
+            newloc[3] = newloc[3]/5 # height
+            self.rightClick.setGeometry(QRect(newloc[0], newloc[1], newloc[2], newloc[3]))
 
         # Fix rotate for the next photo
         self.rotate(-self.rotate_value)
@@ -159,7 +163,6 @@ class PhotoWindow(QWidget):
         super(PhotoWindow, self).__init__()
         self.drawSelf = drawSelf
         self.path = os.path.abspath(os.path.join(os.path.dirname(__file__)))
-        self.viewer = PhotosViewer(self)
 
         ## Update for photo
         self.allpictures = []
@@ -183,12 +186,14 @@ class PhotoWindow(QWidget):
             except:
                 timeTrue = str(f.attributes()[f.fieldNameIndex('Time')])
 
-            Azimuth = f.attributes()[f.fieldNameIndex('Azimuth')]
+            azimuth = f.attributes()[f.fieldNameIndex('Azimuth')]
             self.allpictures.append(f.attributes()[f.fieldNameIndex('Name')])
             self.allpicturesdates.append(dateTrue)
             self.allpicturestimes.append(timeTrue)
             self.allpicturesImpath.append(imPath)
-            self.allpicturesAzimuth.append(Azimuth)
+            self.allpicturesAzimuth.append(azimuth)
+
+        self.viewer = PhotosViewer(self)
 
         ######################################################################################
 
@@ -239,6 +244,11 @@ class PhotoWindow(QWidget):
         self.rotate_azimuth.setIcon(QIcon(self.path + '//svg//tonorth.png'))
         self.rotate_azimuth.clicked.connect(self.rotate_azimuthbutton)
 
+        self.hide_arrow = QPushButton(self)
+        self.hide_arrow.setSizePolicy(sizePolicy)
+        self.hide_arrow.setIcon(QIcon(self.path + '//svg//hide_arrows.png'))
+        self.hide_arrow.clicked.connect(self.hide_arrow_button)
+
         # Add tips on buttons
         self.extent.setToolTip('Extent photo')
         self.zoom.setToolTip('Select area to zoom')
@@ -246,6 +256,7 @@ class PhotoWindow(QWidget):
         self.zoom_to_select.setToolTip('Zoom to selected photo')
         self.rotate_option.setToolTip('Rotate 45°')
         self.rotate_azimuth.setToolTip('Rotate to azimuth')
+        self.hide_arrow.setToolTip('Hide arrows')
 
         # Arrange layout
         VBlayout = QVBoxLayout(self)
@@ -262,9 +273,22 @@ class PhotoWindow(QWidget):
         HBlayout.addWidget(self.rotate_option)
         HBlayout.addWidget(self.rotate_azimuth)
         HBlayout.addWidget(self.zoom_to_select)
+        HBlayout.addWidget(self.hide_arrow)
 
         VBlayout.addLayout(HBlayout2)
         VBlayout.addLayout(HBlayout)
+
+    def hide_arrow_button(self):
+        if self.viewer.leftClick.icon().isNull():
+            self.viewer.leftClick.setIcon(QIcon(self.path+'//svg//arrowLeft.png'))
+            self.viewer.rightClick.setIcon(QIcon(self.path+'//svg//arrowRight.png'))
+            self.hide_arrow.setIcon(QIcon(self.path + '//svg//hide_arrows.png'))
+            self.hide_arrow.setToolTip('Hide arrows')
+        else:
+            self.viewer.leftClick.setIcon(QIcon(''))
+            self.viewer.rightClick.setIcon(QIcon(''))
+            self.hide_arrow.setToolTip('Show arrows')
+            self.hide_arrow.setIcon(QIcon(self.path + '//svg//show_arrows.png'))
 
     def leftClickButton(self):
         self.drawSelf.featureIndex = self.drawSelf.featureIndex - 1
@@ -291,12 +315,14 @@ class PhotoWindow(QWidget):
         self.infoPhoto1.setText(
             'Date: ' + self.allpicturesdates[self.drawSelf.featureIndex])
         self.infoPhoto2.setText(
-            'Time: ' + self.allpicturestimes[self.drawSelf.featureIndex])
+            'Time: ' + self.allpicturestimes[self.drawSelf.featureIndex][0:8])
         self.infoPhoto3.setText('Layer: ' + self.drawSelf.layerActiveName)
 
-        value = self.allpicturesAzimuth[self.drawSelf.featureIndex]
-        if type(value) is float:
-            if value > 0:
+        azimuth = self.allpicturesAzimuth[self.drawSelf.featureIndex]
+        if type(azimuth) is str:
+            azimuth = float(azimuth)
+        if type(azimuth) is float:
+            if azimuth > 0:
                 self.rotate_azimuth.setEnabled(True)
                 return
         self.rotate_azimuth.setEnabled(False)
@@ -309,8 +335,11 @@ class PhotoWindow(QWidget):
 
     def rotate_azimuthbutton(self):
         if self.viewer.rotate_azimuth_value == 0:
-            self.viewer.rotate(self.allpicturesAzimuth[self.drawSelf.featureIndex])
-            self.viewer.rotate_azimuth_value = self.allpicturesAzimuth[self.drawSelf.featureIndex]
+            azimuth = self.allpicturesAzimuth[self.drawSelf.featureIndex]
+            if type(azimuth) is str:
+                azimuth = float(azimuth)
+            self.viewer.rotate(azimuth)
+            self.viewer.rotate_azimuth_value = azimuth
             return
         if self.viewer.rotate_azimuth_value > 0:
             self.viewer.rotate(-self.viewer.rotate_azimuth_value)

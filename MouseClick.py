@@ -115,15 +115,16 @@ class MouseClick(QgsMapTool):
 
                     try:
                         self.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
-                        self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue)
+                        self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue[0:8])
                     except:
                         pass
                     self.photosDLG.infoPhoto3.setText('Layer: ' + self.drawSelf.layerActiveName)
 
-                    value = feature.attributes()[feature.fieldNameIndex('Azimuth')]
-                    azimuth = type(value)
-                    if azimuth is float:
-                        if value > 0:
+                    azimuth = feature.attributes()[feature.fieldNameIndex('Azimuth')]
+                    if type(azimuth) is str:
+                        azimuth = float(azimuth)
+                    if type(azimuth) is float:
+                        if azimuth > 0:
                             self.photosDLG.rotate_azimuth.setEnabled(True)
                             self.photosDLG.showNormal()
                             return
