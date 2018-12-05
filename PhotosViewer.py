@@ -331,7 +331,10 @@ class PhotoWindow(QWidget):
 
         azimuth = self.allpicturesAzimuth[self.drawSelf.featureIndex]
         if type(azimuth) is str:
-            azimuth = float(azimuth)
+            try:
+                azimuth = float(azimuth)
+            except:
+                pass
         if type(azimuth) is float:
             if azimuth > 0:
                 self.rotate_azimuth.setEnabled(True)

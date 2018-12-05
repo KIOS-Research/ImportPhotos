@@ -124,7 +124,10 @@ class MouseClick(QgsMapTool):
 
                     azimuth = feature.attributes()[feature.fieldNameIndex('Azimuth')]
                     if type(azimuth) is str:
-                        azimuth = float(azimuth)
+                        try:
+                            azimuth = float(azimuth)
+                        except:
+                            pass
                     if type(azimuth) is float:
                         if azimuth > 0:
                             self.photosDLG.rotate_azimuth.setEnabled(True)
