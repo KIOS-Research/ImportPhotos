@@ -45,7 +45,6 @@ class PhotosViewer(QGraphicsView):
         self.zoom_data = []
         size = 36
         self.scene = QGraphicsScene()
-
         if len(self.selfwindow.allpictures) > 1:
             self.leftClick = QPushButton(self)
             self.leftClick.setIcon(QIcon(self.selfwindow.path+'//svg//arrowLeft.png'))
@@ -246,8 +245,12 @@ class PhotoWindow(QWidget):
 
         self.hide_arrow = QPushButton(self)
         self.hide_arrow.setSizePolicy(sizePolicy)
-        self.hide_arrow.setIcon(QIcon(self.path + '//svg//hide_arrows.png'))
+        self.hide_arrow.setIcon(QIcon(self.path + '//svg//arrowRight.png'))
         self.hide_arrow.clicked.connect(self.hide_arrow_button)
+        if len(self.allpictures) > 1:
+            self.hide_arrow.setEnabled(True)
+        else:
+            self.hide_arrow.setEnabled(False)
 
         # Add tips on buttons
         self.extent.setToolTip('Extent photo')
@@ -282,13 +285,13 @@ class PhotoWindow(QWidget):
         if self.viewer.leftClick.icon().isNull():
             self.viewer.leftClick.setIcon(QIcon(self.path+'//svg//arrowLeft.png'))
             self.viewer.rightClick.setIcon(QIcon(self.path+'//svg//arrowRight.png'))
-            self.hide_arrow.setIcon(QIcon(self.path + '//svg//hide_arrows.png'))
+            self.hide_arrow.setIcon(QIcon(self.path + '//svg//arrowRight.png'))
             self.hide_arrow.setToolTip('Hide arrows')
         else:
             self.viewer.leftClick.setIcon(QIcon(''))
             self.viewer.rightClick.setIcon(QIcon(''))
             self.hide_arrow.setToolTip('Show arrows')
-            self.hide_arrow.setIcon(QIcon(self.path + '//svg//show_arrows.png'))
+            self.hide_arrow.setIcon(QIcon(self.path + '//svg//arrowRight.png'))
 
     def leftClickButton(self):
         self.drawSelf.featureIndex = self.drawSelf.featureIndex - 1
