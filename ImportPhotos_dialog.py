@@ -20,11 +20,9 @@
  *                                                                         *
  ***************************************************************************/
 """
-
-import os, sys
-
-from qgis.PyQt import QtGui, uic, QtCore
-from qgis.PyQt.QtWidgets import QDialog
+from qgis.PyQt import (QtGui, uic, QtCore)
+from qgis.PyQt.QtWidgets import (QDialog)
+import os
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'impphotos.ui'))

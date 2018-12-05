@@ -28,6 +28,7 @@ from qgis.gui import QgsMapTool, QgsRubberBand
 from .PhotosViewer import PhotoWindow
 import os
 
+
 class MouseClick(QgsMapTool):
     afterLeftClick = pyqtSignal()
     afterRightClick = pyqtSignal()
@@ -60,6 +61,8 @@ class MouseClick(QgsMapTool):
             return
         layersSelected = []
         for layer in layers:
+            if layer.type():
+                continue
             fields = [field.name().upper() for field in layer.fields()]
             if 'PATH' or 'PHOTO' in fields:
                 lRect = self.canvas.mapSettings().mapToLayerCoordinates(layer, rect)
@@ -89,11 +92,13 @@ class MouseClick(QgsMapTool):
                     else:
                         return
 
-                    if os.path.exists(imPath) == False:
-                        title = 'Warning'
-                        msg = 'No image path found.'
-                        self.drawSelf.showMessage(title, msg, 'Warning')
-                        return
+                    try:
+                        if os.path.exists(imPath) == False:
+                            c = self.drawSelf.noImageFound()
+                            if c: return
+                    except:
+                        c = self.drawSelf.noImageFound()
+                        if c: return
 
                     self.photosDLG.viewer.scene.clear()
                     pixmap = QPixmap.fromImage(QImage(imPath))
@@ -112,10 +117,23 @@ class MouseClick(QgsMapTool):
 
                     try:
                         self.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
-                        self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue)
+                        self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue[0:8])
                     except:
                         pass
                     self.photosDLG.infoPhoto3.setText('Layer: ' + self.drawSelf.layerActiveName)
+
+                    azimuth = feature.attributes()[feature.fieldNameIndex('Azimuth')]
+                    if type(azimuth) is str:
+                        try:
+                            azimuth = float(azimuth)
+                        except:
+                            pass
+                    if type(azimuth) is float:
+                        if azimuth > 0:
+                            self.photosDLG.rotate_azimuth.setEnabled(True)
+                            self.photosDLG.showNormal()
+                            return
+                    self.photosDLG.rotate_azimuth.setEnabled(False)
                     self.photosDLG.showNormal()
                     return
 
