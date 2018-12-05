@@ -304,6 +304,14 @@ class PhotoWindow(QWidget):
 
     def updateWindow(self):
         imPath = self.allpicturesImpath[self.drawSelf.featureIndex]
+        try:
+            if os.path.exists(imPath) == False:
+                c = self.drawSelf.noImageFound()
+                imPath = ''
+        except:
+            c = self.drawSelf.noImageFound()
+            imPath = ''
+
         self.viewer.scene.clear()
         pixmap = QPixmap.fromImage(QImage(imPath))
         self.viewer.scene.addPixmap(pixmap)

@@ -92,11 +92,13 @@ class MouseClick(QgsMapTool):
                     else:
                         return
 
-                    if os.path.exists(imPath) == False:
-                        title = 'Warning'
-                        msg = 'No image path found.'
-                        self.drawSelf.showMessage(title, msg, 'Warning')
-                        return
+                    try:
+                        if os.path.exists(imPath) == False:
+                            c = self.drawSelf.noImageFound()
+                            if c: return
+                    except:
+                        c = self.drawSelf.noImageFound()
+                        if c: return
 
                     self.photosDLG.viewer.scene.clear()
                     pixmap = QPixmap.fromImage(QImage(imPath))

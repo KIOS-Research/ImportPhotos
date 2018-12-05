@@ -293,6 +293,12 @@ class ImportPhotos:
         self.showMessage(title, msg, 'Warning')
         return True
 
+    def noImageFound(self):
+        title = 'Warning'
+        msg = 'No image path found.'
+        self.showMessage(title, msg, 'Warning')
+        return True
+
     def ok(self):
         if self.dlg.imp.text() == '':
             if self.selectDir():
@@ -481,7 +487,6 @@ class ImportPhotos:
 
     def import_photos_task(self, task, wait_time):
         self.geoPhotos = []
-        self.corr_sort = []
         self.lon = []
         self.lat = []
         for count, imgpath in enumerate(self.photos):
@@ -506,14 +511,17 @@ class ImportPhotos:
                         dt1, dt2 = tags["EXIF DateTimeOriginal"].values.split()
                         date = dt1.replace(':', '/')
                         time_ = dt2
+                        timestamp = dt1.replace(':', '-') + 'T' + time_
                     except:
                         try:
                             date = tags["GPS GPSDate"].values.replace(':', '/')
                             tt = [str(i) for i in tags["GPS GPSTimeStamp"].values]
                             time_ = "{:0>2}:{:0>2}:{:0>2}".format(tt[0], tt[1], tt[2])
+                            timestamp = tags["GPS GPSDate"].values.replace(':', '-') + 'T' + time_
                         except:
                             date = ''
                             time_ = ''
+                            timestamp = ''
                     try:
                         azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(
                             tags["GPS GPSImgDirection"].values[0].den)
@@ -574,6 +582,7 @@ class ImportPhotos:
                                 dt1, dt2 = a['DateTimeOriginal'].split()
                             date = dt1.replace(':', '/')
                             time_ = dt2
+                            timestamp = dt1.replace(':', '-') + 'T' + time_
 
                         if 6 in a['GPSInfo']:
                             if len(a['GPSInfo'][6]) > 1:
@@ -596,7 +605,15 @@ class ImportPhotos:
                 self.lat.append(lat)
                 self.truePhotosCount = self.truePhotosCount + 1
 
-                self.corr_sort.append([uuid_, name, date, time_, lon, lat, altitude, north, azimuth, str(maker), str(model), imgpath])
+                geo_info = {"type": "Feature",
+                            "properties": {'ID': uuid_, 'Name': name, 'Date': date, 'Time': time_,
+                                           'Lon': lon,
+                                           'Lat': lat, 'Altitude': altitude, 'North': north,
+                                           'Azimuth': azimuth,
+                                           'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': imgpath,
+                                           'Timestamp': timestamp},
+                            "geometry": {"coordinates": [lon, lat], "type": "Point"}}
+                self.geoPhotos.append(geo_info)
 
                 if self.taskPhotos.isCanceled():
                     self.stopped(self.taskPhotos)
@@ -604,15 +621,6 @@ class ImportPhotos:
                     return None
             except:
                 pass
-        cor = sorted(self.corr_sort, key=lambda x: [x[2], x[3]])
-        for value in cor:
-            geo_info = {"type": "Feature",
-                        "properties": {'ID': value[0], 'Name': value[1], 'Date': value[2], 'Time': value[3], 'Lon': value[4],
-                                       'Lat': value[5], 'Altitude': value[6], 'North': value[7], 'Azimuth': value[8],
-                                       'Camera Maker': value[9], 'Camera Model': value[10], 'Path': value[11]},
-                        "geometry": {"coordinates": [value[4], value[5]], "type": "Point"}}
-            self.geoPhotos.append(geo_info)
-
         return True
 
     def call_import_photos(self):
