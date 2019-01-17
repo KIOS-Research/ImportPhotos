@@ -475,9 +475,10 @@ class ImportPhotos:
                 int(noLocationPhotosCounter)) + ' photo(s) skipped (because of missing location).'
             self.showMessage(title, msg, 'Information')
 
-        self.Qpr_inst.addMapLayers([self.layerPhotos_final])
-        
-        self.taskPhotos.destroyed()
+        g = self.Qpr_inst.layerTreeRoot().insertGroup(0, self.lphoto)
+        self.Qpr_inst.addMapLayer(self.layerPhotos_final, False)
+        nn = QgsLayerTreeLayer(self.layerPhotos_final)
+        g.insertChildNode(0, nn)
 
     def stopped(self, task):
         QgsMessageLog.logMessage(
