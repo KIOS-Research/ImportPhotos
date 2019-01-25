@@ -23,8 +23,9 @@ repository=https://github.com/KIOS-Research/ImportPhotos/
 
 # Recommended items:
 # Uncomment the following line and add your changelog:
-changelog=2019-01-17  ImportPhotos 1.9:
+changelog=2019-01-25  ImportPhotos 1.9:
 			Add group with layer
+			Fix issue in right/left transparent
       2018-11-28  ImportPhotos 1.8:
 			Drop update for qgis 2
 			Add QgsTask for the ImportPhotos

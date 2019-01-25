@@ -50,7 +50,7 @@ class PhotosViewer(QGraphicsView):
             self.leftClick.setIcon(QIcon(self.selfwindow.path+'//svg//arrowLeft.png'))
             self.leftClick.clicked.connect(self.selfwindow.leftClickButton)
             self.leftClick.setToolTip('Show previous photo')
-            self.leftClick.setStyleSheet("QPushButton{background: transparent;}")
+            self.leftClick.setStyleSheet("QPushButton{border: 0px;}")
             self.leftClick.setIconSize(QSize(size, size))
             self.leftClick.setFocusPolicy(Qt.NoFocus)
 
@@ -58,7 +58,7 @@ class PhotosViewer(QGraphicsView):
             self.rightClick.setIcon(QIcon(self.selfwindow.path+'//svg//arrowRight.png'))
             self.rightClick.clicked.connect(self.selfwindow.rightClickButton)
             self.rightClick.setToolTip('Show next photo')
-            self.rightClick.setStyleSheet("QPushButton{background: transparent;}")
+            self.rightClick.setStyleSheet("QPushButton{border: 0px;}")
             self.rightClick.setIconSize(QSize(size, size))
             self.rightClick.setFocusPolicy(Qt.NoFocus)
 
