@@ -216,13 +216,21 @@ class ImportPhotos:
                        'Camera Model', 'Path']
 
         self.extension_switch = {
+            "ESRI Shapefile (*.shp *.SHP)": ".shp",
+            "GeoJSON (*.geojson *.GEOJSON)": ".geojson",
+            "GeoPackage (*.gpkg *.GPKG)":".gpkg",
+            "Comma Separated Value (*.csv *.CSV)": ".csv",
+            "Keyhole Markup Language (*.kml *.KML)": ".kml",
+            "Mapinfo TAB (*.tab *.TAB)": ".tab"
+        }
+
+        self.extension_switch_types = {
             ".shp": "ESRI Shapefile",
             ".geojson": "GeoJSON",
             ".gpkg":"GPKG",
             ".csv": "CSV",
             ".kml": "KML",
-            ".tab": "MapInfo File",
-            ".ods": "ODS"
+            ".tab": "MapInfo File"
         }
 
     def mouseClick(self):
@@ -257,7 +265,8 @@ class ImportPhotos:
         self.dlg.close()
 
     def toolButtonOut(self):
-        typefiles = 'ESRI Shapefile (*.shp *.SHP);; GeoJSON (*.geojson *.GEOJSON);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB);; Open Document Spreadsheet (*.ods *.ODS)'
+        typefiles = 'ESRI Shapefile (*.shp *.SHP);; GeoJSON (*.geojson *.GEOJSON);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB)'
+
         if platform.system() == 'Linux':
             try:
                 self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File', os.path.join(
@@ -272,7 +281,11 @@ class ImportPhotos:
                 os.path.join(os.path.expanduser('~')),
                 'Desktop'), typefiles)
 
+        self.extension_type = self.outputPath[1]
         self.outputPath = self.outputPath[0]
+        if self.extension_type:
+            self.extension = self.extension_switch[self.extension_type]
+
         self.dlg.out.setText(self.outputPath)
 
     def toolButtonImport(self):
@@ -313,18 +326,10 @@ class ImportPhotos:
             if self.selectOutp():
                 return
 
-        if platform.system() == 'Linux':
-            self.lphoto = os.path.basename(self.outputPath)
-            try:
-                self.extension = '.'+self.extension.split()[-1][2:-1].lower()
-            except:
-                self.extension = '.shp' #hack line, temporary
-        else:
-            _ , self.extension = os.path.splitext(self.outputPath)
-            basename = os.path.basename(self.outputPath)
-            self.lphoto = basename[:-len(self.extension)]
+        tmpname = os.path.basename(self.outputPath)
+        self.lphoto = os.path.splitext(tmpname)[0]
+        self.outputPath = self.dlg.out.text() + self.extension
 
-        self.outputPath = self.dlg.out.text()
         self.directoryPhotos = self.dlg.imp.text()
         self.outDirectoryPhotosGeoJSON = self.plugin_dir + '/tmp.geojson'
 
@@ -362,12 +367,6 @@ class ImportPhotos:
             self.layernamePhotos.append(self.lphoto+' OGRGeoJSON Point')
         else:
             self.layernamePhotos.append(self.lphoto)
-
-        if platform.system() == 'Linux':
-            self.outputPath = self.outputPath + self.extension
-            self.extension = self.extension_switch[self.extension]
-        else:
-            self.extension = self.extension_switch[self.extension.lower()]
 
         self.exifread_module = False
         self.pil_module = False
@@ -420,8 +419,9 @@ class ImportPhotos:
 
         self.layerPhotos = QgsVectorLayer(self.outDirectoryPhotosGeoJSON, self.lphoto, "ogr")
         QgsVectorFileWriter.writeAsVectorFormat(self.layerPhotos, self.outputPath, "utf-8",
-                                                    QgsCoordinateReferenceSystem(self.layerPhotos.crs().authid()),
-                                                    self.extension)
+                                                QgsCoordinateReferenceSystem(self.layerPhotos.crs().authid()),
+                                                self.extension_switch_types[self.extension])
+
         self.layerPhotos_final = QgsVectorLayer(self.outputPath, self.lphoto, "ogr")
 
         # clear temp.geojson file
