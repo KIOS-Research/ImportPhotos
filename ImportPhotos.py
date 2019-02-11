@@ -213,17 +213,27 @@ class ImportPhotos:
         self.toolMouseClick = MouseClick(self.canvas, self)
 
         self.fields = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Maker',
-                       'Camera Model', 'Path']
+                       'Camera Model', 'Path', 'RelPath', 'Timestamp']
 
         self.extension_switch = {
+            "ESRI Shapefile (*.shp *.SHP)": ".shp",
+            "GeoJSON (*.geojson *.GEOJSON)": ".geojson",
+            "GeoPackage (*.gpkg *.GPKG)":".gpkg",
+            "Comma Separated Value (*.csv *.CSV)": ".csv",
+            "Keyhole Markup Language (*.kml *.KML)": ".kml",
+            "Mapinfo TAB (*.tab *.TAB)": ".tab"
+        }
+
+        self.extension_switch_types = {
             ".shp": "ESRI Shapefile",
             ".geojson": "GeoJSON",
             ".gpkg":"GPKG",
             ".csv": "CSV",
             ".kml": "KML",
-            ".tab": "MapInfo File",
-            ".ods": "ODS"
+            ".tab": "MapInfo File"
         }
+
+        self.all_extensions = [".shp", ".geojson", ".gpkg", ".csv", ".kml", ".tab"]
 
     def mouseClick(self):
         try:
@@ -257,7 +267,8 @@ class ImportPhotos:
         self.dlg.close()
 
     def toolButtonOut(self):
-        typefiles = 'ESRI Shapefile (*.shp *.SHP);; GeoJSON (*.geojson *.GEOJSON);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB);; Open Document Spreadsheet (*.ods *.ODS)'
+        typefiles = 'ESRI Shapefile (*.shp *.SHP);; GeoJSON (*.geojson *.GEOJSON);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB)'
+
         if platform.system() == 'Linux':
             try:
                 self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File', os.path.join(
@@ -272,13 +283,25 @@ class ImportPhotos:
                 os.path.join(os.path.expanduser('~')),
                 'Desktop'), typefiles)
 
+        self.extension_type = self.outputPath[1]
         self.outputPath = self.outputPath[0]
+        if self.extension_type:
+            self.extension = self.extension_switch[self.extension_type]
+
         self.dlg.out.setText(self.outputPath)
 
     def toolButtonImport(self):
         self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
                                                                 os.path.join(os.path.join(os.path.expanduser('~')),
                                                                              'Desktop'), QFileDialog.ShowDirsOnly)
+        self.selected_folder = self.directoryPhotos; p = '/'
+        if '/' in self.directoryPhotos:
+            self.selected_folder = self.directoryPhotos.split('/')[-1]; p = '/'
+        if '\\' in self.directoryPhotos:
+            self.selected_folder = self.directoryPhotos.split('\\')[-1]; p = '\\'
+        if '//' in self.directoryPhotos:
+            self.selected_folder = self.directoryPhotos.split('//')[-1]; p = '//'
+        self.selected_folder = './' + self.selected_folder + p
         self.dlg.imp.setText(self.directoryPhotos)
 
     def selectDir(self):
@@ -313,18 +336,19 @@ class ImportPhotos:
             if self.selectOutp():
                 return
 
-        if platform.system() == 'Linux':
-            self.lphoto = os.path.basename(self.outputPath)
-            try:
-                self.extension = '.'+self.extension.split()[-1][2:-1].lower()
-            except:
-                self.extension = '.shp' #hack line, temporary
-        else:
-            _ , self.extension = os.path.splitext(self.outputPath)
-            basename = os.path.basename(self.outputPath)
-            self.lphoto = basename[:-len(self.extension)]
+        tmpname = os.path.basename(self.outputPath)
+        self.lphoto = os.path.splitext(tmpname)[0]
 
-        self.outputPath = self.dlg.out.text()
+        isin = False
+        for ext in self.all_extensions:
+            if ext in self.outputPath:
+                isin = True
+
+        if not isin:
+            self.outputPath = self.dlg.out.text() + self.extension
+        else:
+            self.outputPath = self.dlg.out.text()
+
         self.directoryPhotos = self.dlg.imp.text()
         self.outDirectoryPhotosGeoJSON = self.plugin_dir + '/tmp.geojson'
 
@@ -337,7 +361,7 @@ class ImportPhotos:
         extens = ['jpg', 'jpeg', 'JPG', 'JPEG']
         self.photos = []
         for root, dirs, files in os.walk(self.directoryPhotos):
-            self.photos.extend(os.path.join(root, name) for name in files
+            self.photos.extend(name for name in files
                           if name.lower().endswith(tuple(extens)))
 
         self.initphotos = len(self.photos)
@@ -363,19 +387,13 @@ class ImportPhotos:
         else:
             self.layernamePhotos.append(self.lphoto)
 
-        if platform.system() == 'Linux':
-            self.outputPath = self.outputPath + self.extension
-            self.extension = self.extension_switch[self.extension]
-        else:
-            self.extension = self.extension_switch[self.extension.lower()]
-
         self.exifread_module = False
         self.pil_module = False
 
         if CHECK_MODULE == '':
             self.showMessage('Python Modules', 'Please install python module "exifread" or "PIL".' , 'Warning')
 
-        #self.import_photos_task('', '')
+        #self.import_photos_task('','')
         self.call_import_photos()
         self.dlg.close()
 
@@ -420,8 +438,9 @@ class ImportPhotos:
 
         self.layerPhotos = QgsVectorLayer(self.outDirectoryPhotosGeoJSON, self.lphoto, "ogr")
         QgsVectorFileWriter.writeAsVectorFormat(self.layerPhotos, self.outputPath, "utf-8",
-                                                    QgsCoordinateReferenceSystem(self.layerPhotos.crs().authid()),
-                                                    self.extension)
+                                                QgsCoordinateReferenceSystem(self.layerPhotos.crs().authid()),
+                                                self.extension_switch_types[self.extension])
+
         self.layerPhotos_final = QgsVectorLayer(self.outputPath, self.lphoto, "ogr")
 
         # clear temp.geojson file
@@ -475,9 +494,10 @@ class ImportPhotos:
                 int(noLocationPhotosCounter)) + ' photo(s) skipped (because of missing location).'
             self.showMessage(title, msg, 'Information')
 
-        self.Qpr_inst.addMapLayers([self.layerPhotos_final])
-        
-        self.taskPhotos.destroyed()
+        g = self.Qpr_inst.layerTreeRoot().insertGroup(0, self.lphoto)
+        self.Qpr_inst.addMapLayer(self.layerPhotos_final, False)
+        nn = QgsLayerTreeLayer(self.layerPhotos_final)
+        g.insertChildNode(0, nn)
 
     def stopped(self, task):
         QgsMessageLog.logMessage(
@@ -489,13 +509,15 @@ class ImportPhotos:
         self.geoPhotos = []
         self.lon = []
         self.lat = []
-        for count, imgpath in enumerate(self.photos):
+        for count, name_img in enumerate(self.photos):
             try:
-                name = os.path.basename(imgpath)
+                RelPath = self.selected_folder + name_img
+                original_path = self.directoryPhotos + '\\' + name_img
+                name = os.path.basename(original_path)
                 if CHECK_MODULE == 'exifread' and not self.pil_module:
                     self.exifread_module = True
                     self.taskPhotos.setProgress(count/self.initphotos)
-                    with open(imgpath, 'rb') as imgpathF:
+                    with open(original_path, 'rb') as imgpathF:
                         tags = exifread.process_file(imgpathF, details=False)
                     if not tags.keys() & {"GPS GPSLongitude", "GPS GPSLatitude"}:
                         continue
@@ -543,7 +565,7 @@ class ImportPhotos:
                 if CHECK_MODULE == 'PIL' and not self.exifread_module:
                     self.pil_module = True
                     a = {}
-                    info = Image.open(imgpath)
+                    info = Image.open(original_path)
                     info = info._getexif()
 
                     if info == None:
@@ -610,7 +632,7 @@ class ImportPhotos:
                                            'Lon': lon,
                                            'Lat': lat, 'Altitude': altitude, 'North': north,
                                            'Azimuth': azimuth,
-                                           'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': imgpath,
+                                           'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': original_path, 'RelPath': RelPath,
                                            'Timestamp': timestamp},
                             "geometry": {"coordinates": [lon, lat], "type": "Point"}}
                 self.geoPhotos.append(geo_info)

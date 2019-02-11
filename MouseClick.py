@@ -23,7 +23,7 @@
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
-from qgis.core import QgsRectangle
+from qgis.core import QgsRectangle, QgsProject
 from qgis.gui import QgsMapTool, QgsRubberBand
 from .PhotosViewer import PhotoWindow
 import os
@@ -93,9 +93,14 @@ class MouseClick(QgsMapTool):
                         return
 
                     try:
-                        if os.path.exists(imPath) == False:
-                            c = self.drawSelf.noImageFound()
-                            if c: return
+                        if not os.path.exists(imPath):
+                            prj = QgsProject.instance()
+                            if prj.fileName():
+                                imPath = QFileInfo(prj.fileName()).absolutePath() + \
+                                         feature.attributes()[feature.fieldNameIndex('RelPath')]
+                            else:
+                                c = self.drawSelf.noImageFound()
+                                if c: return
                     except:
                         c = self.drawSelf.noImageFound()
                         if c: return
