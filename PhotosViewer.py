@@ -24,6 +24,7 @@ from PyQt5.QtWidgets import (QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLa
     QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame)
 from PyQt5.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize)
 from PyQt5.QtGui import (QPainterPath, QIcon, QPixmap, QImage)
+from qgis.core import QgsProject
 import os.path
 
 
@@ -184,6 +185,12 @@ class PhotoWindow(QWidget):
                 timeTrue = str(f.attributes()[f.fieldNameIndex('Time')].toString('hh:mm:ss'))
             except:
                 timeTrue = str(f.attributes()[f.fieldNameIndex('Time')])
+
+            if not os.path.exists(imPath):
+                prj = QgsProject.instance()
+                if prj.fileName():
+                    imPath = QFileInfo(prj.fileName()).absolutePath() + \
+                             feature.attributes()[feature.fieldNameIndex('RelPath')]
 
             azimuth = f.attributes()[f.fieldNameIndex('Azimuth')]
             self.allpictures.append(f.attributes()[f.fieldNameIndex('Name')])
