@@ -233,6 +233,8 @@ class ImportPhotos:
             ".tab": "MapInfo File"
         }
 
+        self.all_extensions = [".shp", ".geojson", ".gpkg", ".csv", ".kml", ".tab"]
+
     def mouseClick(self):
         try:
             self.iface.setActiveLayer(self.canvas.layers()[0])
@@ -336,7 +338,16 @@ class ImportPhotos:
 
         tmpname = os.path.basename(self.outputPath)
         self.lphoto = os.path.splitext(tmpname)[0]
-        self.outputPath = self.dlg.out.text() + self.extension
+
+        isin = False
+        for ext in self.all_extensions:
+            if ext in self.outputPath:
+                isin = True
+
+        if not isin:
+            self.outputPath = self.dlg.out.text() + self.extension
+        else:
+            self.outputPath = self.dlg.out.text()
 
         self.directoryPhotos = self.dlg.imp.text()
         self.outDirectoryPhotosGeoJSON = self.plugin_dir + '/tmp.geojson'
