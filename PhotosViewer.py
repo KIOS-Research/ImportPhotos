@@ -22,7 +22,7 @@
 """
 from PyQt5.QtWidgets import (QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
     QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame)
-from PyQt5.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize)
+from PyQt5.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize, QFileInfo)
 from PyQt5.QtGui import (QPainterPath, QIcon, QPixmap, QImage)
 from qgis.core import QgsProject
 import os.path
@@ -190,7 +190,7 @@ class PhotoWindow(QWidget):
                 prj = QgsProject.instance()
                 if prj.fileName():
                     imPath = QFileInfo(prj.fileName()).absolutePath() + \
-                             feature.attributes()[feature.fieldNameIndex('RelPath')]
+                             f.attributes()[f.fieldNameIndex('RelPath')]
 
             azimuth = f.attributes()[f.fieldNameIndex('Azimuth')]
             self.allpictures.append(f.attributes()[f.fieldNameIndex('Name')])
