@@ -213,7 +213,7 @@ class ImportPhotos:
         self.toolMouseClick = MouseClick(self.canvas, self)
 
         self.fields = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Maker',
-                       'Camera Model', 'Path']
+                       'Camera Model', 'Path', 'RelPath', 'Timestamp']
 
         self.extension_switch = {
             "ESRI Shapefile (*.shp *.SHP)": ".shp",
@@ -292,6 +292,14 @@ class ImportPhotos:
         self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
                                                                 os.path.join(os.path.join(os.path.expanduser('~')),
                                                                              'Desktop'), QFileDialog.ShowDirsOnly)
+        self.selected_folder = self.directoryPhotos; p = '/'
+        if '/' in self.directoryPhotos:
+            self.selected_folder = self.directoryPhotos.split('/')[-1]; p = '/'
+        if '\\' in self.directoryPhotos:
+            self.selected_folder = self.directoryPhotos.split('\\')[-1]; p = '\\'
+        if '//' in self.directoryPhotos:
+            self.selected_folder = self.directoryPhotos.split('//')[-1]; p = '//'
+        self.selected_folder = './' + self.selected_folder + p
         self.dlg.imp.setText(self.directoryPhotos)
 
     def selectDir(self):
@@ -342,7 +350,7 @@ class ImportPhotos:
         extens = ['jpg', 'jpeg', 'JPG', 'JPEG']
         self.photos = []
         for root, dirs, files in os.walk(self.directoryPhotos):
-            self.photos.extend(os.path.join(root, name) for name in files
+            self.photos.extend(name for name in files
                           if name.lower().endswith(tuple(extens)))
 
         self.initphotos = len(self.photos)
@@ -374,7 +382,7 @@ class ImportPhotos:
         if CHECK_MODULE == '':
             self.showMessage('Python Modules', 'Please install python module "exifread" or "PIL".' , 'Warning')
 
-        #self.import_photos_task('', '')
+        #self.import_photos_task('','')
         self.call_import_photos()
         self.dlg.close()
 
@@ -490,13 +498,15 @@ class ImportPhotos:
         self.geoPhotos = []
         self.lon = []
         self.lat = []
-        for count, imgpath in enumerate(self.photos):
+        for count, name_img in enumerate(self.photos):
             try:
-                name = os.path.basename(imgpath)
+                RelPath = self.selected_folder + name_img
+                original_path = self.directoryPhotos + '\\' + name_img
+                name = os.path.basename(original_path)
                 if CHECK_MODULE == 'exifread' and not self.pil_module:
                     self.exifread_module = True
                     self.taskPhotos.setProgress(count/self.initphotos)
-                    with open(imgpath, 'rb') as imgpathF:
+                    with open(original_path, 'rb') as imgpathF:
                         tags = exifread.process_file(imgpathF, details=False)
                     if not tags.keys() & {"GPS GPSLongitude", "GPS GPSLatitude"}:
                         continue
@@ -544,7 +554,7 @@ class ImportPhotos:
                 if CHECK_MODULE == 'PIL' and not self.exifread_module:
                     self.pil_module = True
                     a = {}
-                    info = Image.open(imgpath)
+                    info = Image.open(original_path)
                     info = info._getexif()
 
                     if info == None:
@@ -611,7 +621,7 @@ class ImportPhotos:
                                            'Lon': lon,
                                            'Lat': lat, 'Altitude': altitude, 'North': north,
                                            'Azimuth': azimuth,
-                                           'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': imgpath,
+                                           'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': original_path, 'RelPath': RelPath,
                                            'Timestamp': timestamp},
                             "geometry": {"coordinates": [lon, lat], "type": "Point"}}
                 self.geoPhotos.append(geo_info)
