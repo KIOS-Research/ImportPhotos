@@ -16,7 +16,7 @@ Mac Users. Requires the following Python Modules to be installed: UnixImageIO, F
 
 # Contributors #
 * Marios S. Kyriakou, [KIOS Research Center for Intelligent Systems and Networks, University of Cyprus (KIOS CoE)](http://www.kios.ucy.ac.cy/)
-* George A. Christou, [KIOS Research Center for Intelligent Systems and Networks, University of Cyprus (KIOS CoE)](http://www.kios.ucy.ac.cy/c)
-* Panayiotis S. Kolios, [KIOS Research Center for Intelligent Systems and Networks, University of Cyprus (KIOS CoE)](http://www.kios.ucy.ac.cy/c)
+* George A. Christou, [KIOS Research Center for Intelligent Systems and Networks, University of Cyprus (KIOS CoE)](http://www.kios.ucy.ac.cy/)
+* Panayiotis S. Kolios, [KIOS Research Center for Intelligent Systems and Networks, University of Cyprus (KIOS CoE)](http://www.kios.ucy.ac.cy/)
 
 * [QGIS Cyprus](https://www.facebook.com/qgiscyprus/)
