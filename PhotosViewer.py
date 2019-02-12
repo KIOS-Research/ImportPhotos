@@ -22,8 +22,9 @@
 """
 from PyQt5.QtWidgets import (QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
     QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame)
-from PyQt5.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize)
+from PyQt5.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize, QFileInfo)
 from PyQt5.QtGui import (QPainterPath, QIcon, QPixmap, QImage)
+from qgis.core import QgsProject
 import os.path
 
 
@@ -50,7 +51,7 @@ class PhotosViewer(QGraphicsView):
             self.leftClick.setIcon(QIcon(self.selfwindow.path+'//svg//arrowLeft.png'))
             self.leftClick.clicked.connect(self.selfwindow.leftClickButton)
             self.leftClick.setToolTip('Show previous photo')
-            self.leftClick.setStyleSheet("QPushButton{background: transparent;}")
+            self.leftClick.setStyleSheet("QPushButton{border: 0px;}")
             self.leftClick.setIconSize(QSize(size, size))
             self.leftClick.setFocusPolicy(Qt.NoFocus)
 
@@ -58,7 +59,7 @@ class PhotosViewer(QGraphicsView):
             self.rightClick.setIcon(QIcon(self.selfwindow.path+'//svg//arrowRight.png'))
             self.rightClick.clicked.connect(self.selfwindow.rightClickButton)
             self.rightClick.setToolTip('Show next photo')
-            self.rightClick.setStyleSheet("QPushButton{background: transparent;}")
+            self.rightClick.setStyleSheet("QPushButton{border: 0px;}")
             self.rightClick.setIconSize(QSize(size, size))
             self.rightClick.setFocusPolicy(Qt.NoFocus)
 
@@ -184,6 +185,12 @@ class PhotoWindow(QWidget):
                 timeTrue = str(f.attributes()[f.fieldNameIndex('Time')].toString('hh:mm:ss'))
             except:
                 timeTrue = str(f.attributes()[f.fieldNameIndex('Time')])
+
+            if not os.path.exists(imPath):
+                prj = QgsProject.instance()
+                if prj.fileName():
+                    imPath = QFileInfo(prj.fileName()).absolutePath() + \
+                             f.attributes()[f.fieldNameIndex('RelPath')]
 
             azimuth = f.attributes()[f.fieldNameIndex('Azimuth')]
             self.allpictures.append(f.attributes()[f.fieldNameIndex('Name')])
