@@ -213,7 +213,7 @@ class ImportPhotos:
         self.toolMouseClick = MouseClick(self.canvas, self)
 
         self.fields = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Maker',
-                       'Camera Model', 'Path', 'RelPath', 'Timestamp']
+                       'Camera Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp']
 
         self.extension_switch = {
             "ESRI Shapefile (*.shp *.SHP)": ".shp",
@@ -336,8 +336,15 @@ class ImportPhotos:
             if self.selectOutp():
                 return
 
-        tmpname = os.path.basename(self.outputPath)
-        self.lphoto = os.path.splitext(tmpname)[0]
+        if platform.system() == 'Linux':
+            self.lphoto = os.path.basename(self.outputPath)
+            try:
+                self.extension = '.'+self.extension.split()[-1][2:-1].lower()
+            except:
+                self.extension = '.shp' #hack line, temporary
+        else:
+            tmpname = os.path.basename(self.outputPath)
+            self.lphoto = os.path.splitext(tmpname)[0]
 
         isin = False
         for ext in self.all_extensions:
@@ -514,6 +521,7 @@ class ImportPhotos:
                 RelPath = self.selected_folder + name_img
                 original_path = self.directoryPhotos + '\\' + name_img
                 name = os.path.basename(original_path)
+
                 if CHECK_MODULE == 'exifread' and not self.pil_module:
                     self.exifread_module = True
                     self.taskPhotos.setProgress(count/self.initphotos)
@@ -523,10 +531,10 @@ class ImportPhotos:
                         continue
 
                     lat, lon = self.get_exif_location(tags, "lonlat")
-                    try:
+                    if 'GPS GPSAltitude' in tags:
                         altitude = float(tags["GPS GPSAltitude"].values[0].num) / float(
                             tags["GPS GPSAltitude"].values[0].den)
-                    except:
+                    else:
                         altitude = ''
                     uuid_ = str(uuid.uuid4())
                     try:
@@ -544,23 +552,36 @@ class ImportPhotos:
                             date = ''
                             time_ = ''
                             timestamp = ''
-                    try:
+                    if 'GPS GPSImgDirection' in tags:
                         azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(
                             tags["GPS GPSImgDirection"].values[0].den)
-                    except:
+                    else:
                         azimuth = ''
-                    try:
+
+                    if 'GPS GPSImgDirectionRef' in tags:
                         north = str(tags["GPS GPSImgDirectionRef"].values)
-                    except:
+                    else:
                         north = ''
-                    try:
+
+                    if 'Image Make' in tags:
                         maker = tags['Image Make']
-                    except:
+                    else:
                         maker = ''
-                    try:
+
+                    if 'Image Model' in tags:
                         model = tags['Image Model']
-                    except:
+                    else:
                         model = ''
+
+                    if 'Image ImageDescription' in tags:
+                        title = tags['Image ImageDescription']
+                    else:
+                        title = ''
+
+                    if 'EXIF UserComment' in tags:
+                        user_comm = tags['EXIF UserComment'].printable
+                    else:
+                        user_comm = ''
 
                 if CHECK_MODULE == 'PIL' and not self.exifread_module:
                     self.pil_module = True
@@ -623,6 +644,9 @@ class ImportPhotos:
 
                         maker = ''
                         model = ''
+                        user_comm = ''
+                        title = ''
+
                 self.lon.append(lon)
                 self.lat.append(lat)
                 self.truePhotosCount = self.truePhotosCount + 1
@@ -632,7 +656,7 @@ class ImportPhotos:
                                            'Lon': lon,
                                            'Lat': lat, 'Altitude': altitude, 'North': north,
                                            'Azimuth': azimuth,
-                                           'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': original_path, 'RelPath': RelPath,
+                                           'Camera Maker': str(maker), 'Camera Model': str(model), 'Title': str(title), 'Comment': user_comm, 'Path': original_path, 'RelPath': RelPath,
                                            'Timestamp': timestamp},
                             "geometry": {"coordinates": [lon, lat], "type": "Point"}}
                 self.geoPhotos.append(geo_info)
