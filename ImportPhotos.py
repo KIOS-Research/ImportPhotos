@@ -197,7 +197,7 @@ class ImportPhotos:
             callback=self.mouseClick,
             parent=self.iface.mainWindow())
         self.dlg = ImportPhotosDialog()
-        self.dlg.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+        #self.dlg.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
 
         self.dlg.ok.clicked.connect(self.ok)
         self.dlg.closebutton.clicked.connect(self.close)
