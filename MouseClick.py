@@ -94,8 +94,8 @@ class MouseClick(QgsMapTool):
 
                     try:
                         if not os.path.exists(imPath):
-                            prj = QgsProject.instance()
-                            if prj.fileName():
+                            self.prj = QgsProject.instance()
+                            if self.prj.fileName() and 'RELPATH' in fields:
                                 imPath = QFileInfo(prj.fileName()).absolutePath() + \
                                          feature.attributes()[feature.fieldNameIndex('RelPath')]
                             else:

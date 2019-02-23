@@ -197,12 +197,13 @@ class ImportPhotos:
             callback=self.mouseClick,
             parent=self.iface.mainWindow())
         self.dlg = ImportPhotosDialog()
-        self.dlg.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+        #self.dlg.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
 
         self.dlg.ok.clicked.connect(self.ok)
         self.dlg.closebutton.clicked.connect(self.close)
         self.dlg.toolButtonImport.clicked.connect(self.toolButtonImport)
         self.dlg.toolButtonOut.clicked.connect(self.toolButtonOut)
+        self.dlg.input_load_style.clicked.connect(self.loadstyle)
 
         self.clickPhotos.setCheckable(True)
         self.clickPhotos.setEnabled(True)
@@ -213,7 +214,7 @@ class ImportPhotos:
         self.toolMouseClick = MouseClick(self.canvas, self)
 
         self.fields = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Maker',
-                       'Camera Model', 'Path', 'RelPath', 'Timestamp']
+                       'Camera Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp']
 
         self.extension_switch = {
             "ESRI Shapefile (*.shp *.SHP)": ".shp",
@@ -233,6 +234,14 @@ class ImportPhotos:
             ".tab": "MapInfo File"
         }
 
+        self.extension_switch2 = {
+            "ESRI Shapefile (*.shp *.SHP)": ".shp",
+            "GeoJSON (*.geojson *.GEOJSON)": ".geojson",
+            "GeoPackage (*.gpkg *.GPKG)":".gpkg",
+            "Comma Separated Value (*.csv *.CSV)": ".csv",
+            "Keyhole Markup Language (*.kml *.KML)": ".kml",
+            "Mapinfo TAB (*.tab *.TAB)": ".tab"
+        }
         self.all_extensions = [".shp", ".geojson", ".gpkg", ".csv", ".kml", ".tab"]
 
     def mouseClick(self):
@@ -258,9 +267,11 @@ class ImportPhotos:
         self.dlg.closebutton.setEnabled(True)
         self.dlg.toolButtonImport.setEnabled(True)
         self.dlg.toolButtonOut.setEnabled(True)
+        self.dlg.input_load_style.setEnabled(True)
         self.clickPhotos.setEnabled(True)
         self.dlg.out.setText('')
         self.dlg.imp.setText('')
+        self.dlg.load_style_path.setText('')
         self.dlg.show()
 
     def close(self):
@@ -268,7 +279,6 @@ class ImportPhotos:
 
     def toolButtonOut(self):
         typefiles = 'ESRI Shapefile (*.shp *.SHP);; GeoJSON (*.geojson *.GEOJSON);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB)'
-
         if platform.system() == 'Linux':
             try:
                 self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File', os.path.join(
@@ -286,7 +296,7 @@ class ImportPhotos:
         self.extension_type = self.outputPath[1]
         self.outputPath = self.outputPath[0]
         if self.extension_type:
-            self.extension = self.extension_switch[self.extension_type]
+            self.extension2 = self.extension_switch2[self.extension_type]
 
         self.dlg.out.setText(self.outputPath)
 
@@ -294,15 +304,26 @@ class ImportPhotos:
         self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
                                                                 os.path.join(os.path.join(os.path.expanduser('~')),
                                                                              'Desktop'), QFileDialog.ShowDirsOnly)
-        self.selected_folder = self.directoryPhotos; p = '/'
-        if '/' in self.directoryPhotos:
-            self.selected_folder = self.directoryPhotos.split('/')[-1]; p = '/'
-        if '\\' in self.directoryPhotos:
-            self.selected_folder = self.directoryPhotos.split('\\')[-1]; p = '\\'
-        if '//' in self.directoryPhotos:
-            self.selected_folder = self.directoryPhotos.split('//')[-1]; p = '//'
+        self.selected_folder = self.directoryPhotos[:]; p = '/'
+        if '/' in self.selected_folder:
+            self.selected_folder = self.selected_folder.split('/')[-1]; p = '/'
+        if '\\' in self.selected_folder:
+            self.selected_folder = self.selected_folder.split('\\')[-1]; p = '\\'
+        if '//' in self.selected_folder:
+            self.selected_folder = self.selected_folder.split('//')[-1]; p = '//'
         self.selected_folder = './' + self.selected_folder + p
         self.dlg.imp.setText(self.directoryPhotos)
+
+    def loadstyle(self):
+        self.load_style = QFileDialog.getOpenFileName(None, "Load style",
+                                               os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop'),
+                                               "(*.qml)")
+        if self.load_style[0] == "":
+            return
+        else:
+            self.load_style = self.load_style[0]
+
+        self.dlg.load_style_path.setText(self.load_style)
 
     def selectDir(self):
         title = 'Warning'
@@ -336,37 +357,64 @@ class ImportPhotos:
             if self.selectOutp():
                 return
 
-        tmpname = os.path.basename(self.outputPath)
-        self.lphoto = os.path.splitext(tmpname)[0]
+        self.outputPath = self.dlg.out.text()
+        self.directoryPhotos = self.dlg.imp.text()
 
-        isin = False
-        for ext in self.all_extensions:
-            if ext in self.outputPath:
-                isin = True
+        if self.dlg.input_load_style.text() == '':
+            self.load_style = os.path.join(self.plugin_dir, "svg", "photos.qml")
+        else:
+            self.load_style = self.dlg.load_style_path.text()
 
-        if not isin:
-            self.outputPath = self.dlg.out.text() + self.extension
+        if self.load_style != '':
+            if not os.path.exists(self.load_style):
+                title = 'Warning'
+                msg = 'No style path found.'
+                self.showMessage(title, msg, 'Warning')
+                return
+
+        showMessageHide = True
+        self.import_photos(self.directoryPhotos, self.outputPath, self.load_style, showMessageHide)
+
+    def import_photos(self, directoryPhotos, outputPath, load_style, showMessageHide=True):
+
+        if load_style == '':
+            self.load_style = os.path.join(self.plugin_dir, "svg", "photos.qml")
+        else:
+            self.load_style = load_style
+        self.showMessageHide = showMessageHide
+        self.outputPath = outputPath
+        self.directoryPhotos = directoryPhotos
+
+        if platform.system() == 'Linux':
+            self.lphoto = os.path.basename(self.outputPath)
+            try:
+                self.extension = '.'+self.extension.split()[-1][2:-1].lower()
+            except:
+                self.extension = '.shp' #hack line, temporary
         else:
             self.outputPath = self.dlg.out.text()
 
-        self.directoryPhotos = self.dlg.imp.text()
-        self.outDirectoryPhotosGeoJSON = self.plugin_dir + '/tmp.geojson'
-
+        self.outDirectoryPhotosGeoJSON = os.path.join(self.plugin_dir, 'tmp.geojson')
         self.dlg.ok.setEnabled(False)
         self.dlg.closebutton.setEnabled(False)
         self.dlg.toolButtonImport.setEnabled(False)
         self.dlg.toolButtonOut.setEnabled(False)
+        self.dlg.input_load_style.setEnabled(False)
 
         # get paths of photos
         extens = ['jpg', 'jpeg', 'JPG', 'JPEG']
         self.photos = []
+        self.photos_names = []
         for root, dirs, files in os.walk(self.directoryPhotos):
-            self.photos.extend(name for name in files
-                          if name.lower().endswith(tuple(extens)))
 
+            for name in files:
+                if name.lower().endswith(tuple(extens)):
+                    self.photos.append(os.path.join(root, name))
+                    self.photos_names.append(name)
+                    
         self.initphotos = len(self.photos)
 
-        if self.initphotos == 0:
+        if self.initphotos == 0 and self.showMessageHide:
             title = 'Warning'
             msg = 'No photos.'
             self.showMessage(title, msg, 'Warning')
@@ -374,6 +422,7 @@ class ImportPhotos:
             self.dlg.closebutton.setEnabled(True)
             self.dlg.toolButtonImport.setEnabled(True)
             self.dlg.toolButtonOut.setEnabled(True)
+            self.dlg.input_load_style.setEnabled(True)
             self.clickPhotos.setChecked(True)
             return
 
@@ -390,7 +439,7 @@ class ImportPhotos:
         self.exifread_module = False
         self.pil_module = False
 
-        if CHECK_MODULE == '':
+        if CHECK_MODULE == '' and self.showMessageHide:
             self.showMessage('Python Modules', 'Please install python module "exifread" or "PIL".' , 'Warning')
 
         #self.import_photos_task('','')
@@ -451,7 +500,7 @@ class ImportPhotos:
             pass
 
         try:
-            self.layerPhotos_final.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
+            self.layerPhotos_final.loadNamedStyle(self.load_style)
         except:
             title = 'Warning'
             msg = 'No geo-tagged images were detected.'
@@ -478,16 +527,17 @@ class ImportPhotos:
         self.dlg.closebutton.setEnabled(True)
         self.dlg.toolButtonImport.setEnabled(True)
         self.dlg.toolButtonOut.setEnabled(True)
+        self.dlg.input_load_style.setEnabled(True)
         self.clickPhotos.setChecked(True)
 
         noLocationPhotosCounter = self.initphotos - self.truePhotosCount
-        if self.truePhotosCount == noLocationPhotosCounter == 0 or self.truePhotosCount == 0:
+        if (self.truePhotosCount == noLocationPhotosCounter == 0 or self.truePhotosCount == 0 ) and self.showMessageHide:
             title = 'Import Photos'
             msg = 'Import Completed.\n\nDetails:\n  No new photos were added.'
             self.showMessage(title, msg, 'Information')
             self.taskPhotos.destroyed()
             return
-        elif (self.truePhotosCount == self.initphotos) or ((noLocationPhotosCounter + self.truePhotosCount) == self.initphotos):
+        elif ((self.truePhotosCount == self.initphotos) or ((noLocationPhotosCounter + self.truePhotosCount) == self.initphotos) )and self.showMessageHide:
             title = 'Import Photos'
             msg = 'Import Completed.\n\nDetails:\n  ' + str(
                 int(self.truePhotosCount)) + ' photo(s) added without error.\n  ' + str(
@@ -511,9 +561,9 @@ class ImportPhotos:
         self.lat = []
         for count, name_img in enumerate(self.photos):
             try:
-                RelPath = self.selected_folder + name_img
-                original_path = self.directoryPhotos + '\\' + name_img
-                name = os.path.basename(original_path)
+                name = os.path.basename(imgpath)
+                RelPath = self.selected_folder + self.photos_names[count]
+
                 if CHECK_MODULE == 'exifread' and not self.pil_module:
                     self.exifread_module = True
                     self.taskPhotos.setProgress(count/self.initphotos)
@@ -523,12 +573,13 @@ class ImportPhotos:
                         continue
 
                     lat, lon = self.get_exif_location(tags, "lonlat")
-                    try:
+                    if 'GPS GPSAltitude' in tags:
                         altitude = float(tags["GPS GPSAltitude"].values[0].num) / float(
                             tags["GPS GPSAltitude"].values[0].den)
-                    except:
+                    else:
                         altitude = ''
                     uuid_ = str(uuid.uuid4())
+
                     try:
                         dt1, dt2 = tags["EXIF DateTimeOriginal"].values.split()
                         date = dt1.replace(':', '/')
@@ -544,23 +595,37 @@ class ImportPhotos:
                             date = ''
                             time_ = ''
                             timestamp = ''
-                    try:
+
+                    if 'GPS GPSImgDirection' in tags:
                         azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(
                             tags["GPS GPSImgDirection"].values[0].den)
-                    except:
+                    else:
                         azimuth = ''
-                    try:
+
+                    if 'GPS GPSImgDirectionRef' in tags:
                         north = str(tags["GPS GPSImgDirectionRef"].values)
-                    except:
+                    else:
                         north = ''
-                    try:
+
+                    if 'Image Make' in tags:
                         maker = tags['Image Make']
-                    except:
+                    else:
                         maker = ''
-                    try:
+
+                    if 'Image Model' in tags:
                         model = tags['Image Model']
-                    except:
+                    else:
                         model = ''
+
+                    if 'Image ImageDescription' in tags:
+                        title = tags['Image ImageDescription']
+                    else:
+                        title = ''
+
+                    if 'EXIF UserComment' in tags:
+                        user_comm = tags['EXIF UserComment'].printable
+                    else:
+                        user_comm = ''
 
                 if CHECK_MODULE == 'PIL' and not self.exifread_module:
                     self.pil_module = True
@@ -623,6 +688,8 @@ class ImportPhotos:
 
                         maker = ''
                         model = ''
+                        user_comm = ''
+                        title = ''
                 self.lon.append(lon)
                 self.lat.append(lat)
                 self.truePhotosCount = self.truePhotosCount + 1
@@ -632,7 +699,8 @@ class ImportPhotos:
                                            'Lon': lon,
                                            'Lat': lat, 'Altitude': altitude, 'North': north,
                                            'Azimuth': azimuth,
-                                           'Camera Maker': str(maker), 'Camera Model': str(model), 'Path': original_path, 'RelPath': RelPath,
+                                           'Camera Maker': str(maker), 'Camera Model': str(model), 'Title': str(title),
+                                           'Comment': user_comm,'Path': imgpath, 'RelPath': RelPath,
                                            'Timestamp': timestamp},
                             "geometry": {"coordinates": [lon, lat], "type": "Point"}}
                 self.geoPhotos.append(geo_info)
