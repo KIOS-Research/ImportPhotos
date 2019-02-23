@@ -203,6 +203,7 @@ class ImportPhotos:
         self.dlg.closebutton.clicked.connect(self.close)
         self.dlg.toolButtonImport.clicked.connect(self.toolButtonImport)
         self.dlg.toolButtonOut.clicked.connect(self.toolButtonOut)
+        self.dlg.input_load_style.clicked.connect(self.loadstyle)
 
         self.clickPhotos.setCheckable(True)
         self.clickPhotos.setEnabled(True)
@@ -265,9 +266,11 @@ class ImportPhotos:
         self.dlg.closebutton.setEnabled(True)
         self.dlg.toolButtonImport.setEnabled(True)
         self.dlg.toolButtonOut.setEnabled(True)
+        self.dlg.input_load_style.setEnabled(True)
         self.clickPhotos.setEnabled(True)
         self.dlg.out.setText('')
         self.dlg.imp.setText('')
+        self.dlg.load_style_path.setText('')
         self.dlg.show()
 
     def close(self):
@@ -311,6 +314,17 @@ class ImportPhotos:
 
         self.dlg.imp.setText(self.directoryPhotos)
 
+    def loadstyle(self):
+        self.load_style = QFileDialog.getOpenFileName(None, "Load style",
+                                               os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop'),
+                                               "(*.qml)")
+        if self.load_style[0] == "":
+            return
+        else:
+            self.load_style = self.load_style[0]
+
+        self.dlg.load_style_path.setText(self.load_style)
+
     def selectDir(self):
         title = 'Warning'
         msg = 'Please select a directory photos.'
@@ -346,11 +360,27 @@ class ImportPhotos:
         self.outputPath = self.dlg.out.text()
         self.directoryPhotos = self.dlg.imp.text()
 
+        if self.dlg.input_load_style.text() == '':
+            self.load_style = os.path.join(self.plugin_dir, "svg", "photos.qml")
+        else:
+            self.load_style = self.dlg.load_style_path.text()
+
+        if self.load_style != '':
+            if not os.path.exists(self.load_style):
+                title = 'Warning'
+                msg = 'No style path found.'
+                self.showMessage(title, msg, 'Warning')
+                return
+
         showMessageHide = True
-        self.import_photos(self.directoryPhotos, self.outputPath, showMessageHide)
+        self.import_photos(self.directoryPhotos, self.outputPath, self.load_style, showMessageHide)
 
-    def import_photos(self, directoryPhotos, outputPath, showMessageHide=True):
+    def import_photos(self, directoryPhotos, outputPath, load_style, showMessageHide=True):
 
+        if load_style == '':
+            self.load_style = os.path.join(self.plugin_dir, "svg", "photos.qml")
+        else:
+            self.load_style = load_style
         self.showMessageHide = showMessageHide
         self.outputPath = outputPath
         self.directoryPhotos = directoryPhotos
@@ -366,12 +396,13 @@ class ImportPhotos:
             basename = os.path.basename(self.outputPath)
             self.lphoto = basename[:-len(self.extension)]
 
-        self.outDirectoryPhotosGeoJSON = self.plugin_dir + '/tmp.geojson'
+        self.outDirectoryPhotosGeoJSON = os.path.join(self.plugin_dir, 'tmp.geojson')
 
         self.dlg.ok.setEnabled(False)
         self.dlg.closebutton.setEnabled(False)
         self.dlg.toolButtonImport.setEnabled(False)
         self.dlg.toolButtonOut.setEnabled(False)
+        self.dlg.input_load_style.setEnabled(False)
 
         # get paths of photos
         extens = ['jpg', 'jpeg', 'JPG', 'JPEG']
@@ -393,6 +424,7 @@ class ImportPhotos:
             self.dlg.closebutton.setEnabled(True)
             self.dlg.toolButtonImport.setEnabled(True)
             self.dlg.toolButtonOut.setEnabled(True)
+            self.dlg.input_load_style.setEnabled(True)
             self.clickPhotos.setChecked(True)
             return
 
@@ -475,7 +507,7 @@ class ImportPhotos:
             pass
 
         try:
-            self.layerPhotos_final.loadNamedStyle(self.plugin_dir + "/svg/photos.qml")
+            self.layerPhotos_final.loadNamedStyle(self.load_style)
         except:
             title = 'Warning'
             msg = 'No geo-tagged images were detected.'
@@ -502,6 +534,7 @@ class ImportPhotos:
         self.dlg.closebutton.setEnabled(True)
         self.dlg.toolButtonImport.setEnabled(True)
         self.dlg.toolButtonOut.setEnabled(True)
+        self.dlg.input_load_style.setEnabled(True)
         self.clickPhotos.setChecked(True)
 
         noLocationPhotosCounter = self.initphotos - self.truePhotosCount
