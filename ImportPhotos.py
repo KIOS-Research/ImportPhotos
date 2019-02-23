@@ -213,7 +213,7 @@ class ImportPhotos:
         self.toolMouseClick = MouseClick(self.canvas, self)
 
         self.fields = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Maker',
-                       'Camera Model', 'Title', 'Comment', 'Path', 'Timestamp']
+                       'Camera Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp']
 
         self.extension_switch = {
             ".shp": "ESRI Shapefile",
@@ -221,8 +221,25 @@ class ImportPhotos:
             ".gpkg":"GPKG",
             ".csv": "CSV",
             ".kml": "KML",
-            ".tab": "MapInfo File",
-            ".ods": "ODS"
+            ".tab": "MapInfo File"
+        }
+
+        self.extension_switch2 = {
+            "ESRI Shapefile (*.shp *.SHP)": ".shp",
+            "GeoJSON (*.geojson *.GEOJSON)": ".geojson",
+            "GeoPackage (*.gpkg *.GPKG)":".gpkg",
+            "Comma Separated Value (*.csv *.CSV)": ".csv",
+            "Keyhole Markup Language (*.kml *.KML)": ".kml",
+            "Mapinfo TAB (*.tab *.TAB)": ".tab"
+        }
+
+        self.extension_switch_types = {
+            ".shp": "ESRI Shapefile",
+            ".geojson": "GeoJSON",
+            ".gpkg":"GPKG",
+            ".csv": "CSV",
+            ".kml": "KML",
+            ".tab": "MapInfo File"
         }
 
     def mouseClick(self):
@@ -257,7 +274,7 @@ class ImportPhotos:
         self.dlg.close()
 
     def toolButtonOut(self):
-        typefiles = 'ESRI Shapefile (*.shp *.SHP);; GeoJSON (*.geojson *.GEOJSON);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB);; Open Document Spreadsheet (*.ods *.ODS)'
+        typefiles = 'ESRI Shapefile (*.shp *.SHP);; GeoJSON (*.geojson *.GEOJSON);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB)'
         if platform.system() == 'Linux':
             try:
                 self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File', os.path.join(
@@ -272,13 +289,26 @@ class ImportPhotos:
                 os.path.join(os.path.expanduser('~')),
                 'Desktop'), typefiles)
 
+        self.extension_type = self.outputPath[1]
         self.outputPath = self.outputPath[0]
+        if self.extension_type:
+            self.extension2 = self.extension_switch2[self.extension_type]
+
         self.dlg.out.setText(self.outputPath)
 
     def toolButtonImport(self):
         self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
                                                                 os.path.join(os.path.join(os.path.expanduser('~')),
                                                                              'Desktop'), QFileDialog.ShowDirsOnly)
+        self.selected_folder = self.directoryPhotos[:]; p = '/'
+        if '/' in self.selected_folder:
+            self.selected_folder = self.selected_folder.split('/')[-1]; p = '/'
+        if '\\' in self.selected_folder:
+            self.selected_folder = self.selected_folder.split('\\')[-1]; p = '\\'
+        if '//' in self.selected_folder:
+            self.selected_folder = self.selected_folder.split('//')[-1]; p = '//'
+        self.selected_folder = './' + self.selected_folder + p
+
         self.dlg.imp.setText(self.directoryPhotos)
 
     def selectDir(self):
@@ -317,7 +347,7 @@ class ImportPhotos:
         self.directoryPhotos = self.dlg.imp.text()
 
         showMessageHide = True
-        self.import_photos(self.outputPath, self.directoryPhotos, showMessageHide)
+        self.import_photos(self.directoryPhotos, self.outputPath, showMessageHide)
 
     def import_photos(self, directoryPhotos, outputPath, showMessageHide=True):
 
@@ -346,9 +376,12 @@ class ImportPhotos:
         # get paths of photos
         extens = ['jpg', 'jpeg', 'JPG', 'JPEG']
         self.photos = []
+        self.photos_names = []
         for root, dirs, files in os.walk(self.directoryPhotos):
-            self.photos.extend(os.path.join(root, name) for name in files
-                          if name.lower().endswith(tuple(extens)))
+            for name in files:
+                if name.lower().endswith(tuple(extens)):
+                    self.photos.append(os.path.join(root, name))
+                    self.photos_names.append(name)
 
         self.initphotos = len(self.photos)
 
@@ -503,6 +536,7 @@ class ImportPhotos:
         for count, imgpath in enumerate(self.photos):
             try:
                 name = os.path.basename(imgpath)
+                RelPath = self.selected_folder + self.photos_names[count]
                 if CHECK_MODULE == 'exifread' and not self.pil_module:
                     self.exifread_module = True
                     self.taskPhotos.setProgress(count/self.initphotos)
@@ -639,7 +673,7 @@ class ImportPhotos:
                                            'Lat': lat, 'Altitude': altitude, 'North': north,
                                            'Azimuth': azimuth,
                                            'Camera Maker': str(maker), 'Camera Model': str(model), 'Title': str(title),
-                                           'Comment': user_comm,'Path': imgpath,
+                                           'Comment': user_comm,'Path': imgpath, 'RelPath': RelPath,
                                            'Timestamp': timestamp},
                             "geometry": {"coordinates": [lon, lat], "type": "Point"}}
                 self.geoPhotos.append(geo_info)

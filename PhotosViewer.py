@@ -185,6 +185,11 @@ class PhotoWindow(QWidget):
             except:
                 timeTrue = str(f.attributes()[f.fieldNameIndex('Time')])
 
+            if not os.path.exists(imPath):
+                if self.drawSelf.prj.fileName() and 'RELPATH' in self.drawSelf.fields:
+                    imPath = QFileInfo(prj.fileName()).absolutePath() + \
+                             feature.attributes()[feature.fieldNameIndex('RelPath')]
+
             azimuth = f.attributes()[f.fieldNameIndex('Azimuth')]
             self.allpictures.append(f.attributes()[f.fieldNameIndex('Name')])
             self.allpicturesdates.append(dateTrue)
