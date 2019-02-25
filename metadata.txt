@@ -30,7 +30,7 @@ changelog=2019-02-21  ImportPhotos 2.0:
 	  2019-01-25  ImportPhotos 1.9:
 			Add group with layer
 			Fix issue in right/left transparent
-    2018-11-28  ImportPhotos 1.8:
+      2018-11-28  ImportPhotos 1.8:
 			Drop update for qgis 2
 			Add QgsTask for the ImportPhotos
 			Change main ui file
