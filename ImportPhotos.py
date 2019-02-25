@@ -199,6 +199,7 @@ class ImportPhotos:
         self.dlg = ImportPhotosDialog()
         #self.dlg.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
 
+        self.dlg.load_style_path.setPlaceholderText( "e.g." + os.path.join(self.plugin_dir, "photos.qml"))
         self.dlg.ok.clicked.connect(self.ok)
         self.dlg.closebutton.clicked.connect(self.close)
         self.dlg.toolButtonImport.clicked.connect(self.toolButtonImport)
@@ -361,7 +362,7 @@ class ImportPhotos:
         self.directoryPhotos = self.dlg.imp.text()
 
         if self.dlg.input_load_style.text() == '':
-            self.load_style = os.path.join(self.plugin_dir, "svg", "photos.qml")
+            self.load_style = os.path.join(self.plugin_dir, "photos.qml")
         else:
             self.load_style = self.dlg.load_style_path.text()
 
@@ -378,7 +379,7 @@ class ImportPhotos:
     def import_photos(self, directoryPhotos, outputPath, load_style, showMessageHide=True):
 
         if load_style == '':
-            self.load_style = os.path.join(self.plugin_dir, "svg", "photos.qml")
+            self.load_style = os.path.join(self.plugin_dir, "photos.qml")
         else:
             self.load_style = load_style
         self.showMessageHide = showMessageHide
