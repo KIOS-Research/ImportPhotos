@@ -11,7 +11,7 @@ name=ImportPhotos
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
 description=Import Photos
-version=2.0
+version=2.1
 author=Marios S. Kyriakou, George A. Christou, Panayiotis S. Kolios, KIOS Research and Innovation Center of Excellence (KIOS CoE)
 email=mariosmsk@gmail.com, george.a.christou@gmail.com, panayiotis.kolios@gmail.com
 
@@ -23,7 +23,9 @@ repository=https://github.com/KIOS-Research/ImportPhotos/
 
 # Recommended items:
 # Uncomment the following line and add your changelog:
-changelog=2019-02-25  ImportPhotos 2.0:
+changelog=2019-03-06  ImportPhotos 2.1:
+			Fix tabs
+	  2019-02-25  ImportPhotos 2.0:
 			Call from python
 			Add fields title, user comment, relative path
 			Add option to load specific qml style 
