@@ -80,6 +80,8 @@ class MouseClick(QgsMapTool):
                     self.drawSelf.fields = fields
                     self.drawSelf.maxlen = len(self.drawSelf.layerActive.name())
                     self.drawSelf.layerActiveName = layer.name()
+                    self.drawSelf.iface.setActiveLayer(layer)
+
                     if self.drawSelf.maxlen>13:
                         self.drawSelf.maxlen = 14
                         self.drawSelf.layerActiveName = self.drawSelf.layerActive.name()+'...'
