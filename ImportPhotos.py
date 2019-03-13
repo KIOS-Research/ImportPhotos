@@ -481,7 +481,7 @@ class ImportPhotos:
                    "crs": {"type": "name", "properties": {"name": "crs:OGC:1.3:CRS84"}},
                    "features": self.geoPhotos}
 
-        geofile = open(self.plugin_dir + '/tmp.geojson', 'w')
+        geofile = open(self.outDirectoryPhotosGeoJSON, 'w')
         json.dump(geojson, geofile)
         geofile.close()
         del self.geoPhotos, geojson
