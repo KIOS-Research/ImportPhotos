@@ -20,7 +20,7 @@
 """
 
 from PyQt5.QtWidgets import (QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
-    QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame, QMenuBar, QAction, qApp)
+    QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame, QMenuBar, QAction, qApp, QFileDialog)
 from PyQt5.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize)
 from PyQt5.QtGui import (QPainterPath, QIcon, QPixmap, QImage)
 import os.path
@@ -213,7 +213,9 @@ class PhotoWindow(QWidget):
         menu_bar.setGeometry(QRect(0, 0, 10000, 26))
 
         file_menu = menu_bar.addMenu('File')
-        file_menu.addAction('Save As')
+        self.saveas = file_menu.addAction('Save As')
+        self.saveas.triggered.connect(self.saveas_call)
+
         filters_menu = menu_bar.addMenu('Filters')
 
         self.gray_filter_status = False
@@ -342,6 +344,12 @@ class PhotoWindow(QWidget):
             self.mirror_filter_btn.setChecked(False)
         self.updateWindow()
 
+    def saveas_call(self):
+        self.outputPath = QFileDialog.getSaveFileName(None, 'Save Image', os.path.join(
+            os.path.join(os.path.expanduser('~')), 'Desktop'), '.png')
+        self.outputPath = self.outputPath[0]
+        self.drawSelf.getImage.save(self.outputPath+'.png')
+
     def mono_filter_call(self):
         if self.mirror_filter_btn.isChecked():
             self.mirror_filter_status = True
@@ -357,16 +365,17 @@ class PhotoWindow(QWidget):
         self.updateWindow()
 
     def hide_arrow_button(self):
+        icon_right = QIcon(':/plugins/ImportPhotos/icons/arrowRight.png')
         if self.viewer.leftClick.icon().isNull():
             self.viewer.leftClick.setIcon(QIcon(':/plugins/ImportPhotos/icons/arrowLeft.png'))
-            self.viewer.rightClick.setIcon(QIcon(':/plugins/ImportPhotos/icons/arrowRight.png'))
-            self.hide_arrow.setIcon(QIcon(':/plugins/ImportPhotos/icons/arrowRight.png'))
+            self.viewer.rightClick.setIcon(icon_right)
+            self.hide_arrow.setIcon(icon_right)
             self.hide_arrow.setToolTip('Hide arrows')
         else:
             self.viewer.leftClick.setIcon(QIcon(''))
             self.viewer.rightClick.setIcon(QIcon(''))
             self.hide_arrow.setToolTip('Show arrows')
-            self.hide_arrow.setIcon(QIcon(':/plugins/ImportPhotos/icons/arrowRight.png'))
+            self.hide_arrow.setIcon(icon_right)
 
     def leftClickButton(self):
         self.drawSelf.featureIndex = self.drawSelf.featureIndex - 1
