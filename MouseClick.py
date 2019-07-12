@@ -82,7 +82,6 @@ class MouseClick(QgsMapTool):
                     if self.drawSelf.maxlen>13:
                         self.drawSelf.maxlen = 14
                         self.drawSelf.layerActiveName = self.drawSelf.layerActive.name()+'...'
-                    self.photosDLG = PhotoWindow(self.drawSelf)
 
                     if 'PATH' in fields:
                         imPath = feature.attributes()[feature.fieldNameIndex('Path')]
@@ -104,8 +103,10 @@ class MouseClick(QgsMapTool):
                         c = self.drawSelf.noImageFound()
                         if c: return
 
+                    self.drawSelf.getImage = QImage(imPath)
+                    self.photosDLG = PhotoWindow(self.drawSelf)
                     self.photosDLG.viewer.scene.clear()
-                    pixmap = QPixmap.fromImage(QImage(imPath))
+                    pixmap = QPixmap.fromImage(self.drawSelf.getImage)
                     self.photosDLG.viewer.scene.addPixmap(pixmap)
                     self.photosDLG.viewer.setSceneRect(QRectF(pixmap.rect()))
                     self.photosDLG.viewer.resizeEvent([])
@@ -120,11 +121,17 @@ class MouseClick(QgsMapTool):
                         timeTrue = str(feature.attributes()[feature.fieldNameIndex('Time')])
 
                     try:
+                        name_ = str(feature.attributes()[feature.fieldNameIndex('Name')])
+                    except:
+                        name_ = ''
+
+                    try:
                         self.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
                         self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue[0:8])
                     except:
                         pass
                     self.photosDLG.infoPhoto3.setText('Layer: ' + self.drawSelf.layerActiveName)
+                    self.photosDLG.add_window_place.setText(name_)
 
                     azimuth = feature.attributes()[feature.fieldNameIndex('Azimuth')]
                     if type(azimuth) is str:

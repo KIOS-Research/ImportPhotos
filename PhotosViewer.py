@@ -21,7 +21,7 @@
  ***************************************************************************/
 """
 from PyQt5.QtWidgets import (QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
-    QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame)
+    QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame, QMenuBar, QAction, qApp)
 from PyQt5.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize)
 from PyQt5.QtGui import (QPainterPath, QIcon, QPixmap, QImage)
 import os.path
@@ -169,6 +169,7 @@ class PhotoWindow(QWidget):
         self.allpicturestimes = []
         self.allpicturesImpath= []
         self.allpicturesAzimuth=[]
+        self.allpicturesName=[]
         for i, f in enumerate(self.drawSelf.layerActive.getFeatures()):
             if 'PATH' in self.drawSelf.fields:
                 imPath = f.attributes()[f.fieldNameIndex('Path')]
@@ -184,6 +185,10 @@ class PhotoWindow(QWidget):
                 timeTrue = str(f.attributes()[f.fieldNameIndex('Time')].toString('hh:mm:ss'))
             except:
                 timeTrue = str(f.attributes()[f.fieldNameIndex('Time')])
+            try:
+                name_ = str(f.attributes()[f.fieldNameIndex('Name')])
+            except:
+                name_ = ''
 
             if not os.path.exists(imPath):
                 if self.drawSelf.prj.fileName() and 'RELPATH' in self.drawSelf.fields:
@@ -196,17 +201,40 @@ class PhotoWindow(QWidget):
             self.allpicturestimes.append(timeTrue)
             self.allpicturesImpath.append(imPath)
             self.allpicturesAzimuth.append(azimuth)
+            self.allpicturesName.append(name_)
 
         self.viewer = PhotosViewer(self)
 
         ######################################################################################
 
         self.setWindowTitle('Photo')
-        #self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.setWindowIcon(QIcon(self.path + "//icon.png"))
 
-        self.infoPhoto1 = QLabel(self)
+        menu_bar = QMenuBar(self)
+        menu_bar.setGeometry(QRect(0, 0, 10000, 26))
+
+        file_menu = menu_bar.addMenu('File')
+        file_menu.addAction('Save As')
+        filters_menu = menu_bar.addMenu('Filters')
+
+        self.gray_filter_status = False
+        self.gray_filter_btn = filters_menu.addAction('Gray Filter')
+        self.gray_filter_btn.setCheckable(True)
+        self.gray_filter_btn.triggered.connect(self.gray_filter_call)
+
+        self.mirror_filter_status = False
+        self.mirror_filter_btn = filters_menu.addAction('Mirror Filter')
+        self.mirror_filter_btn.setCheckable(True)
+        self.mirror_filter_btn.triggered.connect(self.mirror_filter_call)
+
+        # # Add Filter buttons
         sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.add_window_place = QLabel(self) #temporary
+        self.add_window_place.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum))
+        self.add_window_place.setFrameShape(QFrame.NoFrame)
+
+        self.infoPhoto1 = QLabel(self)
         self.infoPhoto1.setSizePolicy(sizePolicy)
         self.infoPhoto1.setFrameShape(QFrame.Box)
 
@@ -270,6 +298,9 @@ class PhotoWindow(QWidget):
         VBlayout = QVBoxLayout(self)
         HBlayout = QHBoxLayout()
         HBlayout2 = QHBoxLayout()
+        HBlayoutTop = QHBoxLayout()
+        HBlayoutTop.setAlignment(Qt.AlignCenter)
+        HBlayoutTop.addWidget(self.add_window_place)
         HBlayout2.addWidget(self.viewer)
         HBlayout.setAlignment(Qt.AlignCenter)
         HBlayout.addWidget(self.infoPhoto1)
@@ -283,8 +314,45 @@ class PhotoWindow(QWidget):
         HBlayout.addWidget(self.zoom_to_select)
         HBlayout.addWidget(self.hide_arrow)
 
+        VBlayout.addLayout(HBlayoutTop)
         VBlayout.addLayout(HBlayout2)
         VBlayout.addLayout(HBlayout)
+
+    def gray_filter_call(self):
+        if self.gray_filter_btn.isChecked():
+            self.gray_filter_status = True
+
+            self.mirror_filter_status = False
+            self.mirror_filter_btn.setChecked(False)
+
+        else:
+            self.gray_filter_status = False
+            self.gray_filter_btn.setChecked(False)
+        self.updateWindow()
+
+    def mirror_filter_call(self):
+        if self.mirror_filter_btn.isChecked():
+            self.mirror_filter_status = True
+            self.gray_filter_status = False
+            self.gray_filter_btn.setChecked(False)
+        else:
+            self.mirror_filter_status = False
+            self.mirror_filter_btn.setChecked(False)
+        self.updateWindow()
+
+    def mono_filter_call(self):
+        if self.mirror_filter_btn.isChecked():
+            self.mirror_filter_status = True
+
+            self.gray_filter_status = False
+            self.gray_filter_status = False
+            self.gray_filter_btn.setChecked(False)
+            self.mono_filter_btn.setChecked(False)
+
+        else:
+            self.mirror_filter_status = False
+            self.mirror_filter_btn.setChecked(False)
+        self.updateWindow()
 
     def hide_arrow_button(self):
         if self.viewer.leftClick.icon().isNull():
@@ -321,7 +389,15 @@ class PhotoWindow(QWidget):
             imPath = ''
 
         self.viewer.scene.clear()
-        pixmap = QPixmap.fromImage(QImage(imPath))
+        self.drawSelf.getImage = QImage(imPath)
+
+        # add gray filter
+        if self.gray_filter_status:
+            self.drawSelf.getImage = self.drawSelf.getImage.convertToFormat(QImage.Format_Grayscale8)
+        if self.mirror_filter_status:
+            self.drawSelf.getImage = self.drawSelf.getImage.mirrored(True, False)
+
+        pixmap = QPixmap.fromImage(self.drawSelf.getImage)
         self.viewer.scene.addPixmap(pixmap)
         self.viewer.setSceneRect(QRectF(pixmap.rect()))
         self.drawSelf.layerActive.selectByIds([self.drawSelf.featureIndex])
@@ -333,6 +409,7 @@ class PhotoWindow(QWidget):
         self.infoPhoto2.setText(
             'Time: ' + self.allpicturestimes[self.drawSelf.featureIndex][0:8])
         self.infoPhoto3.setText('Layer: ' + self.drawSelf.layerActiveName)
+        self.add_window_place.setText(self.allpicturesName[self.drawSelf.featureIndex])
 
         azimuth = self.allpicturesAzimuth[self.drawSelf.featureIndex]
         if type(azimuth) is str:
