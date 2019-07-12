@@ -313,18 +313,8 @@ class ImportPhotos:
         self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
                                                                 os.path.join(os.path.join(os.path.expanduser('~')),
                                                                              'Desktop'), QFileDialog.ShowDirsOnly)
-        self.selected_folder = self.directoryPhotos[:]; p = '/'
-        if '/' in self.selected_folder:
-            self.selected_folder = self.selected_folder.split('/')[-1]; p = '/'
-        if '\\' in self.selected_folder:
-            self.selected_folder = self.selected_folder.split('\\')[-1]; p = '\\'
-        if '//' in self.selected_folder:
-            self.selected_folder = self.selected_folder.split('//')[-1]; p = '//'
-        self.selected_folder = './' + self.selected_folder + p
-
-
-        print(self.selected_folder)
-
+        self.selected_folder = self.directoryPhotos[:]
+        self.selected_folder = './' + os.path.basename(os.path.normpath(self.selected_folder)) + '/'
         self.dlg.imp.setText(self.directoryPhotos)
 
     def loadstyle(self):
