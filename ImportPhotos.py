@@ -23,6 +23,8 @@
 
 from qgis.PyQt.QtWidgets import (QAction, QFileDialog, QMessageBox)
 from qgis.PyQt.QtGui import (QIcon)
+from qgis.PyQt import (uic)
+from qgis.PyQt.QtWidgets import (QDialog)
 from qgis.PyQt.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication, Qt, QVariant)
 from qgis.core import (QgsRectangle, QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsVectorLayer, \
                        QgsLayerTreeLayer, QgsProject, QgsTask, QgsApplication, QgsMessageLog, QgsFields, QgsField,
@@ -32,7 +34,6 @@ from qgis.utils import Qgis
 # Initialize Qt resources from file resources.py
 from . import resources
 # Import the code for the dialog
-from .ImportPhotos_dialog import ImportPhotosDialog
 from .MouseClick import MouseClick
 import os.path
 import platform
@@ -54,6 +55,18 @@ try:
         CHECK_MODULE = 'PIL'
 except:
     pass
+
+
+FORM_CLASS, _ = uic.loadUiType(os.path.join(
+    os.path.dirname(__file__), 'ui/impphotos.ui'))
+
+
+class ImportPhotosDialog(QDialog, FORM_CLASS):
+    def __init__(self, parent=None):
+        # """Constructor."""
+        QDialog.__init__(self, None, Qt.WindowStaysOnTopHint)
+        super(ImportPhotosDialog, self).__init__(parent)
+        self.setupUi(self)
 
 
 class ImportPhotos:
