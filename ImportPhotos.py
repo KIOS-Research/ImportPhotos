@@ -5,12 +5,10 @@
                                  A QGIS plugin
  Import photos jpegs
                               -------------------
-        begin                : 2018-02-20
-        git sha              : $Format:%H$
-        copyright            : (C) 2018 by KIOS Research Center
+        begin                : February 2018
+        copyright            : (C) 2019 by KIOS Research Center
         email                : mariosmsk@gmail.com
  ***************************************************************************/
-
 /***************************************************************************
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -34,11 +32,12 @@ from qgis.utils import Qgis
 # Initialize Qt resources from file resources.py
 from . import resources
 # Import the code for the dialog
-from .MouseClick import MouseClick
-import os.path
+from .code.MouseClick import MouseClick
+import os
 import platform
 import uuid
 import json
+
 
 # Import python module
 CHECK_MODULE = ''
@@ -61,6 +60,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/impphotos.ui'))
 
 
+# Import ui file
 class ImportPhotosDialog(QDialog, FORM_CLASS):
     def __init__(self, parent=None):
         # """Constructor."""
@@ -197,22 +197,21 @@ class ImportPhotos:
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-        icon_path = ':/plugins/ImportPhotos/svg/ImportImage.svg'
+        icon_path = ':/plugins/ImportPhotos/icons/ImportImage.svg'
         self.add_action(
             icon_path,
             text=self.tr(u'Import Photos'),
             callback=self.run,
             parent=self.iface.mainWindow())
-        icon_path = ':/plugins/ImportPhotos/svg/SelectImage.svg'
+        icon_path = ':/plugins/ImportPhotos/icons/SelectImage.svg'
         self.clickPhotos = self.add_action(
             icon_path,
             text=self.tr(u'Click Photos'),
             callback=self.mouseClick,
             parent=self.iface.mainWindow())
-        self.dlg = ImportPhotosDialog()
-        #self.dlg.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
 
-        self.dlg.load_style_path.setPlaceholderText( "e.g." + os.path.join(self.plugin_dir, "photos.qml"))
+        self.dlg = ImportPhotosDialog()
+        self.dlg.load_style_path.setPlaceholderText( "e.g." + os.path.join(self.plugin_dir, 'icons', "photos.qml"))
         self.dlg.ok.clicked.connect(self.ok)
         self.dlg.closebutton.clicked.connect(self.close)
         self.dlg.toolButtonImport.clicked.connect(self.toolButtonImport)
@@ -292,15 +291,12 @@ class ImportPhotos:
 
     def toolButtonOut(self):
         typefiles = 'ESRI Shapefile (*.shp *.SHP);; GeoJSON (*.geojson *.GEOJSON);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB)'
+        desktop_path = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop')
         if platform.system() == 'Linux':
             try:
-                self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File', os.path.join(
-                    os.path.join(os.path.expanduser('~')),
-                    'Desktop'), typefiles)
+                self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File',desktop_path , typefiles)
             except:
-                self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
-                    os.path.join(os.path.expanduser('~')),
-                    'Desktop'), typefiles) #hack line
+                self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', desktop_path, typefiles) #hack line
         else:
             self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
                 os.path.join(os.path.expanduser('~')),
@@ -325,6 +321,9 @@ class ImportPhotos:
         if '//' in self.selected_folder:
             self.selected_folder = self.selected_folder.split('//')[-1]; p = '//'
         self.selected_folder = './' + self.selected_folder + p
+
+
+        print(self.selected_folder)
 
         self.dlg.imp.setText(self.directoryPhotos)
 
@@ -375,7 +374,7 @@ class ImportPhotos:
         self.directoryPhotos = self.dlg.imp.text()
 
         if self.dlg.input_load_style.text() == '':
-            self.load_style = os.path.join(self.plugin_dir, "photos.qml")
+            self.load_style = os.path.join(self.plugin_dir, 'icons', "photos.qml")
         else:
             self.load_style = self.dlg.load_style_path.text()
 
@@ -392,7 +391,7 @@ class ImportPhotos:
     def import_photos(self, directoryPhotos, outputPath, load_style, showMessageHide=True):
 
         if load_style == '':
-            self.load_style = os.path.join(self.plugin_dir, "photos.qml")
+            self.load_style = os.path.join(self.plugin_dir, 'icons', "photos.qml")
         else:
             self.load_style = load_style
         self.showMessageHide = showMessageHide

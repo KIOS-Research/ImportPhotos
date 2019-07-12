@@ -5,12 +5,10 @@
                                  A QGIS plugin
  Import photos jpegs
                               -------------------
-        begin                : 2018-08-27
-        git sha              : $Format:%H$
-        copyright            : (C) 2018 by KIOS Research Center
+        begin                : February 2018
+        copyright            : (C) 2019 by KIOS Research Center
         email                : mariosmsk@gmail.com
  ***************************************************************************/
-
 /***************************************************************************
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,6 +18,7 @@
  *                                                                         *
  ***************************************************************************/
 """
+
 from PyQt5.QtWidgets import (QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
     QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame, QMenuBar, QAction, qApp)
 from PyQt5.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize)
@@ -47,7 +46,7 @@ class PhotosViewer(QGraphicsView):
         self.scene = QGraphicsScene()
         if len(self.selfwindow.allpictures) > 1:
             self.leftClick = QPushButton(self)
-            self.leftClick.setIcon(QIcon(self.selfwindow.path+'//svg//arrowLeft.png'))
+            self.leftClick.setIcon(QIcon(':/plugins/ImportPhotos/icons/arrowLeft.png'))
             self.leftClick.clicked.connect(self.selfwindow.leftClickButton)
             self.leftClick.setToolTip('Show previous photo')
             self.leftClick.setStyleSheet("QPushButton{border: 0px;}")
@@ -55,7 +54,7 @@ class PhotosViewer(QGraphicsView):
             self.leftClick.setFocusPolicy(Qt.NoFocus)
 
             self.rightClick = QPushButton(self)
-            self.rightClick.setIcon(QIcon(self.selfwindow.path+'//svg//arrowRight.png'))
+            self.rightClick.setIcon(QIcon(':/plugins/ImportPhotos/icons/arrowRight.png'))
             self.rightClick.clicked.connect(self.selfwindow.rightClickButton)
             self.rightClick.setToolTip('Show next photo')
             self.rightClick.setStyleSheet("QPushButton{border: 0px;}")
@@ -161,7 +160,6 @@ class PhotoWindow(QWidget):
     def __init__(self, drawSelf):
         super(PhotoWindow, self).__init__()
         self.drawSelf = drawSelf
-        self.path = os.path.abspath(os.path.join(os.path.dirname(__file__)))
 
         ## Update for photo
         self.allpictures = []
@@ -208,7 +206,8 @@ class PhotoWindow(QWidget):
         ######################################################################################
 
         self.setWindowTitle('Photo')
-        self.setWindowIcon(QIcon(self.path + "//icon.png"))
+        self.setWindowIcon(QIcon(':/plugins/ImportPhotos/icons/icon.png'))
+
 
         menu_bar = QMenuBar(self)
         menu_bar.setGeometry(QRect(0, 0, 10000, 26))
@@ -237,48 +236,51 @@ class PhotoWindow(QWidget):
         self.infoPhoto1 = QLabel(self)
         self.infoPhoto1.setSizePolicy(sizePolicy)
         self.infoPhoto1.setFrameShape(QFrame.Box)
+#        self.infoPhoto1.setAlignment(Qt.AlignCenter)
 
         self.infoPhoto2 = QLabel(self)
         self.infoPhoto2.setSizePolicy(sizePolicy)
         self.infoPhoto2.setFrameShape(QFrame.Box)
+#        self.infoPhoto2.setAlignment(Qt.AlignCenter)
 
         self.infoPhoto3 = QLabel(self)
         self.infoPhoto3.setSizePolicy(sizePolicy)
         self.infoPhoto3.setFrameShape(QFrame.Box)
+#        self.infoPhoto3.setAlignment(Qt.AlignCenter)
 
         self.extent = QPushButton(self)
         self.extent.setSizePolicy(sizePolicy)
-        self.extent.setIcon(QIcon(self.path + '//svg//mActionZoomFullExtent.svg'))
+        self.extent.setIcon(QIcon(':/plugins/ImportPhotos/icons/mActionZoomFullExtent.svg'))
         self.extent.clicked.connect(self.extentbutton)
 
         self.zoom = QPushButton(self)
         self.zoom.setSizePolicy(sizePolicy)
-        self.zoom.setIcon(QIcon(self.path + '//svg//method-draw-image.svg'))
+        self.zoom.setIcon(QIcon(':/plugins/ImportPhotos/icons/method-draw-image.svg'))
         self.zoom.clicked.connect(self.zoombutton)
 
         self.pan = QPushButton(self)
         self.pan.setSizePolicy(sizePolicy)
-        self.pan.setIcon(QIcon(self.path + '//svg//mActionPan.svg'))
+        self.pan.setIcon(QIcon(':/plugins/ImportPhotos/icons/mActionPan.svg'))
         self.pan.clicked.connect(self.panbutton)
 
         self.zoom_to_select = QPushButton(self)
         self.zoom_to_select.setSizePolicy(sizePolicy)
-        self.zoom_to_select.setIcon(QIcon(self.path + '//svg//mActionZoomToSelected.svg'))
+        self.zoom_to_select.setIcon(QIcon(':/plugins/ImportPhotos/icons/mActionZoomToSelected.svg'))
         self.zoom_to_select.clicked.connect(self.zoom_to_selectbutton)
 
         self.rotate_option = QPushButton(self)
         self.rotate_option.setSizePolicy(sizePolicy)
-        self.rotate_option.setIcon(QIcon(self.path + '//svg//rotate.png'))
+        self.rotate_option.setIcon(QIcon(':/plugins/ImportPhotos/icons/rotate.png'))
         self.rotate_option.clicked.connect(self.rotatebutton)
 
         self.rotate_azimuth = QPushButton(self)
         self.rotate_azimuth.setSizePolicy(sizePolicy)
-        self.rotate_azimuth.setIcon(QIcon(self.path + '//svg//tonorth.png'))
+        self.rotate_azimuth.setIcon(QIcon(':/plugins/ImportPhotos/icons/tonorth.png'))
         self.rotate_azimuth.clicked.connect(self.rotate_azimuthbutton)
 
         self.hide_arrow = QPushButton(self)
         self.hide_arrow.setSizePolicy(sizePolicy)
-        self.hide_arrow.setIcon(QIcon(self.path + '//svg//arrowRight.png'))
+        self.hide_arrow.setIcon(QIcon(':/plugins/ImportPhotos/icons/arrowRight.png'))
         self.hide_arrow.clicked.connect(self.hide_arrow_button)
         if len(self.allpictures) > 1:
             self.hide_arrow.setEnabled(True)
@@ -356,15 +358,15 @@ class PhotoWindow(QWidget):
 
     def hide_arrow_button(self):
         if self.viewer.leftClick.icon().isNull():
-            self.viewer.leftClick.setIcon(QIcon(self.path+'//svg//arrowLeft.png'))
-            self.viewer.rightClick.setIcon(QIcon(self.path+'//svg//arrowRight.png'))
-            self.hide_arrow.setIcon(QIcon(self.path + '//svg//arrowRight.png'))
+            self.viewer.leftClick.setIcon(QIcon(':/plugins/ImportPhotos/icons/arrowLeft.png'))
+            self.viewer.rightClick.setIcon(QIcon(':/plugins/ImportPhotos/icons/arrowRight.png'))
+            self.hide_arrow.setIcon(QIcon(':/plugins/ImportPhotos/icons/arrowRight.png'))
             self.hide_arrow.setToolTip('Hide arrows')
         else:
             self.viewer.leftClick.setIcon(QIcon(''))
             self.viewer.rightClick.setIcon(QIcon(''))
             self.hide_arrow.setToolTip('Show arrows')
-            self.hide_arrow.setIcon(QIcon(self.path + '//svg//arrowRight.png'))
+            self.hide_arrow.setIcon(QIcon(':/plugins/ImportPhotos/icons/arrowRight.png'))
 
     def leftClickButton(self):
         self.drawSelf.featureIndex = self.drawSelf.featureIndex - 1

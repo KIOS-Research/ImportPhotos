@@ -5,9 +5,8 @@
                                  A QGIS plugin
  Import photos jpegs
                               -------------------
-        begin                : 2018-05-17
-        git sha              : $Format:%H$
-        copyright            : (C) 2017 by KIOS Research Center
+        begin                : February 2018
+        copyright            : (C) 2019 by KIOS Research Center
         email                : mariosmsk@gmail.com
  ***************************************************************************/
 /***************************************************************************
@@ -26,9 +25,10 @@ from qgis.PyQt.QtCore import *
 from qgis.core import QgsRectangle, QgsProject
 from qgis.gui import QgsMapTool, QgsRubberBand
 from .PhotosViewer import PhotoWindow
-import os
+import os.path
 
 
+# Mouseclik import file
 class MouseClick(QgsMapTool):
     afterLeftClick = pyqtSignal()
     afterRightClick = pyqtSignal()
@@ -94,8 +94,7 @@ class MouseClick(QgsMapTool):
                         if not os.path.exists(imPath):
                             self.prj = QgsProject.instance()
                             if self.prj.fileName() and 'RELPATH' in fields:
-                                imPath = QFileInfo(prj.fileName()).absolutePath() + \
-                                         feature.attributes()[feature.fieldNameIndex('RelPath')]
+                                imPath = os.path.join(QFileInfo(prj.fileName()).absolutePath(), feature.attributes()[feature.fieldNameIndex('RelPath')])
                             else:
                                 c = self.drawSelf.noImageFound()
                                 if c: return

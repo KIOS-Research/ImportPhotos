@@ -1,6 +1,4 @@
-<a href="http://www.kios.ucy.ac.cy"><img src="http://www.kios.ucy.ac.cy/templates/favourite/images/kios_logo_hover.png"/><a>
-
-# ImportPhotos
+﻿# ImportPhotos
 
 QGIS plugin
 
@@ -13,7 +11,7 @@ QGIS 2 & QGIS 3
 Mac Users. Requires the following Python Modules to be installed: UnixImageIO, FreeType, PIL Please visit: http://www.kyngchaos.com/software/python
 
 ## Updated version
-![Example](https://github.com/KIOS-Research/ImportPhotos/blob/v.1.8/example.png)
+![Example](https://github.com/KIOS-Research/ImportPhotos/blob/v.2.2/icons/example.png)
 
 # Contributors #
 * Marios S. Kyriakou, [KIOS Research Center for Intelligent Systems and Networks, University of Cyprus (KIOS CoE)](http://www.kios.ucy.ac.cy/)
