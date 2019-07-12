@@ -20,9 +20,9 @@
 """
 
 from PyQt5.QtWidgets import (QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
-    QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame, QMenuBar, QAction, qApp, QFileDialog)
+    QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame, QMenuBar, QAction, qApp, QFileDialog, QMessageBox)
 from PyQt5.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize)
-from PyQt5.QtGui import (QPainterPath, QIcon, QPixmap, QImage)
+from PyQt5.QtGui import (QPainterPath, QIcon, QPixmap, QImage, QFont)
 import os.path
 
 
@@ -349,6 +349,7 @@ class PhotoWindow(QWidget):
             os.path.join(os.path.expanduser('~')), 'Desktop'), '.png')
         self.outputPath = self.outputPath[0]
         self.drawSelf.getImage.save(self.outputPath+'.png')
+        self.showMessage(title='ImportPhotos', msg='Save image at "'+self.outputPath+'.png'+'" succesfull.', button='OK', icon='Info')
 
     def mono_filter_call(self):
         if self.mirror_filter_btn.isChecked():
@@ -363,6 +364,24 @@ class PhotoWindow(QWidget):
             self.mirror_filter_status = False
             self.mirror_filter_btn.setChecked(False)
         self.updateWindow()
+
+    def showMessage(self, title, msg, button, icon):
+        msgBox = QMessageBox()
+        if icon=='Warning':
+            msgBox.setIcon(QMessageBox.Warning)
+        if icon=='Info':
+            msgBox.setIcon(QMessageBox.Information)
+        msgBox.setWindowTitle(title)
+        msgBox.setText(msg)
+        msgBox.setStandardButtons(QMessageBox.Ok)
+        font = QFont()
+        font.setPointSize(9)
+        msgBox.setFont(font)
+        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+        buttonY = msgBox.button(QMessageBox.Ok)
+        buttonY.setText(button)
+        buttonY.setFont(font)
+        msgBox.exec_()
 
     def hide_arrow_button(self):
         icon_right = QIcon(':/plugins/ImportPhotos/icons/arrowRight.png')
