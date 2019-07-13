@@ -184,9 +184,13 @@ class PhotoWindow(QWidget):
             except:
                 timeTrue = str(f.attributes()[f.fieldNameIndex('Time')])
             try:
-                name_ = str(f.attributes()[f.fieldNameIndex('Name')])
+                name_ = f.attributes()[f.fieldNameIndex('Name')]
+                name_ = name_[:-4]
             except:
-                name_ = ''
+                try:
+                    name_ = f.attributes()[f.fieldNameIndex('filename')]
+                except:
+                    name_ = ''
 
             if not os.path.exists(imPath):
                 if self.drawSelf.prj.fileName() and 'RELPATH' in self.drawSelf.fields:
@@ -227,6 +231,11 @@ class PhotoWindow(QWidget):
         self.mirror_filter_btn = filters_menu.addAction('Mirror Filter')
         self.mirror_filter_btn.setCheckable(True)
         self.mirror_filter_btn.triggered.connect(self.mirror_filter_call)
+
+        self.mono_filter_status = False
+        self.mono_filter_btn = filters_menu.addAction('Mono Filter')
+        self.mono_filter_btn.setCheckable(True)
+        self.mono_filter_btn.triggered.connect(self.mono_filter_call)
 
         # # Add Filter buttons
         sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
@@ -325,10 +334,6 @@ class PhotoWindow(QWidget):
     def gray_filter_call(self):
         if self.gray_filter_btn.isChecked():
             self.gray_filter_status = True
-
-            self.mirror_filter_status = False
-            self.mirror_filter_btn.setChecked(False)
-
         else:
             self.gray_filter_status = False
             self.gray_filter_btn.setChecked(False)
@@ -337,33 +342,24 @@ class PhotoWindow(QWidget):
     def mirror_filter_call(self):
         if self.mirror_filter_btn.isChecked():
             self.mirror_filter_status = True
-            self.gray_filter_status = False
-            self.gray_filter_btn.setChecked(False)
         else:
             self.mirror_filter_status = False
             self.mirror_filter_btn.setChecked(False)
         self.updateWindow()
 
+    def mono_filter_call(self):
+        if self.mono_filter_btn.isChecked():
+            self.mono_filter_status = True
+        else:
+            self.mono_filter_status = False
+            self.mono_filter_btn.setChecked(False)
+        self.updateWindow()
     def saveas_call(self):
         self.outputPath = QFileDialog.getSaveFileName(None, 'Save Image', os.path.join(
             os.path.join(os.path.expanduser('~')), 'Desktop'), '.png')
         self.outputPath = self.outputPath[0]
         self.drawSelf.getImage.save(self.outputPath+'.png')
         self.showMessage(title='ImportPhotos', msg='Save image at "'+self.outputPath+'.png'+'" succesfull.', button='OK', icon='Info')
-
-    def mono_filter_call(self):
-        if self.mirror_filter_btn.isChecked():
-            self.mirror_filter_status = True
-
-            self.gray_filter_status = False
-            self.gray_filter_status = False
-            self.gray_filter_btn.setChecked(False)
-            self.mono_filter_btn.setChecked(False)
-
-        else:
-            self.mirror_filter_status = False
-            self.mirror_filter_btn.setChecked(False)
-        self.updateWindow()
 
     def showMessage(self, title, msg, button, icon):
         msgBox = QMessageBox()
@@ -426,6 +422,8 @@ class PhotoWindow(QWidget):
             self.drawSelf.getImage = self.drawSelf.getImage.convertToFormat(QImage.Format_Grayscale8)
         if self.mirror_filter_status:
             self.drawSelf.getImage = self.drawSelf.getImage.mirrored(True, False)
+        if self.mono_filter_status:
+            self.drawSelf.getImage = self.drawSelf.getImage.convertToFormat(QImage.Format_Mono)
 
         pixmap = QPixmap.fromImage(self.drawSelf.getImage)
         self.viewer.scene.addPixmap(pixmap)

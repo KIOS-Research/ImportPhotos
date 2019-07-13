@@ -120,9 +120,13 @@ class MouseClick(QgsMapTool):
                         timeTrue = str(feature.attributes()[feature.fieldNameIndex('Time')])
 
                     try:
-                        name_ = str(feature.attributes()[feature.fieldNameIndex('Name')])
+                        name_ = feature.attributes()[feature.fieldNameIndex('Name')]
+                        name_ = name_[:-4]
                     except:
-                        name_ = ''
+                        try:
+                            name_ = feature.attributes()[feature.fieldNameIndex('filename')]
+                        except:
+                            name_ = ''
 
                     try:
                         self.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
