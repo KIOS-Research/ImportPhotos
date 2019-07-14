@@ -354,10 +354,13 @@ class PhotoWindow(QWidget):
             self.mono_filter_status = False
             self.mono_filter_btn.setChecked(False)
         self.updateWindow()
+
     def saveas_call(self):
         self.outputPath = QFileDialog.getSaveFileName(None, 'Save Image', os.path.join(
             os.path.join(os.path.expanduser('~')), 'Desktop'), '.png')
         self.outputPath = self.outputPath[0]
+        if self.outputPath == '':
+            return
         self.drawSelf.getImage.save(self.outputPath+'.png')
         self.showMessage(title='ImportPhotos', msg='Save image at "'+self.outputPath+'.png'+'" succesfull.', button='OK', icon='Info')
 

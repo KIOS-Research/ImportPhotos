@@ -103,6 +103,19 @@ class MouseClick(QgsMapTool):
                         if c: return
 
                     self.drawSelf.getImage = QImage(imPath)
+
+                    #import matplotlib.pyplot as plt
+                    #from matplotlib.cbook import get_sample_data
+                    #import numpy as np
+
+                    #img = plt.imread(get_sample_data(imPath))
+                    #img_data = np.asarray(img, dtype='uint8')
+
+                    # plot the red channel
+                    #plt.imshow(img_data[:, :, 0], cmap=plt.cm.Reds_r, aspect='auto')
+                    #plt.savefig(self.drawSelf.plugin_dir+'/RGB.png', format='png', dpi=1200)
+                    #self.drawSelf.getImage = QImage(self.drawSelf.plugin_dir+'/RGB.png')
+
                     self.photosDLG = PhotoWindow(self.drawSelf)
                     self.photosDLG.viewer.scene.clear()
                     pixmap = QPixmap.fromImage(self.drawSelf.getImage)
