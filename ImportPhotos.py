@@ -47,6 +47,14 @@ try:
 except:
     pass
 
+#try:
+#    from qgis.utils import plugins
+#    import sys
+#    sys.path.append(':/plugins')
+#    import processing
+#except:
+#    pass
+
 try:
     if CHECK_MODULE == '':
         from PIL import Image

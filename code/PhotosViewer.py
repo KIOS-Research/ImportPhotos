@@ -25,6 +25,16 @@ from PyQt5.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize)
 from PyQt5.QtGui import (QPainterPath, QIcon, QPixmap, QImage, QFont)
 import os.path
 
+#Filtering opencv
+opencv = False
+try:
+    import cv2
+    import numpy as np
+    from matplotlib import pyplot as plt
+    opencv = True
+except:
+    opencv = False
+
 
 class PhotosViewer(QGraphicsView):
     afterLeftClick = pyqtSignal(float, float)
@@ -221,6 +231,7 @@ class PhotoWindow(QWidget):
         self.saveas.triggered.connect(self.saveas_call)
 
         filters_menu = menu_bar.addMenu('Filters')
+        opencv_menu = menu_bar.addMenu('Opencv')
 
         self.gray_filter_status = False
         self.gray_filter_btn = filters_menu.addAction('Gray Filter')
@@ -237,6 +248,34 @@ class PhotoWindow(QWidget):
         self.mono_filter_btn.setCheckable(True)
         self.mono_filter_btn.triggered.connect(self.mono_filter_call)
 
+        try:
+            if opencv:
+                self.edges_filter_status = False
+                self.edges_filter_btn = opencv_menu.addAction('Edges Filter')
+                self.edges_filter_btn.setCheckable(True)
+                self.edges_filter_btn.triggered.connect(self.edges_filter_call)
+
+                self.red_filter_status = False
+                self.red_filter_btn = opencv_menu.addAction('Red Band')
+                self.red_filter_btn.setCheckable(True)
+                self.red_filter_btn.triggered.connect(self.red_filter_call)
+
+                self.blue_filter_status = False
+                self.blue_filter_btn = opencv_menu.addAction('Blue Band')
+                self.blue_filter_btn.setCheckable(True)
+                self.blue_filter_btn.triggered.connect(self.blue_filter_call)
+
+                self.green_filter_status = False
+                self.green_filter_btn = opencv_menu.addAction('Green Band')
+                self.green_filter_btn.setCheckable(True)
+                self.green_filter_btn.triggered.connect(self.green_filter_call)
+
+                self.averaging_filter_status = False
+                self.averaging_filter_btn = opencv_menu.addAction('Averaging Filter')
+                self.averaging_filter_btn.setCheckable(True)
+                self.averaging_filter_btn.triggered.connect(self.averaging_filter_call)
+        except:
+            pass
         # # Add Filter buttons
         sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
 
@@ -334,6 +373,8 @@ class PhotoWindow(QWidget):
     def gray_filter_call(self):
         if self.gray_filter_btn.isChecked():
             self.gray_filter_status = True
+            self.averaging_filter_status = False
+            self.averaging_filter_btn.setChecked(False)
         else:
             self.gray_filter_status = False
             self.gray_filter_btn.setChecked(False)
@@ -342,6 +383,8 @@ class PhotoWindow(QWidget):
     def mirror_filter_call(self):
         if self.mirror_filter_btn.isChecked():
             self.mirror_filter_status = True
+            self.averaging_filter_status = False
+            self.averaging_filter_btn.setChecked(False)
         else:
             self.mirror_filter_status = False
             self.mirror_filter_btn.setChecked(False)
@@ -350,10 +393,82 @@ class PhotoWindow(QWidget):
     def mono_filter_call(self):
         if self.mono_filter_btn.isChecked():
             self.mono_filter_status = True
+            self.averaging_filter_status = False
+            self.averaging_filter_btn.setChecked(False)
         else:
             self.mono_filter_status = False
             self.mono_filter_btn.setChecked(False)
         self.updateWindow()
+
+    def averaging_filter_call(self):
+        if self.averaging_filter_btn.isChecked():
+            self.averaging_filter_status = True
+            self.update_filters('averaging')
+        else:
+            self.averaging_filter_status = False
+            self.averaging_filter_btn.setChecked(False)
+        self.updateWindow()
+
+    def red_filter_call(self):
+        if self.red_filter_btn.isChecked():
+            self.red_filter_status = True
+            self.update_filters('red')
+        else:
+            self.red_filter_status = False
+            self.red_filter_btn.setChecked(False)
+        self.updateWindow()
+
+    def blue_filter_call(self):
+        if self.blue_filter_btn.isChecked():
+            self.blue_filter_status = True
+            self.update_filters('blue')
+        else:
+            self.blue_filter_status = False
+            self.blue_filter_btn.setChecked(False)
+        self.updateWindow()
+
+    def green_filter_call(self):
+        if self.green_filter_btn.isChecked():
+            self.green_filter_status = True
+            self.update_filters('green')
+        else:
+            self.green_filter_status = False
+            self.green_filter_btn.setChecked(False)
+        self.updateWindow()
+
+    def edges_filter_call(self):
+        if self.edges_filter_btn.isChecked():
+            self.edges_filter_status = True
+            self.update_filters('edges')
+        else:
+            self.edges_filter_status = False
+            self.edges_filter_btn.setChecked(False)
+        self.updateWindow()
+
+    def update_filters(self, filter):
+        if filter != 'averaging':
+            self.averaging_filter_status = False
+            self.averaging_filter_btn.setChecked(False)
+        if filter != 'blue':
+            self.blue_filter_status = False
+            self.blue_filter_btn.setChecked(False)
+        if filter != 'red':
+            self.red_filter_status = False
+            self.red_filter_btn.setChecked(False)
+        if filter != 'green':
+            self.green_filter_status = False
+            self.green_filter_btn.setChecked(False)
+        if filter != 'edges':
+            self.edges_filter_status = False
+            self.edges_filter_btn.setChecked(False)
+
+
+        self.gray_filter_status = False
+        self.gray_filter_btn.setChecked(False)
+        self.mirror_filter_status = False
+        self.mirror_filter_btn.setChecked(False)
+        self.mono_filter_status = False
+        self.mono_filter_btn.setChecked(False)
 
     def saveas_call(self):
         self.outputPath = QFileDialog.getSaveFileName(None, 'Save Image', os.path.join(
@@ -420,13 +535,51 @@ class PhotoWindow(QWidget):
         self.viewer.scene.clear()
         self.drawSelf.getImage = QImage(imPath)
 
-        # add gray filter
         if self.gray_filter_status:
             self.drawSelf.getImage = self.drawSelf.getImage.convertToFormat(QImage.Format_Grayscale8)
         if self.mirror_filter_status:
             self.drawSelf.getImage = self.drawSelf.getImage.mirrored(True, False)
         if self.mono_filter_status:
             self.drawSelf.getImage = self.drawSelf.getImage.convertToFormat(QImage.Format_Mono)
+
+        if opencv:
+            if self.averaging_filter_status:
+                ## Average filter
+                img = cv2.imread(imPath)
+                kernel = np.ones((5, 5), np.float32) / 25
+                filt = cv2.filter2D(img, -1, kernel)
+
+            if self.red_filter_status:
+                ## RED
+                img = np.array(cv2.imread(imPath))
+                filt = np.zeros(img.shape, dtype='uint8')
+                filt[:, :, 2] = img[:, :, 2]
+            if self.blue_filter_status:
+                ## BLUE
+                img = np.array(cv2.imread(imPath))
+                filt = np.zeros(img.shape, dtype='uint8')
+                filt[:, :, 0] = img[:, :, 0]
+            if self.green_filter_status:
+                ## GREEN
+                img = np.array(cv2.imread(imPath))
+                filt = np.zeros(img.shape, dtype='uint8')
+                filt[:, :, 1] = img[:, :, 1]
+
+            if self.edges_filter_status:
+                ## Edges filter
+                img = cv2.imread(imPath, 0)
+                filt = cv2.Canny(img, 100, 200)
+
+            if self.averaging_filter_status or self.red_filter_status or \
+                    self.blue_filter_status or self.green_filter_status or self.edges_filter_status:
+                # Fix for all opencv filters
+                height, width = filt.shape[:2]
+                try:
+                    rgb = cv2.cvtColor(filt, cv2.COLOR_GRAY2RGB)
+                except:
+                    rgb = cv2.cvtColor(filt, cv2.COLOR_BGR2RGB)
+
+                self.drawSelf.getImage = QImage(rgb, width, height, QImage.Format_RGB888)
 
         pixmap = QPixmap.fromImage(self.drawSelf.getImage)
         self.viewer.scene.addPixmap(pixmap)

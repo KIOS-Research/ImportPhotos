@@ -1,2 +1,3 @@
 exifread
 pillow
+opencv-python
