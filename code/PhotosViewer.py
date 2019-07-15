@@ -231,7 +231,6 @@ class PhotoWindow(QWidget):
         self.saveas.triggered.connect(self.saveas_call)
 
         filters_menu = menu_bar.addMenu('Filters')
-        opencv_menu = menu_bar.addMenu('Opencv')
 
         self.gray_filter_status = False
         self.gray_filter_btn = filters_menu.addAction('Gray Filter')
@@ -250,28 +249,42 @@ class PhotoWindow(QWidget):
 
         try:
             if opencv:
-                self.opencv_filt_status = {'Edges': False, 'Red': False, 'Green': False, 'Blue': False, 'Averaging': False}
+                opencv_menu = menu_bar.addMenu('Opencv')
+                bands_menu = menu_bar.addMenu('Bands')
+
+                self.opencv_filt_status = {'Edges': False, 'Red': False, 'Green': False, 'Blue': False,
+                                           '2DConvolution': False, 'Median': False, 'Gaussian': False, 'Gaussian Highpass': False}
                 self.edges_filter_btn = opencv_menu.addAction('Edges Filter')
                 self.edges_filter_btn.setCheckable(True)
                 self.edges_filter_btn.triggered.connect(self.edges_filter_call)
 
-                self.red_filter_btn = opencv_menu.addAction('Red Band')
+                self.red_filter_btn = bands_menu.addAction('Red Band')
                 self.red_filter_btn.setCheckable(True)
                 self.red_filter_btn.triggered.connect(self.red_filter_call)
 
-                self.blue_filter_btn = opencv_menu.addAction('Blue Band')
+                self.blue_filter_btn = bands_menu.addAction('Blue Band')
                 self.blue_filter_btn.setCheckable(True)
                 self.blue_filter_btn.triggered.connect(self.blue_filter_call)
 
-                self.green_filter_btn = opencv_menu.addAction('Green Band')
+                self.green_filter_btn = bands_menu.addAction('Green Band')
                 self.green_filter_btn.setCheckable(True)
                 self.green_filter_btn.triggered.connect(self.green_filter_call)
 
-                self.averaging_filter_btn = opencv_menu.addAction('Averaging Filter')
+                self.averaging_filter_btn = opencv_menu.addAction('2D Convolution Filter')
                 self.averaging_filter_btn.setCheckable(True)
                 self.averaging_filter_btn.triggered.connect(self.averaging_filter_call)
 
-                self.medianblur_filter_status = False
+                self.median_filter_btn = opencv_menu.addAction('Median Filter')
+                self.median_filter_btn.setCheckable(True)
+                self.median_filter_btn.triggered.connect(self.median_filter_call)
+
+                self.gaussian_filter_btn = opencv_menu.addAction('Gaussian Filter')
+                self.gaussian_filter_btn.setCheckable(True)
+                self.gaussian_filter_btn.triggered.connect(self.gaussian_filter_call)
+
+                self.gaussian_high_filter_btn = opencv_menu.addAction('Gaussian Highpass')
+                self.gaussian_high_filter_btn.setCheckable(True)
+                self.gaussian_high_filter_btn.triggered.connect(self.gaussian_high_filter_call)
         except:
             pass
         # # Add Filter buttons
@@ -397,11 +410,38 @@ class PhotoWindow(QWidget):
 
     def averaging_filter_call(self):
         if self.averaging_filter_btn.isChecked():
-            self.opencv_filt_status['Averaging'] = True
+            self.opencv_filt_status['2DConvolution'] = True
             self.update_filters('averaging')
         else:
-            self.opencv_filt_status['Averaging'] = False
+            self.opencv_filt_status['2DConvolution'] = False
             self.averaging_filter_btn.setChecked(False)
+        self.updateWindow()
+
+    def median_filter_call(self):
+        if self.median_filter_btn.isChecked():
+            self.opencv_filt_status['Median'] = True
+            self.update_filters('median')
+        else:
+            self.opencv_filt_status['Median'] = False
+            self.median_filter_btn.setChecked(False)
+        self.updateWindow()
+
+    def gaussian_filter_call(self):
+        if self.gaussian_filter_btn.isChecked():
+            self.opencv_filt_status['Gaussian'] = True
+            self.update_filters('gaussian')
+        else:
+            self.opencv_filt_status['Gaussian'] = False
+            self.gaussian_filter_btn.setChecked(False)
+        self.updateWindow()
+
+    def gaussian_high_filter_call(self):
+        if self.gaussian_high_filter_btn.isChecked():
+            self.opencv_filt_status['Gaussian Highpass'] = True
+            self.update_filters('fourrier')
+        else:
+            self.opencv_filt_status['Gaussian Highpass'] = False
+            self.gaussian_high_filter_btn.setChecked(False)
         self.updateWindow()
 
     def red_filter_call(self):
@@ -441,8 +481,17 @@ class PhotoWindow(QWidget):
         self.updateWindow()
 
     def update_filters(self, filter):
+        if filter != 'fourrier':
+            self.opencv_filt_status['Gaussian Highpass'] = False
+            self.gaussian_high_filter_btn.setChecked(False)
+        if filter != 'median':
+            self.opencv_filt_status['Median'] = False
+            self.median_filter_btn.setChecked(False)
+        if filter != 'gaussian':
+            self.opencv_filt_status['Gaussian'] = False
+            self.gaussian_filter_btn.setChecked(False)
         if filter != 'averaging':
-            self.opencv_filt_status['Averaging'] = False
+            self.opencv_filt_status['2DConvolution'] = False
             self.averaging_filter_btn.setChecked(False)
         if filter != 'blue':
             self.opencv_filt_status['Blue'] = False
@@ -539,7 +588,7 @@ class PhotoWindow(QWidget):
             self.drawSelf.getImage = self.drawSelf.getImage.convertToFormat(QImage.Format_Mono)
 
         if opencv:
-            if self.opencv_filt_status['Averaging']:
+            if self.opencv_filt_status['2DConvolution']:
                 ## Average filter
                 img = cv2.imread(imPath)
                 kernel = np.ones((5, 5), np.float32) / 25
@@ -566,7 +615,20 @@ class PhotoWindow(QWidget):
                 img = cv2.imread(imPath, 0)
                 filt = cv2.Canny(img, 100, 200)
 
-            print(self.opencv_filt_status)
+            if self.opencv_filt_status['Median']:
+                img = cv2.imread(imPath)
+                filt = cv2.medianBlur(img, 5)
+
+            if self.opencv_filt_status['Gaussian']:
+                img = cv2.imread(imPath)
+                filt = cv2.GaussianBlur(img, (5, 5), 0)
+
+            if self.opencv_filt_status['Gaussian Highpass']:
+                from scipy import ndimage
+                data = np.array(cv2.imread(imPath))
+                lowpass = ndimage.gaussian_filter(data, 3)
+                filt = data - lowpass
+
             for value in self.opencv_filt_status:
                 if self.opencv_filt_status[value] == True:
                     # Fix for all opencv filters
