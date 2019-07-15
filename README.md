@@ -10,9 +10,9 @@ QGIS 3
 Mac Users. Requires the following Python Modules to be installed: UnixImageIO, FreeType, PIL Please visit: http://www.kyngchaos.com/software/python
 
 ## Updated version
-![Example](https://github.com/KIOS-Research/ImportPhotos/blob/v.2.2/icons/edges.png)
-![Example](https://github.com/KIOS-Research/ImportPhotos/blob/v.2.2/icons/redband.png)
-![Example](https://github.com/KIOS-Research/ImportPhotos/blob/v.2.2/icons/example.png)
+<img src="https://raw.githubusercontent.com/KIOS-Research/ImportPhotos/v2.2/icons/edges.PNG" width="500" height="400">
+<img src="https://raw.githubusercontent.com/KIOS-Research/ImportPhotos/v2.2/icons/redband.PNG" width="500" height="400">
+<img src="https://raw.githubusercontent.com/KIOS-Research/ImportPhotos/v2.2/icons/example.png" width="500" height="400">
 
 # Contributors #
 * Marios S. Kyriakou, [KIOS Research Center for Intelligent Systems and Networks, University of Cyprus (KIOS CoE)](http://www.kios.ucy.ac.cy/)
