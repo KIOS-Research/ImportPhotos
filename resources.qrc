@@ -1,6 +1,15 @@
 <RCC>
     <qresource prefix="/plugins/ImportPhotos" >
-        <file>svg/ImportImage.svg</file>
-        <file>svg/SelectImage.svg</file>
+        <file>icons/ImportImage.svg</file>
+        <file>icons/SelectImage.svg</file>
+        <file>icons/arrowLeft.png</file>
+        <file>icons/arrowRight.png</file>
+        <file>icons/icon.png</file>
+        <file>icons/mActionPan.svg</file>
+        <file>icons/mActionZoomFullExtent.svg</file>
+        <file>icons/mActionZoomToSelected.svg</file>
+        <file>icons/method-draw-image.svg</file>
+        <file>icons/rotate.png</file>
+        <file>icons/tonorth.png</file>
     </qresource>
 </RCC>

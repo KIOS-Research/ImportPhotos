@@ -5,9 +5,8 @@
                                  A QGIS plugin
  Import photos jpegs
                               -------------------
-        begin                : 2018-05-17
-        git sha              : $Format:%H$
-        copyright            : (C) 2017 by KIOS Research Center
+        begin                : February 2018
+        copyright            : (C) 2019 by KIOS Research Center
         email                : mariosmsk@gmail.com
  ***************************************************************************/
 /***************************************************************************
@@ -26,9 +25,10 @@ from qgis.PyQt.QtCore import *
 from qgis.core import QgsRectangle, QgsProject
 from qgis.gui import QgsMapTool, QgsRubberBand
 from .PhotosViewer import PhotoWindow
-import os
+import os.path
 
 
+# Mouseclik import file
 class MouseClick(QgsMapTool):
     afterLeftClick = pyqtSignal()
     afterRightClick = pyqtSignal()
@@ -82,7 +82,6 @@ class MouseClick(QgsMapTool):
                     if self.drawSelf.maxlen>13:
                         self.drawSelf.maxlen = 14
                         self.drawSelf.layerActiveName = self.drawSelf.layerActive.name()+'...'
-                    self.photosDLG = PhotoWindow(self.drawSelf)
 
                     if 'PATH' in fields:
                         imPath = feature.attributes()[feature.fieldNameIndex('Path')]
@@ -95,8 +94,7 @@ class MouseClick(QgsMapTool):
                         if not os.path.exists(imPath):
                             self.prj = QgsProject.instance()
                             if self.prj.fileName() and 'RELPATH' in fields:
-                                imPath = QFileInfo(prj.fileName()).absolutePath() + \
-                                         feature.attributes()[feature.fieldNameIndex('RelPath')]
+                                imPath = os.path.join(QFileInfo(prj.fileName()).absolutePath(), feature.attributes()[feature.fieldNameIndex('RelPath')])
                             else:
                                 c = self.drawSelf.noImageFound()
                                 if c: return
@@ -104,8 +102,11 @@ class MouseClick(QgsMapTool):
                         c = self.drawSelf.noImageFound()
                         if c: return
 
+                    self.drawSelf.getImage = QImage(imPath)
+
+                    self.photosDLG = PhotoWindow(self.drawSelf)
                     self.photosDLG.viewer.scene.clear()
-                    pixmap = QPixmap.fromImage(QImage(imPath))
+                    pixmap = QPixmap.fromImage(self.drawSelf.getImage)
                     self.photosDLG.viewer.scene.addPixmap(pixmap)
                     self.photosDLG.viewer.setSceneRect(QRectF(pixmap.rect()))
                     self.photosDLG.viewer.resizeEvent([])
@@ -120,11 +121,21 @@ class MouseClick(QgsMapTool):
                         timeTrue = str(feature.attributes()[feature.fieldNameIndex('Time')])
 
                     try:
+                        name_ = feature.attributes()[feature.fieldNameIndex('Name')]
+                        name_ = name_[:-4]
+                    except:
+                        try:
+                            name_ = feature.attributes()[feature.fieldNameIndex('filename')]
+                        except:
+                            name_ = ''
+
+                    try:
                         self.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
                         self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue[0:8])
                     except:
                         pass
                     self.photosDLG.infoPhoto3.setText('Layer: ' + self.drawSelf.layerActiveName)
+                    self.photosDLG.add_window_place.setText(name_)
 
                     azimuth = feature.attributes()[feature.fieldNameIndex('Azimuth')]
                     if type(azimuth) is str:
