@@ -481,30 +481,32 @@ class PhotoWindow(QWidget):
         self.updateWindow()
 
     def update_filters(self, filter):
-        if filter != 'fourrier':
-            self.opencv_filt_status['Gaussian Highpass'] = False
-            self.gaussian_high_filter_btn.setChecked(False)
-        if filter != 'median':
-            self.opencv_filt_status['Median'] = False
-            self.median_filter_btn.setChecked(False)
-        if filter != 'gaussian':
-            self.opencv_filt_status['Gaussian'] = False
-            self.gaussian_filter_btn.setChecked(False)
-        if filter != 'averaging':
-            self.opencv_filt_status['2DConvolution'] = False
-            self.averaging_filter_btn.setChecked(False)
-        if filter != 'blue':
-            self.opencv_filt_status['Blue'] = False
-            self.blue_filter_btn.setChecked(False)
-        if filter != 'red':
-            self.opencv_filt_status['Red'] = False
-            self.red_filter_btn.setChecked(False)
-        if filter != 'green':
-            self.opencv_filt_status['Green'] = False
-            self.green_filter_btn.setChecked(False)
-        if filter != 'edges':
-            self.opencv_filt_status['Edges'] = False
-            self.edges_filter_btn.setChecked(False)
+        if opencv:
+            if filter != 'fourrier':
+                self.opencv_filt_status['Gaussian Highpass'] = False
+                self.gaussian_high_filter_btn.setChecked(False)
+            if filter != 'median':
+                self.opencv_filt_status['Median'] = False
+                self.median_filter_btn.setChecked(False)
+            if filter != 'gaussian':
+                self.opencv_filt_status['Gaussian'] = False
+                self.gaussian_filter_btn.setChecked(False)
+            if filter != 'averaging':
+                self.opencv_filt_status['2DConvolution'] = False
+                self.averaging_filter_btn.setChecked(False)
+            if filter != 'blue':
+                self.opencv_filt_status['Blue'] = False
+                self.blue_filter_btn.setChecked(False)
+            if filter != 'red':
+                self.opencv_filt_status['Red'] = False
+                self.red_filter_btn.setChecked(False)
+            if filter != 'green':
+                self.opencv_filt_status['Green'] = False
+                self.green_filter_btn.setChecked(False)
+            if filter != 'edges':
+                self.opencv_filt_status['Edges'] = False
+                self.edges_filter_btn.setChecked(False)
+
         if filter != 'filters_tab':
             self.gray_filter_status = False
             self.gray_filter_btn.setChecked(False)
