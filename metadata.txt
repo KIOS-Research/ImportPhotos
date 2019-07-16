@@ -11,11 +11,11 @@ name=ImportPhotos
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
 description=Import Photos
-version=2.2
+version=2.2.1
 author=Marios S. Kyriakou, George A. Christou, Panayiotis S. Kolios, KIOS Research and Innovation Center of Excellence (KIOS CoE)
 email=mariosmsk@gmail.com, george.a.christou@gmail.com, panayiotis.kolios@gmail.com
 
-about= This tool can be used to import Geo-Tagged photos (jpg or jpeg) as points to QGIS. The user is able to select a folder with photos and only the geo-tagged photos will be taken. Then a layer will be created which it will contain the name of the picture, its directory, the date and time taken, altitude, longitude, latitude, azimuth, north, camera maker and model, title, user comment and relative path. The plug-in doesn’t need any third party applications to work. It has two buttons; the one is to import geotagged photos, and the other one is to be able to click on a point and display the photo along with information regarding the date time and altitude. The user can create one of the following file types: GeoJSON, SHP, GPKG, CSV, KML, TAB. When the user saves a project and wants to reopen it, the folder with the pictures should stay at the original file location or moved at the same location of the project (e.g. *.qgz) in order to be able to view the pictures. Mac users please refer to the Read Me file for further guidance.
+about= This tool can be used to import Geo-Tagged photos (jpg or jpeg) as points to QGIS. The user is able to select a folder with photos and only the geo-tagged photos will be taken. Then a layer will be created which it will contain the name of the picture, its directory, the date and time taken, altitude, longitude, latitude, azimuth, north, camera maker and model, title, user comment and relative path. The plug-in doesn’t need any third party applications to work. It has two buttons; the one is to import geotagged photos, and the other one is to be able to click on a point and display the photo along with information regarding the date time and altitude. The user can create one of the following file types: GeoJSON, SHP, GPKG, CSV, KML, TAB. When the user saves a project and wants to reopen it, the folder with the pictures should stay at the original file location or moved at the same location of the project (e.g. *.qgz) in order to be able to view the pictures. Mac users please refer to the Read Me file for further guidance. The new version of Import photos gives the ability to the user to use several basic filters on the image and save the picture. To use additional filters, the user needs to use the python package opencv-python.
 
 tracker=https://github.com/KIOS-Research/ImportPhotos/issues/
 repository=https://github.com/KIOS-Research/ImportPhotos/
@@ -23,7 +23,9 @@ repository=https://github.com/KIOS-Research/ImportPhotos/
 
 # Recommended items:
 # Uncomment the following line and add your changelog:
-changelog=2019-07-15  ImportPhotos 2.2:
+changelog=2019-07-16  ImportPhotos 2.2.1:
+			Fix tab Filters works without Opencv
+      2019-07-15  ImportPhotos 2.2:
 			Add tabs options File, Filters, Opencv, Bands
 			Add filters gray and mirror, mono, edges, averaging, gaussian, gaussian highpass (req. opencv-python)
 			Add bands red, blue, green
