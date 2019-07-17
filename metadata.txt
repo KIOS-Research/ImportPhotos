@@ -26,6 +26,7 @@ repository=https://github.com/KIOS-Research/ImportPhotos/
 changelog=2019-07-18  ImportPhotos 2.2.2:
 			Fix transparent left,right buttons for all themes
 			Fix bug with null parameters
+			Add option to import photos in canvas extent
 	  2019-07-16  ImportPhotos 2.2.1:
 			Fix tab Filters works without Opencv
       2019-07-15  ImportPhotos 2.2:
