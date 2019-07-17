@@ -292,6 +292,7 @@ class ImportPhotos:
         self.dlg.out.setText('')
         self.dlg.imp.setText('')
         self.dlg.load_style_path.setText('')
+        self.dlg.canvas_extent.setChecked(False)
         self.dlg.show()
 
     def close(self):
@@ -442,6 +443,7 @@ class ImportPhotos:
         self.canvas.setMapTool(self.toolMouseClick)
 
         self.truePhotosCount = 0
+        self.out_of_extent_photos = 0
 
         self.Qpr_inst = QgsProject.instance()
         if platform.system()=='Darwin':
@@ -548,18 +550,19 @@ class ImportPhotos:
         self.dlg.input_load_style.setEnabled(True)
         self.clickPhotos.setChecked(True)
 
-        noLocationPhotosCounter = self.initphotos - self.truePhotosCount
+        noLocationPhotosCounter = self.initphotos - self.truePhotosCount - self.out_of_extent_photos
         if (self.truePhotosCount == noLocationPhotosCounter == 0 or self.truePhotosCount == 0 ) and self.showMessageHide:
             title = 'Import Photos'
             msg = 'Import Completed.\n\nDetails:\n  No new photos were added.'
             self.showMessage(title, msg, 'Information')
             self.taskPhotos.destroyed()
             return
-        elif ((self.truePhotosCount == self.initphotos) or ((noLocationPhotosCounter + self.truePhotosCount) == self.initphotos) )and self.showMessageHide:
+        elif ((self.truePhotosCount == self.initphotos) or ((noLocationPhotosCounter + self.truePhotosCount + self.out_of_extent_photos) == self.initphotos) )and self.showMessageHide:
             title = 'Import Photos'
             msg = 'Import Completed.\n\nDetails:\n  ' + str(
                 int(self.truePhotosCount)) + ' photo(s) added without error.\n  ' + str(
-                int(noLocationPhotosCounter)) + ' photo(s) skipped (because of missing location).'
+                int(noLocationPhotosCounter)) + ' photo(s) skipped (because of missing location).\n  ' + str(
+                int(self.out_of_extent_photos)) + ' photo(s) skipped (because not in canvas extent).'
             self.showMessage(title, msg, 'Information')
 
         g = self.Qpr_inst.layerTreeRoot().insertGroup(0, self.lphoto)
@@ -590,10 +593,13 @@ class ImportPhotos:
                         continue
 
                     lat, lon = self.get_exif_location(tags, "lonlat")
-                    if 'GPS GPSAltitude' in tags:
-                        altitude = float(tags["GPS GPSAltitude"].values[0].num) / float(
-                            tags["GPS GPSAltitude"].values[0].den)
-                    else:
+                    try:
+                        if 'GPS GPSAltitude' in tags:
+                            altitude = float(tags["GPS GPSAltitude"].values[0].num) / float(
+                                tags["GPS GPSAltitude"].values[0].den)
+                        else:
+                            altitude = ''
+                    except:
                         altitude = ''
                     uuid_ = str(uuid.uuid4())
 
@@ -613,35 +619,53 @@ class ImportPhotos:
                             time_ = ''
                             timestamp = ''
 
-                    if 'GPS GPSImgDirection' in tags:
-                        azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(
-                            tags["GPS GPSImgDirection"].values[0].den)
-                    else:
+                    try:
+                        if 'GPS GPSImgDirection' in tags:
+                            azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(
+                                tags["GPS GPSImgDirection"].values[0].den)
+                        else:
+                            azimuth = ''
+                    except:
                         azimuth = ''
 
-                    if 'GPS GPSImgDirectionRef' in tags:
-                        north = str(tags["GPS GPSImgDirectionRef"].values)
-                    else:
+                    try:
+                        if 'GPS GPSImgDirectionRef' in tags:
+                            north = str(tags["GPS GPSImgDirectionRef"].values)
+                        else:
+                            north = ''
+                    except:
                         north = ''
 
-                    if 'Image Make' in tags:
-                        maker = tags['Image Make']
-                    else:
+                    try:
+                        if 'Image Make' in tags:
+                           maker = tags['Image Make']
+                        else:
+                            maker = ''
+                    except:
                         maker = ''
 
-                    if 'Image Model' in tags:
-                        model = tags['Image Model']
-                    else:
+                    try:
+                        if 'Image Model' in tags:
+                            model = tags['Image Model']
+                        else:
+                            model = ''
+                    except:
                         model = ''
 
-                    if 'Image ImageDescription' in tags:
-                        title = tags['Image ImageDescription']
-                    else:
+                    try:
+                        if 'Image ImageDescription' in tags:
+                            title = tags['Image ImageDescription']
+                        else:
+                            title = ''
+                    except:
                         title = ''
 
-                    if 'EXIF UserComment' in tags:
-                        user_comm = tags['EXIF UserComment'].printable
-                    else:
+                    try:
+                        if 'EXIF UserComment' in tags:
+                            user_comm = tags['EXIF UserComment'].printable
+                        else:
+                            user_comm = ''
+                    except:
                         user_comm = ''
 
                 if CHECK_MODULE == 'PIL' and not self.exifread_module:
@@ -688,18 +712,25 @@ class ImportPhotos:
                             time_ = dt2
                             timestamp = dt1.replace(':', '-') + 'T' + time_
 
-                        if 6 in a['GPSInfo']:
-                            if len(a['GPSInfo'][6]) > 1:
-                                mAltitude = float(a['GPSInfo'][6][0])
-                                mAltitudeDec = float(a['GPSInfo'][6][1])
-                                altitude = mAltitude / mAltitudeDec
-                        else:
+                        try:
+                            if 6 in a['GPSInfo']:
+                                if len(a['GPSInfo'][6]) > 1:
+                                    mAltitude = float(a['GPSInfo'][6][0])
+                                    mAltitudeDec = float(a['GPSInfo'][6][1])
+                                    altitude = mAltitude / mAltitudeDec
+                            else:
+                                altitude = ''
+                        except:
                             altitude = ''
 
-                        if 16 and 17 in a['GPSInfo']:
-                            north = str(a['GPSInfo'][16])
-                            azimuth = float(a['GPSInfo'][17][0]) / float(a['GPSInfo'][17][1])
-                        else:
+                        try:
+                            if 16 and 17 in a['GPSInfo']:
+                                north = str(a['GPSInfo'][16])
+                                azimuth = float(a['GPSInfo'][17][0]) / float(a['GPSInfo'][17][1])
+                            else:
+                                north = ''
+                                azimuth = ''
+                        except:
                             north = ''
                             azimuth = ''
 
@@ -707,8 +738,16 @@ class ImportPhotos:
                         model = ''
                         user_comm = ''
                         title = ''
+
+                if self.dlg.canvas_extent.isChecked():
+                    if not (self.canvas.extent().xMaximum() > lon > self.canvas.extent().xMinimum() \
+                            and self.canvas.extent().yMaximum() > lat > self.canvas.extent().yMinimum()):
+                        self.out_of_extent_photos = self.out_of_extent_photos + 1
+                        continue
+
                 self.lon.append(lon)
                 self.lat.append(lat)
+
                 self.truePhotosCount = self.truePhotosCount + 1
 
                 geo_info = {"type": "Feature",
