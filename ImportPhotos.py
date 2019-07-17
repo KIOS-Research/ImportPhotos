@@ -561,8 +561,8 @@ class ImportPhotos:
             title = 'Import Photos'
             msg = 'Import Completed.\n\nDetails:\n  ' + str(
                 int(self.truePhotosCount)) + ' photo(s) added without error.\n  ' + str(
-                int(noLocationPhotosCounter)) + ' photo(s) skipped (because of missing location).\n ' + str(
-                int(self.out_of_extent_photos)) + ' photo(s) skipped (because not in canvas extent.'
+                int(noLocationPhotosCounter)) + ' photo(s) skipped (because of missing location).\n  ' + str(
+                int(self.out_of_extent_photos)) + ' photo(s) skipped (because not in canvas extent).'
             self.showMessage(title, msg, 'Information')
 
         g = self.Qpr_inst.layerTreeRoot().insertGroup(0, self.lphoto)
