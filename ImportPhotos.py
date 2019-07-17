@@ -590,10 +590,13 @@ class ImportPhotos:
                         continue
 
                     lat, lon = self.get_exif_location(tags, "lonlat")
-                    if 'GPS GPSAltitude' in tags:
-                        altitude = float(tags["GPS GPSAltitude"].values[0].num) / float(
-                            tags["GPS GPSAltitude"].values[0].den)
-                    else:
+                    try:
+                        if 'GPS GPSAltitude' in tags:
+                            altitude = float(tags["GPS GPSAltitude"].values[0].num) / float(
+                                tags["GPS GPSAltitude"].values[0].den)
+                        else:
+                            altitude = ''
+                    except:
                         altitude = ''
                     uuid_ = str(uuid.uuid4())
 
@@ -613,35 +616,53 @@ class ImportPhotos:
                             time_ = ''
                             timestamp = ''
 
-                    if 'GPS GPSImgDirection' in tags:
-                        azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(
-                            tags["GPS GPSImgDirection"].values[0].den)
-                    else:
+                    try:
+                        if 'GPS GPSImgDirection' in tags:
+                            azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(
+                                tags["GPS GPSImgDirection"].values[0].den)
+                        else:
+                            azimuth = ''
+                    except:
                         azimuth = ''
 
-                    if 'GPS GPSImgDirectionRef' in tags:
-                        north = str(tags["GPS GPSImgDirectionRef"].values)
-                    else:
+                    try:
+                        if 'GPS GPSImgDirectionRef' in tags:
+                            north = str(tags["GPS GPSImgDirectionRef"].values)
+                        else:
+                            north = ''
+                    except:
                         north = ''
 
-                    if 'Image Make' in tags:
-                        maker = tags['Image Make']
-                    else:
+                    try:
+                        if 'Image Make' in tags:
+                           maker = tags['Image Make']
+                        else:
+                            maker = ''
+                    except:
                         maker = ''
 
-                    if 'Image Model' in tags:
-                        model = tags['Image Model']
-                    else:
+                    try:
+                        if 'Image Model' in tags:
+                            model = tags['Image Model']
+                        else:
+                            model = ''
+                    except:
                         model = ''
 
-                    if 'Image ImageDescription' in tags:
-                        title = tags['Image ImageDescription']
-                    else:
+                    try:
+                        if 'Image ImageDescription' in tags:
+                            title = tags['Image ImageDescription']
+                        else:
+                            title = ''
+                    except:
                         title = ''
 
-                    if 'EXIF UserComment' in tags:
-                        user_comm = tags['EXIF UserComment'].printable
-                    else:
+                    try:
+                        if 'EXIF UserComment' in tags:
+                            user_comm = tags['EXIF UserComment'].printable
+                        else:
+                            user_comm = ''
+                    except:
                         user_comm = ''
 
                 if CHECK_MODULE == 'PIL' and not self.exifread_module:
@@ -688,18 +709,25 @@ class ImportPhotos:
                             time_ = dt2
                             timestamp = dt1.replace(':', '-') + 'T' + time_
 
-                        if 6 in a['GPSInfo']:
-                            if len(a['GPSInfo'][6]) > 1:
-                                mAltitude = float(a['GPSInfo'][6][0])
-                                mAltitudeDec = float(a['GPSInfo'][6][1])
-                                altitude = mAltitude / mAltitudeDec
-                        else:
+                        try:
+                            if 6 in a['GPSInfo']:
+                                if len(a['GPSInfo'][6]) > 1:
+                                    mAltitude = float(a['GPSInfo'][6][0])
+                                    mAltitudeDec = float(a['GPSInfo'][6][1])
+                                    altitude = mAltitude / mAltitudeDec
+                            else:
+                                altitude = ''
+                        except:
                             altitude = ''
 
-                        if 16 and 17 in a['GPSInfo']:
-                            north = str(a['GPSInfo'][16])
-                            azimuth = float(a['GPSInfo'][17][0]) / float(a['GPSInfo'][17][1])
-                        else:
+                        try:
+                            if 16 and 17 in a['GPSInfo']:
+                                north = str(a['GPSInfo'][16])
+                                azimuth = float(a['GPSInfo'][17][0]) / float(a['GPSInfo'][17][1])
+                            else:
+                                north = ''
+                                azimuth = ''
+                        except:
                             north = ''
                             azimuth = ''
 
