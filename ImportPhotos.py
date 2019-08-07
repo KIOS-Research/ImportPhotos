@@ -235,7 +235,7 @@ class ImportPhotos:
         self.toolMouseClick = MouseClick(self.canvas, self)
 
         self.fields = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Maker',
-                       'Camera Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp']
+                       'Camera Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images']
 
         self.extension_switch = {
             ".shp": "ESRI Shapefile",
@@ -584,6 +584,7 @@ class ImportPhotos:
             try:
                 name = os.path.basename(imgpath)
                 RelPath = self.selected_folder + self.photos_names[count]
+                ImagesSrc = '<img src =' + RelPath + 'width="300" height="225"/>'
                 if CHECK_MODULE == 'exifread' and not self.pil_module:
                     self.exifread_module = True
                     self.taskPhotos.setProgress(count/self.initphotos)
@@ -757,7 +758,7 @@ class ImportPhotos:
                                            'Azimuth': azimuth,
                                            'Camera Maker': str(maker), 'Camera Model': str(model), 'Title': str(title),
                                            'Comment': user_comm,'Path': imgpath, 'RelPath': RelPath,
-                                           'Timestamp': timestamp},
+                                           'Timestamp': timestamp, 'Images': ImagesSrc},
                             "geometry": {"coordinates": [lon, lat], "type": "Point"}}
                 self.geoPhotos.append(geo_info)
 
