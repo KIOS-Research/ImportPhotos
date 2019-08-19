@@ -584,7 +584,7 @@ class ImportPhotos:
             try:
                 name = os.path.basename(imgpath)
                 RelPath = self.selected_folder + self.photos_names[count]
-                ImagesSrc = '<img src =' + RelPath + 'width="300" height="225"/>'
+                ImagesSrc = '<img src = "' + RelPath + '" width="300" height="225"/>'
                 if CHECK_MODULE == 'exifread' and not self.pil_module:
                     self.exifread_module = True
                     self.taskPhotos.setProgress(count/self.initphotos)
