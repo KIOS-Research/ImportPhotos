@@ -11,7 +11,7 @@ name=ImportPhotos
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
 description=Import Photos
-version=2.2.2
+version=2.2.3
 author=Marios S. Kyriakou, George A. Christou, Panayiotis S. Kolios, KIOS Research and Innovation Center of Excellence (KIOS CoE)
 email=mariosmsk@gmail.com, george.a.christou@gmail.com, panayiotis.kolios@gmail.com
 
@@ -23,7 +23,9 @@ repository=https://github.com/KIOS-Research/ImportPhotos/
 
 # Recommended items:
 # Uncomment the following line and add your changelog:
-changelog=2019-07-18  ImportPhotos 2.2.2:
+changelog=2019-08-07  ImportPhotos 2.2.3:
+			Add field column Images.
+	  2019-07-18  ImportPhotos 2.2.2:
 			Fix transparent left,right buttons for all themes
 			Fix bug with null parameters
 			Add option to import photos in canvas extent

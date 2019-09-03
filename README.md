@@ -1,4 +1,8 @@
-﻿# ImportPhotos
+﻿<a href="http://www.kios.ucy.ac.cy"><img src="http://www.kios.ucy.ac.cy/templates/favourite/images/kios_logo_hover.png"/><a>
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3384824.svg)](https://doi.org/10.5281/zenodo.3384824)
+
+# ImportPhotos
 
 QGIS plugin
 
@@ -20,3 +24,16 @@ Mac Users. Requires the following Python Modules to be installed: UnixImageIO, F
 * Panayiotis S. Kolios, [KIOS Research Center for Intelligent Systems and Networks, University of Cyprus (KIOS CoE)](http://www.kios.ucy.ac.cy/)
 
 * [QGIS Cyprus](https://www.facebook.com/qgiscyprus/)
+
+## How to cite 
+
+M. Kyriakou, G. Christou, end P. Kolios, "ImportPhotos: a QGIS plugin to visualise geotagged photos", Zenodo. (doi:10.5281/zenodo.3384824)
+
+```
+@INPROCEEDINGS{kyriakou2019,
+author={Kyriakou, Marios and Christou, Georgios and Kolios, Panayiotis},
+title={ImportPhotos: a QGIS plugin to visualise geotagged photos},
+month= {jul},
+year= {2019},
+DOI= {10.5281/zenodo.3384824}}
+```

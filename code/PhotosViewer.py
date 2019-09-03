@@ -203,12 +203,18 @@ class PhotoWindow(QWidget):
                     name_ = ''
 
             if not os.path.exists(imPath):
-                if self.drawSelf.prj.fileName() and 'RELPATH' in self.drawSelf.fields:
-                    imPath = QFileInfo(prj.fileName()).absolutePath() + \
-                             feature.attributes()[feature.fieldNameIndex('RelPath')]
+                try:
+                    if self.drawSelf.prj.fileName() and 'RELPATH' in self.drawSelf.fields:
+                        imPath = QFileInfo(prj.fileName()).absolutePath() + \
+                                 feature.attributes()[feature.fieldNameIndex('RelPath')]
+                except:
+                    imPath = ''
+            try:
+                azimuth = f.attributes()[f.fieldNameIndex('Azimuth')]
+            except:
+                azimuth = ''
 
-            azimuth = f.attributes()[f.fieldNameIndex('Azimuth')]
-            self.allpictures.append(f.attributes()[f.fieldNameIndex('Name')])
+            self.allpictures.append(name_)
             self.allpicturesdates.append(dateTrue)
             self.allpicturestimes.append(timeTrue)
             self.allpicturesImpath.append(imPath)
