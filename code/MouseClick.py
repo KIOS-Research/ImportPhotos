@@ -39,6 +39,7 @@ class MouseClick(QgsMapTool):
         self.canvas = canvas
         self.drawSelf = drawSelf
         self.drawSelf.rb = None
+        self.photosDLG = None
 
     def canvasPressEvent(self, event):
         if event.button() == 1:
@@ -47,10 +48,14 @@ class MouseClick(QgsMapTool):
     def canvasMoveEvent(self, event):
         pass
 
-    def canvasReleaseEvent(self, event):
+    # sigeal : Affichage de la photo sur clic au lieu de double-clic
+    #def canvasReleaseEvent(self, event):
+    def canvasDoubleClickEvent(self, event):
         pass
 
-    def canvasDoubleClickEvent(self, event):
+    # sigeal : Affichage de la photo sur clic au lieu de double-clic
+    #def canvasDoubleClickEvent(self, event):
+    def canvasReleaseEvent(self, event):
 
         layers = self.canvas.layers()
         p = self.toMapCoordinates(event.pos())
@@ -104,7 +109,8 @@ class MouseClick(QgsMapTool):
 
                     self.drawSelf.getImage = QImage(imPath)
 
-                    self.photosDLG = PhotoWindow(self.drawSelf)
+                    if self.photosDLG == None:
+                        self.photosDLG = PhotoWindow(self.drawSelf)
                     self.photosDLG.viewer.scene.clear()
                     pixmap = QPixmap.fromImage(self.drawSelf.getImage)
                     self.photosDLG.viewer.scene.addPixmap(pixmap)
@@ -150,6 +156,8 @@ class MouseClick(QgsMapTool):
                             return
                     self.photosDLG.rotate_azimuth.setEnabled(False)
                     self.photosDLG.showNormal()
+                    # sigeal : Forcer l'affichage de la fenêtre au premier plan
+                    self.photosDLG.setWindowFlags(Qt.WindowStaysOnTopHint)
                     return
 
     def deactivate(self):
