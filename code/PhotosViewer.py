@@ -19,10 +19,10 @@
  ***************************************************************************/
 """
 
-from PyQt5.QtWidgets import (QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
+from qgis.PyQt.QtWidgets import (QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
     QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame, QMenuBar, QAction, qApp, QFileDialog, QMessageBox)
-from PyQt5.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize)
-from PyQt5.QtGui import (QPainterPath, QIcon, QPixmap, QImage, QFont)
+from qgis.PyQt.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize, QCoreApplication)
+from qgis.PyQt.QtGui import (QPainterPath, QIcon, QPixmap, QImage, QFont)
 import os.path
 
 #Filtering opencv
@@ -58,7 +58,7 @@ class PhotosViewer(QGraphicsView):
             self.leftClick = QPushButton(self)
             self.leftClick.setIcon(QIcon(':/plugins/ImportPhotos/icons/arrowLeft.png'))
             self.leftClick.clicked.connect(self.selfwindow.leftClickButton)
-            self.leftClick.setToolTip('Show previous photo')
+            self.leftClick.setToolTip(self.tr('Show previous photo'))
             self.leftClick.setStyleSheet("QPushButton{border: 0px; background: transparent;}")
             self.leftClick.setIconSize(QSize(size, size))
             self.leftClick.setFocusPolicy(Qt.NoFocus)
@@ -66,7 +66,7 @@ class PhotosViewer(QGraphicsView):
             self.rightClick = QPushButton(self)
             self.rightClick.setIcon(QIcon(':/plugins/ImportPhotos/icons/arrowRight.png'))
             self.rightClick.clicked.connect(self.selfwindow.rightClickButton)
-            self.rightClick.setToolTip('Show next photo')
+            self.rightClick.setToolTip(self.tr('Show next photo'))
             self.rightClick.setStyleSheet("QPushButton{border: 0px; background: transparent;}")
             self.rightClick.setIconSize(QSize(size, size))
             self.rightClick.setFocusPolicy(Qt.NoFocus)
@@ -165,6 +165,21 @@ class PhotosViewer(QGraphicsView):
         if e.key() == Qt.Key_Escape:
             self.selfwindow.close()
 
+    # noinspection PyMethodMayBeStatic
+    def tr(self, message):
+        """Get the translation for a string using Qt translation API.
+
+        We implement this ourselves since we do not inherit QObject.
+
+        :param message: String for translation.
+        :type message: str, QString
+
+        :returns: Translated version of message.
+        :rtype: QString
+        """
+        # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
+        return QCoreApplication.translate('PhotosViewer', message)
+
 
 class PhotoWindow(QWidget):
     def __init__(self, drawSelf):
@@ -232,63 +247,63 @@ class PhotoWindow(QWidget):
         menu_bar = QMenuBar(self)
         menu_bar.setGeometry(QRect(0, 0, 10000, 26))
 
-        file_menu = menu_bar.addMenu('File')
-        self.saveas = file_menu.addAction('Save As')
+        file_menu = menu_bar.addMenu(self.tr('File'))
+        self.saveas = file_menu.addAction(self.tr('Save As'))
         self.saveas.triggered.connect(self.saveas_call)
 
-        filters_menu = menu_bar.addMenu('Filters')
+        filters_menu = menu_bar.addMenu(self.tr('Filters'))
 
         self.gray_filter_status = False
-        self.gray_filter_btn = filters_menu.addAction('Gray Filter')
+        self.gray_filter_btn = filters_menu.addAction(self.tr('Gray Filter'))
         self.gray_filter_btn.setCheckable(True)
         self.gray_filter_btn.triggered.connect(self.gray_filter_call)
 
         self.mirror_filter_status = False
-        self.mirror_filter_btn = filters_menu.addAction('Mirror Filter')
+        self.mirror_filter_btn = filters_menu.addAction(self.tr('Mirror Filter'))
         self.mirror_filter_btn.setCheckable(True)
         self.mirror_filter_btn.triggered.connect(self.mirror_filter_call)
 
         self.mono_filter_status = False
-        self.mono_filter_btn = filters_menu.addAction('Mono Filter')
+        self.mono_filter_btn = filters_menu.addAction(self.tr('Mono Filter'))
         self.mono_filter_btn.setCheckable(True)
         self.mono_filter_btn.triggered.connect(self.mono_filter_call)
 
         try:
             if opencv:
-                opencv_menu = menu_bar.addMenu('Opencv')
-                bands_menu = menu_bar.addMenu('Bands')
+                opencv_menu = menu_bar.addMenu(self.tr('Opencv'))
+                bands_menu = menu_bar.addMenu(self.tr('Bands'))
 
                 self.opencv_filt_status = {'Edges': False, 'Red': False, 'Green': False, 'Blue': False,
                                            '2DConvolution': False, 'Median': False, 'Gaussian': False, 'Gaussian Highpass': False}
-                self.edges_filter_btn = opencv_menu.addAction('Edges Filter')
+                self.edges_filter_btn = opencv_menu.addAction(self.tr('Edges Filter'))
                 self.edges_filter_btn.setCheckable(True)
                 self.edges_filter_btn.triggered.connect(self.edges_filter_call)
 
-                self.red_filter_btn = bands_menu.addAction('Red Band')
+                self.red_filter_btn = bands_menu.addAction(self.tr('Red Band'))
                 self.red_filter_btn.setCheckable(True)
                 self.red_filter_btn.triggered.connect(self.red_filter_call)
 
-                self.blue_filter_btn = bands_menu.addAction('Blue Band')
+                self.blue_filter_btn = bands_menu.addAction(self.tr('Blue Band'))
                 self.blue_filter_btn.setCheckable(True)
                 self.blue_filter_btn.triggered.connect(self.blue_filter_call)
 
-                self.green_filter_btn = bands_menu.addAction('Green Band')
+                self.green_filter_btn = bands_menu.addAction(self.tr('Green Band'))
                 self.green_filter_btn.setCheckable(True)
                 self.green_filter_btn.triggered.connect(self.green_filter_call)
 
-                self.averaging_filter_btn = opencv_menu.addAction('2D Convolution Filter')
+                self.averaging_filter_btn = opencv_menu.addAction(self.tr('2D Convolution Filter'))
                 self.averaging_filter_btn.setCheckable(True)
                 self.averaging_filter_btn.triggered.connect(self.averaging_filter_call)
 
-                self.median_filter_btn = opencv_menu.addAction('Median Filter')
+                self.median_filter_btn = opencv_menu.addAction(self.tr('Median Filter'))
                 self.median_filter_btn.setCheckable(True)
                 self.median_filter_btn.triggered.connect(self.median_filter_call)
 
-                self.gaussian_filter_btn = opencv_menu.addAction('Gaussian Filter')
+                self.gaussian_filter_btn = opencv_menu.addAction(self.tr('Gaussian Filter'))
                 self.gaussian_filter_btn.setCheckable(True)
                 self.gaussian_filter_btn.triggered.connect(self.gaussian_filter_call)
 
-                self.gaussian_high_filter_btn = opencv_menu.addAction('Gaussian Highpass')
+                self.gaussian_high_filter_btn = opencv_menu.addAction(self.tr('Gaussian Highpass'))
                 self.gaussian_high_filter_btn.setCheckable(True)
                 self.gaussian_high_filter_btn.triggered.connect(self.gaussian_high_filter_call)
         except:
@@ -355,13 +370,13 @@ class PhotoWindow(QWidget):
             self.hide_arrow.setEnabled(False)
 
         # Add tips on buttons
-        self.extent.setToolTip('Extent photo')
-        self.zoom.setToolTip('Select area to zoom')
-        self.pan.setToolTip('Pan')
-        self.zoom_to_select.setToolTip('Zoom to selected photo')
-        self.rotate_option.setToolTip('Rotate 45°')
-        self.rotate_azimuth.setToolTip('Rotate to azimuth')
-        self.hide_arrow.setToolTip('Hide arrows')
+        self.extent.setToolTip(self.tr('Extent photo'))
+        self.zoom.setToolTip(self.tr('Select area to zoom'))
+        self.pan.setToolTip(self.tr('Pan'))
+        self.zoom_to_select.setToolTip(self.tr('Zoom to selected photo'))
+        self.rotate_option.setToolTip(self.tr('Rotate 45°'))
+        self.rotate_azimuth.setToolTip(self.tr('Rotate to azimuth'))
+        self.hide_arrow.setToolTip(self.tr('Hide arrows'))
 
         # Arrange layout
         VBlayout = QVBoxLayout(self)
@@ -524,13 +539,13 @@ class PhotoWindow(QWidget):
             self.mono_filter_btn.setChecked(False)
 
     def saveas_call(self):
-        self.outputPath = QFileDialog.getSaveFileName(None, 'Save Image', os.path.join(
+        self.outputPath = QFileDialog.getSaveFileName(None, self.tr('Save Image'), os.path.join(
             os.path.join(os.path.expanduser('~')), 'Desktop'), '.png')
         self.outputPath = self.outputPath[0]
         if self.outputPath == '':
             return
         self.drawSelf.getImage.save(self.outputPath+'.png')
-        self.showMessage(title='ImportPhotos', msg='Save image at "'+self.outputPath+'.png'+'" succesfull.', button='OK', icon='Info')
+        self.showMessage(title='ImportPhotos', msg=self.tr('Save image at "')+self.outputPath+'.png'+self.tr('" succesfull.'), button='OK', icon='Info')
 
     def showMessage(self, title, msg, button, icon):
         msgBox = QMessageBox()
@@ -556,11 +571,11 @@ class PhotoWindow(QWidget):
             self.viewer.leftClick.setIcon(QIcon(':/plugins/ImportPhotos/icons/arrowLeft.png'))
             self.viewer.rightClick.setIcon(icon_right)
             self.hide_arrow.setIcon(icon_right)
-            self.hide_arrow.setToolTip('Hide arrows')
+            self.hide_arrow.setToolTip(self.tr('Hide arrows'))
         else:
             self.viewer.leftClick.setIcon(QIcon(''))
             self.viewer.rightClick.setIcon(QIcon(''))
-            self.hide_arrow.setToolTip('Show arrows')
+            self.hide_arrow.setToolTip(self.tr('Show arrows'))
             self.hide_arrow.setIcon(icon_right)
 
     def leftClickButton(self):
@@ -657,10 +672,10 @@ class PhotoWindow(QWidget):
         self.viewer.resizeEvent([])
         self.extentbutton()
         self.infoPhoto1.setText(
-            'Date: ' + self.allpicturesdates[self.drawSelf.featureIndex])
+            self.tr('Date: ') + self.allpicturesdates[self.drawSelf.featureIndex])
         self.infoPhoto2.setText(
-            'Time: ' + self.allpicturestimes[self.drawSelf.featureIndex][0:8])
-        self.infoPhoto3.setText('Layer: ' + self.drawSelf.layerActiveName)
+            self.tr('Time: ') + self.allpicturestimes[self.drawSelf.featureIndex][0:8])
+        self.infoPhoto3.setText(self.tr('Layer: ') + self.drawSelf.layerActiveName)
         self.add_window_place.setText(self.allpicturesName[self.drawSelf.featureIndex])
 
         azimuth = self.allpicturesAzimuth[self.drawSelf.featureIndex]
@@ -715,3 +730,19 @@ class PhotoWindow(QWidget):
         self.viewer.zoomSelect = False
         self.viewer.setCursor(Qt.ArrowCursor)
         self.viewer.setDragMode(QGraphicsView.NoDrag)
+
+    # noinspection PyMethodMayBeStatic
+    def tr(self, message):
+        """Get the translation for a string using Qt translation API.
+
+        We implement this ourselves since we do not inherit QObject.
+
+        :param message: String for translation.
+        :type message: str, QString
+
+        :returns: Translated version of message.
+        :rtype: QString
+        """
+        # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
+        return QCoreApplication.translate('PhotoWindow', message)
+

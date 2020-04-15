@@ -27,6 +27,9 @@ from qgis.gui import QgsMapTool, QgsRubberBand
 from .PhotosViewer import PhotoWindow
 import os.path
 
+from win32gui import SetWindowPos
+import win32con
+
 
 # Mouseclik import file
 class MouseClick(QgsMapTool):
@@ -43,6 +46,7 @@ class MouseClick(QgsMapTool):
 
     def canvasPressEvent(self, event):
         if event.button() == 1:
+            self.photosDLG.setWindowFlags(Qt.WindowStaysOnTopHint)
             self.drawSelf.refresh()
 
     def canvasMoveEvent(self, event):
@@ -56,7 +60,7 @@ class MouseClick(QgsMapTool):
     # sigeal : Affichage de la photo sur clic au lieu de double-clic
     #def canvasDoubleClickEvent(self, event):
     def canvasReleaseEvent(self, event):
-
+        print('Affichage photo1')
         layers = self.canvas.layers()
         p = self.toMapCoordinates(event.pos())
         w = self.canvas.mapUnitsPerPixel() * 10
@@ -109,13 +113,16 @@ class MouseClick(QgsMapTool):
 
                     self.drawSelf.getImage = QImage(imPath)
 
+                    print('Affichage photo2')
                     if self.photosDLG == None:
                         self.photosDLG = PhotoWindow(self.drawSelf)
+                        print('Affichage photo3')
                     self.photosDLG.viewer.scene.clear()
                     pixmap = QPixmap.fromImage(self.drawSelf.getImage)
                     self.photosDLG.viewer.scene.addPixmap(pixmap)
                     self.photosDLG.viewer.setSceneRect(QRectF(pixmap.rect()))
                     self.photosDLG.viewer.resizeEvent([])
+                    print('Affichage photo4')
 
                     try:
                         dateTrue = str(feature.attributes()[feature.fieldNameIndex('Date')].toString('yyyy-MM-dd'))
@@ -136,11 +143,11 @@ class MouseClick(QgsMapTool):
                             name_ = ''
 
                     try:
-                        self.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
-                        self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue[0:8])
+                        self.photosDLG.infoPhoto1.setText(self.tr('Date: ') + dateTrue)
+                        self.photosDLG.infoPhoto2.setText(self.tr('Time: ') + timeTrue[0:8])
                     except:
                         pass
-                    self.photosDLG.infoPhoto3.setText('Layer: ' + self.drawSelf.layerActiveName)
+                    self.photosDLG.infoPhoto3.setText(self.tr('Layer: ') + self.drawSelf.layerActiveName)
                     self.photosDLG.add_window_place.setText(name_)
 
                     azimuth = feature.attributes()[feature.fieldNameIndex('Azimuth')]
@@ -152,12 +159,32 @@ class MouseClick(QgsMapTool):
                     if type(azimuth) is float:
                         if azimuth > 0:
                             self.photosDLG.rotate_azimuth.setEnabled(True)
+                            # sigeal : Forcer l'affichage de la fenêtre au premier plan
+                            #self.photosDLG.setWindowFlags(Qt.WindowStaysOnTopHint)
                             self.photosDLG.showNormal()
+                            #self.photosDLG.setWindowState(self.photosDLG.windowState() & ~Qt.WindowMinimized | Qt.WindowActive)
+                            #self.photosDLG.activateWindow()
+                            print('Affichage photo5')
                             return
                     self.photosDLG.rotate_azimuth.setEnabled(False)
                     self.photosDLG.showNormal()
                     # sigeal : Forcer l'affichage de la fenêtre au premier plan
-                    self.photosDLG.setWindowFlags(Qt.WindowStaysOnTopHint)
+                    """
+                    SetWindowPos(self.photosDLG.winId(),
+                                 win32con.HWND_TOPMOST, # = always on top. only reliable way to bring it to the front on windows
+                                 0, 0, 0, 0,
+                                 win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW)
+                    SetWindowPos(self.photosDLG.winId(),
+                                 win32con.HWND_NOTOPMOST, # disable the always on top, but leave window at its top position
+                                 0, 0, 0, 0,
+                                 win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW)
+                    self.photosDLG.raise_()
+                    self.photosDLG.show()
+                    self.photosDLG.activateWindow()
+                    """
+                    self.photosDLG.setWindowState(window.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
+                    self.photosDLG.activateWindow()
+                    #self.photosDLG.setWindowFlags(Qt.WindowStaysOnTopHint)
                     return
 
     def deactivate(self):
@@ -171,3 +198,18 @@ class MouseClick(QgsMapTool):
 
     def isEditTool(self):
         return True
+
+    # noinspection PyMethodMayBeStatic
+    def tr(self, message):
+        """Get the translation for a string using Qt translation API.
+
+        We implement this ourselves since we do not inherit QObject.
+
+        :param message: String for translation.
+        :type message: str, QString
+
+        :returns: Translated version of message.
+        :rtype: QString
+        """
+        # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
+        return QCoreApplication.translate('PhotoWindow', message)
