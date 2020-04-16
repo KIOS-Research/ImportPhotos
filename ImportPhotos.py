@@ -24,10 +24,10 @@ from qgis.PyQt.QtGui import (QIcon)
 from qgis.PyQt import (uic)
 from qgis.PyQt.QtWidgets import (QDialog)
 from qgis.PyQt.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication, Qt, QVariant)
-from qgis.core import (QgsRectangle, QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsVectorLayer, \
-                       QgsLayerTreeLayer, QgsProject, QgsTask, QgsApplication, QgsMessageLog, QgsFields, QgsField,
-                       QgsWkbTypes, QgsFeature, QgsPointXY, QgsGeometry)
-from qgis.utils import Qgis
+from qgis.core import (QgsRectangle, QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsVectorLayer,
+    QgsLayerTreeLayer, QgsProject, QgsTask, QgsApplication, QgsMessageLog, QgsFields, QgsField,
+    QgsWkbTypes, QgsFeature, QgsPointXY, QgsGeometry)
+from qgis.utils import (Qgis)
 
 # Initialize Qt resources from file resources.py
 from . import resources

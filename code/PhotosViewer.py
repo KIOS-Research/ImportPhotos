@@ -19,7 +19,7 @@
  ***************************************************************************/
 """
 
-from qgis.PyQt.QtWidgets import (QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget, \
+from qgis.PyQt.QtWidgets import (QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget,
     QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame, QMenuBar, QAction, qApp, QFileDialog, QMessageBox)
 from qgis.PyQt.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize, QCoreApplication)
 from qgis.PyQt.QtGui import (QPainterPath, QIcon, QPixmap, QImage, QFont)
