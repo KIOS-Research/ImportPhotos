@@ -24,10 +24,10 @@ from qgis.PyQt.QtGui import (QIcon)
 from qgis.PyQt import (uic)
 from qgis.PyQt.QtWidgets import (QDialog)
 from qgis.PyQt.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication, Qt, QVariant)
-from qgis.core import (QgsRectangle, QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsVectorLayer, \
-                       QgsLayerTreeLayer, QgsProject, QgsTask, QgsApplication, QgsMessageLog, QgsFields, QgsField,
-                       QgsWkbTypes, QgsFeature, QgsPointXY, QgsGeometry)
-from qgis.utils import Qgis
+from qgis.core import (QgsRectangle, QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsVectorLayer,
+    QgsLayerTreeLayer, QgsProject, QgsTask, QgsApplication, QgsMessageLog, QgsFields, QgsField,
+    QgsWkbTypes, QgsFeature, QgsPointXY, QgsGeometry)
+from qgis.utils import (Qgis)
 
 # Initialize Qt resources from file resources.py
 from . import resources
@@ -64,12 +64,14 @@ except:
     pass
 
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'ui/impphotos.ui'))
-
+#FORM_CLASS, _ = uic.loadUiType(os.path.join(
+#    os.path.dirname(__file__), 'ui/impphotos.ui'))
+from .ui.impphotos import Ui_photosImp
 
 # Import ui file
-class ImportPhotosDialog(QDialog, FORM_CLASS):
+#class ImportPhotosDialog(QDialog, FORM_CLASS):
+class ImportPhotosDialog(QDialog, Ui_photosImp):
+
     def __init__(self, parent=None):
         # """Constructor."""
         QDialog.__init__(self, None, Qt.WindowStaysOnTopHint)
@@ -108,10 +110,10 @@ class ImportPhotos:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&ImportPhotos')
+        self.menu = self.tr('&ImportPhotos')
         # TODO: We are going to let the user set this up in a future iteration
-        self.toolbar = self.iface.addToolBar(u'ImportPhotos')
-        self.toolbar.setObjectName(u'ImportPhotos')
+        self.toolbar = self.iface.addToolBar(self.tr('ImportPhotos'))
+        self.toolbar.setObjectName('ImportPhotos')
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -208,13 +210,13 @@ class ImportPhotos:
         icon_path = ':/plugins/ImportPhotos/icons/ImportImage.svg'
         self.add_action(
             icon_path,
-            text=self.tr(u'Import Photos'),
+            text=self.tr('Import Photos'),
             callback=self.run,
             parent=self.iface.mainWindow())
         icon_path = ':/plugins/ImportPhotos/icons/SelectImage.svg'
         self.clickPhotos = self.add_action(
             icon_path,
-            text=self.tr(u'Click Photos'),
+            text=self.tr('Click Photos'),
             callback=self.mouseClick,
             parent=self.iface.mainWindow())
 
@@ -276,7 +278,7 @@ class ImportPhotos:
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.tr(u'&ImportPhotos'),
+                self.tr('&ImportPhotos'),
                 action)
             self.iface.removeToolBarIcon(action)
             # remove the toolbar
@@ -303,11 +305,11 @@ class ImportPhotos:
         desktop_path = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop')
         if platform.system() == 'Linux':
             try:
-                self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File',desktop_path , typefiles)
+                self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, self.tr('Save File'),desktop_path , typefiles)
             except:
-                self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', desktop_path, typefiles) #hack line
+                self.outputPath = QFileDialog.getSaveFileName(None, self.tr('Save File'), desktop_path, typefiles) #hack line
         else:
-            self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
+            self.outputPath = QFileDialog.getSaveFileName(None, self.tr('Save File'), os.path.join(
                 os.path.join(os.path.expanduser('~')),
                 'Desktop'), typefiles)
 
@@ -319,7 +321,7 @@ class ImportPhotos:
         self.dlg.out.setText(self.outputPath)
 
     def toolButtonImport(self):
-        self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
+        self.directoryPhotos = QFileDialog.getExistingDirectory(None, self.tr('Select a folder:'),
                                                                 os.path.join(os.path.join(os.path.expanduser('~')),
                                                                              'Desktop'), QFileDialog.ShowDirsOnly)
         self.selected_folder = self.directoryPhotos[:]
@@ -327,7 +329,7 @@ class ImportPhotos:
         self.dlg.imp.setText(self.directoryPhotos)
 
     def loadstyle(self):
-        self.load_style = QFileDialog.getOpenFileName(None, "Load style",
+        self.load_style = QFileDialog.getOpenFileName(None, self.tr('Load style'),
                                                os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop'),
                                                "(*.qml)")
         if self.load_style[0] == "":
@@ -339,19 +341,19 @@ class ImportPhotos:
 
     def selectDir(self):
         title = 'Warning'
-        msg = 'Please select a directory photos.'
+        msg = self.tr('Please select a directory photos.')
         self.showMessage(title, msg, 'Warning')
         return True
 
     def selectOutp(self):
         title = 'Warning'
-        msg = 'Please define output file location.'
+        msg = self.tr('Please define output file location.')
         self.showMessage(title, msg, 'Warning')
         return True
 
     def noImageFound(self):
         title = 'Warning'
-        msg = 'No image path found.'
+        msg = self.tr('No image path found.')
         self.showMessage(title, msg, 'Warning')
         return True
 
@@ -380,7 +382,7 @@ class ImportPhotos:
         if self.load_style != '':
             if not os.path.exists(self.load_style):
                 title = 'Warning'
-                msg = 'No style path found.'
+                msg = self.tr('No style path found.')
                 self.showMessage(title, msg, 'Warning')
                 return
 
@@ -429,8 +431,8 @@ class ImportPhotos:
         self.initphotos = len(self.photos)
 
         if self.initphotos == 0 and self.showMessageHide:
-            title = 'Warning'
-            msg = 'No photos.'
+            title = self.tr('Warning')
+            msg = self.tr('No photos.')
             self.showMessage(title, msg, 'Warning')
             self.dlg.ok.setEnabled(True)
             self.dlg.closebutton.setEnabled(True)
@@ -523,7 +525,7 @@ class ImportPhotos:
             self.layerPhotos_final.loadNamedStyle(self.load_style)
         except:
             title = 'Warning'
-            msg = 'No geo-tagged images were detected.'
+            msg = self.tr('No geo-tagged images were detected.')
             self.showMessage(title, msg, 'Warning')
             self.taskPhotos.destroyed()
             return
@@ -552,18 +554,28 @@ class ImportPhotos:
 
         noLocationPhotosCounter = self.initphotos - self.truePhotosCount - self.out_of_extent_photos
         if (self.truePhotosCount == noLocationPhotosCounter == 0 or self.truePhotosCount == 0 ) and self.showMessageHide:
-            title = 'Import Photos'
-            msg = 'Import Completed.\n\nDetails:\n  No new photos were added.'
-            self.showMessage(title, msg, 'Information')
+            title = self.tr('ImportPhotos')
+            msg = '{}\n\n{}\n  {}'.format(
+                self.tr('Import Completed.'),
+                self.tr('Details:'),
+                self.tr('No new photos were added.')
+            )
+            self.showMessage(title, msg, self.tr('Information'))
             self.taskPhotos.destroyed()
             return
         elif ((self.truePhotosCount == self.initphotos) or ((noLocationPhotosCounter + self.truePhotosCount + self.out_of_extent_photos) == self.initphotos) )and self.showMessageHide:
-            title = 'Import Photos'
-            msg = 'Import Completed.\n\nDetails:\n  ' + str(
-                int(self.truePhotosCount)) + ' photo(s) added without error.\n  ' + str(
-                int(noLocationPhotosCounter)) + ' photo(s) skipped (because of missing location).\n  ' + str(
-                int(self.out_of_extent_photos)) + ' photo(s) skipped (because not in canvas extent).'
-            self.showMessage(title, msg, 'Information')
+            title = self.tr('ImportPhotos')
+            msg = '{}\n\n{}\n  {} {}\n  {} {}\n  {} {}\n'.format(
+                self.tr('Import Completed.'),
+                self.tr('Details:'),
+                str(int(self.truePhotosCount)),
+                self.tr('photo(s) added without error.'),
+                str(int(noLocationPhotosCounter)),
+                self.tr('photo(s) skipped (because of missing location).'),
+                str(int(self.out_of_extent_photos)),
+                self.tr('photo(s) skipped (because not in canvas extent).')
+            )
+            self.showMessage(title, msg, self.tr('Information'))
 
         g = self.Qpr_inst.layerTreeRoot().insertGroup(0, self.lphoto)
         self.Qpr_inst.addMapLayer(self.layerPhotos_final, False)
@@ -771,12 +783,12 @@ class ImportPhotos:
         return True
 
     def call_import_photos(self):
-        self.taskPhotos = QgsTask.fromFunction(u'ImportPhotos', self.import_photos_task,
+        self.taskPhotos = QgsTask.fromFunction('ImportPhotos', self.import_photos_task,
                                  on_finished=self.completed, wait_time=4)
         QgsApplication.taskManager().addTask(self.taskPhotos)
 
-######################################################
-# based on http://www.codegists.com/snippet/python/exif_gpspy_snakeye_python
+    ######################################################
+    # based on http://www.codegists.com/snippet/python/exif_gpspy_snakeye_python
 
     def _get_if_exist(self, data, key):
         if key in data:
