@@ -423,6 +423,7 @@ class ImportPhotos:
         self.photos = []
         self.photos_names = []
         for root, dirs, files in os.walk(self.directoryPhotos):
+            files.sort()
             for name in files:
                 if name.lower().endswith(tuple(extens)):
                     self.photos.append(os.path.join(root, name))
