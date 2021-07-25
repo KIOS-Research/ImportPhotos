@@ -257,15 +257,6 @@ class ImportPhotos:
             "Mapinfo TAB (*.tab *.TAB)": ".tab"
         }
 
-        self.extension_switch_types = {
-            ".gpkg": "GPKG",
-            ".shp": "ESRI Shapefile",
-            ".geojson": "GeoJSON",
-            ".csv": "CSV",
-            ".kml": "KML",
-            ".tab": "MapInfo File"
-        }
-
     def mouseClick(self):
         try:
             self.iface.setActiveLayer(self.canvas.layers()[0])
@@ -302,36 +293,26 @@ class ImportPhotos:
 
     def toolButtonOut(self):
         typefiles = 'GeoPackage (*.gpkg *.GPKG);; ESRI Shapefile (*.shp *.SHP);; GeoJSON (*.geojson *.GEOJSON);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB)'
-        desktop_path = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop')
-        if platform.system() == 'Linux':
-            try:
-                self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, self.tr('Save File'),desktop_path , typefiles)
-            except:
-                self.outputPath = QFileDialog.getSaveFileName(None, self.tr('Save File'), desktop_path, typefiles) #hack line
-        else:
-            self.outputPath = QFileDialog.getSaveFileName(None, self.tr('Save File'), os.path.join(
-                os.path.join(os.path.expanduser('~')),
-                'Desktop'), typefiles)
 
-        self.extension_type = self.outputPath[1]
-        self.outputPath = self.outputPath[0]
-        if self.extension_type:
-            self.extension2 = self.extension_switch2[self.extension_type]
+        outputPath, ext = QFileDialog.getSaveFileName(caption = self.tr('Save File'), filter = typefiles)
 
-        self.dlg.out.setText(self.outputPath)
+        if outputPath:
+            if ('.' + outputPath.split('.')[-1]).lower() in self.extension_switch:
+                self.outputPath = outputPath
+            else:
+                self.outputPath = outputPath + self.extension_switch2[ext]
+
+            self.dlg.out.setText(self.outputPath)
 
     def toolButtonImport(self):
-        self.directoryPhotos = QFileDialog.getExistingDirectory(None, self.tr('Select a folder:'),
-                                                                os.path.join(os.path.join(os.path.expanduser('~')),
-                                                                             'Desktop'), QFileDialog.ShowDirsOnly)
+        self.directoryPhotos = QFileDialog.getExistingDirectory(caption = self.tr('Select a folder:'), options = QFileDialog.ShowDirsOnly)
         self.selected_folder = self.directoryPhotos[:]
         self.selected_folder = './' + os.path.basename(os.path.normpath(self.selected_folder)) + '/'
         self.dlg.imp.setText(self.directoryPhotos)
 
     def loadstyle(self):
-        self.load_style = QFileDialog.getOpenFileName(None, self.tr('Load style'),
-                                               os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop'),
-                                               "(*.qml)")
+        self.load_style = QFileDialog.getOpenFileName(caption = self.tr('Load style'),
+                                                      filter = "(*.qml)")
         if self.load_style[0] == "":
             return
         else:
@@ -401,10 +382,7 @@ class ImportPhotos:
 
         if platform.system() == 'Linux':
             self.lphoto = os.path.basename(self.outputPath)
-            try:
-                self.extension = '.'+self.extension.split()[-1][2:-1].lower()
-            except:
-                self.extension = '.shp' #hack line, temporary
+            self.extension = '.' + self.outputPath.split('.')[-1].lower()
         else:
             _ , self.extension = os.path.splitext(self.outputPath)
             basename = os.path.basename(self.outputPath)
@@ -454,11 +432,7 @@ class ImportPhotos:
         else:
             self.layernamePhotos.append(self.lphoto)
 
-        if platform.system() == 'Linux':
-            self.outputPath = self.outputPath + self.extension
-            self.extension = self.extension_switch[self.extension]
-        else:
-            self.extension = self.extension_switch[self.extension.lower()]
+        self.outputDriver = self.extension_switch[self.extension.lower()]
 
         self.exifread_module = False
         self.pil_module = False
@@ -512,7 +486,7 @@ class ImportPhotos:
         self.layerPhotos = QgsVectorLayer(self.outDirectoryPhotosGeoJSON, self.lphoto, "ogr")
         QgsVectorFileWriter.writeAsVectorFormat(self.layerPhotos, self.outputPath, "utf-8",
                                                     QgsCoordinateReferenceSystem(self.layerPhotos.crs().authid()),
-                                                    self.extension)
+                                                    self.outputDriver)
         self.layerPhotos_final = QgsVectorLayer(self.outputPath, self.lphoto, "ogr")
 
         # clear temp.geojson file
