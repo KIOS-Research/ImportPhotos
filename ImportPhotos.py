@@ -19,14 +19,14 @@
  ***************************************************************************/
 """
 
-from qgis.PyQt.QtWidgets import (QAction, QFileDialog, QMessageBox)
+from qgis.PyQt.QtWidgets import (QAction, QFileDialog, QMessageBox, QInputDialog)
 from qgis.PyQt.QtGui import (QIcon)
 from qgis.PyQt import (uic)
 from qgis.PyQt.QtWidgets import (QDialog)
 from qgis.PyQt.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication, Qt, QVariant)
 from qgis.core import (QgsRectangle, QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsVectorLayer, \
-                       QgsLayerTreeLayer, QgsProject, QgsTask, QgsApplication, QgsMessageLog, QgsFields, QgsField,
-                       QgsWkbTypes, QgsFeature, QgsPointXY, QgsGeometry)
+                       QgsLayerTreeLayer, QgsProject, QgsTask, QgsApplication, QgsMessageLog, QgsMapLayerType, QgsFields, QgsField,
+                       QgsWkbTypes, QgsFeature, QgsPointXY, QgsGeometry, QgsJsonUtils)
 from qgis.utils import Qgis
 
 # Initialize Qt resources from file resources.py
@@ -217,6 +217,11 @@ class ImportPhotos:
             text=self.tr(u'Click Photos'),
             callback=self.mouseClick,
             parent=self.iface.mainWindow())
+        self.add_action(
+            icon_path,
+            text=self.tr(u'Update Photos'),
+            callback=self.update_photos,
+            parent=self.iface.mainWindow())
 
         self.dlg = ImportPhotosDialog()
         self.dlg.load_style_path.setPlaceholderText( "e.g." + os.path.join(self.plugin_dir, 'icons', "photos.qml"))
@@ -234,8 +239,8 @@ class ImportPhotos:
         self.canvas = self.iface.mapCanvas()
         self.toolMouseClick = MouseClick(self.canvas, self)
 
-        self.fields = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Maker',
-                       'Camera Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images']
+        self.fields = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Mak',
+                       'Camera Mod', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images']
 
         self.extension_switch = {
             ".shp": "ESRI Shapefile",
@@ -408,8 +413,6 @@ class ImportPhotos:
             basename = os.path.basename(self.outputPath)
             self.lphoto = basename[:-len(self.extension)]
 
-        self.outDirectoryPhotosGeoJSON = os.path.join(self.plugin_dir, 'tmp.geojson')
-
         self.dlg.ok.setEnabled(False)
         self.dlg.closebutton.setEnabled(False)
         self.dlg.toolButtonImport.setEnabled(False)
@@ -467,6 +470,249 @@ class ImportPhotos:
         self.call_import_photos()
         self.dlg.close()
 
+    def update_photos(self):
+        layers = {}
+
+        for layer in QgsProject.instance().mapLayers().values():
+            if layer.type() == QgsMapLayerType.VectorLayer and layer.fields().names() == self.fields:
+                layers[layer.name()] = layer
+
+        selected_layer_name, ok = QInputDialog.getItem(
+            self.iface.mainWindow(),
+            "Select layer to update",
+            "Layer List:", layers.keys(), 0, False)
+
+        if not ok:
+            return
+        selected_layer = layers[selected_layer_name]
+
+        # All picture paths that are currently saved in the shapefile layer
+        picture_paths = []
+        # Pictures that will be added
+        self.photos = []
+        # Path of the parent directory where the pictures are saved in
+        base_picture_directory = ""
+        # Feature fields
+        basic_feature_fields = None
+        # No idea why this is needed
+        self.pil_module = False
+        self.truePhotosCount = 0
+
+        for feature in selected_layer.getFeatures():
+            if not base_picture_directory:
+                base_picture_directory = os.path.dirname(feature.attribute("Path"))
+                basic_feature_fields = feature.fields()
+            picture_paths.append(os.path.basename(feature.attribute("Path")))
+
+        # Pictures that should be removed from the layer
+        pictures_to_remove = list(set(picture_paths) - set(os.listdir(base_picture_directory)))
+        pictures_to_add = list(set(os.listdir(base_picture_directory)) - set(picture_paths))
+
+        selected_layer.startEditing()
+
+        # Remove pictures that do not exist anymore in base_picture_directory
+        for feature in selected_layer.getFeatures():
+            if os.path.basename(feature.attribute("Path")) in pictures_to_remove:
+                selected_layer.deleteFeature(feature.id())
+            else:
+                self.photos.append(os.path.join(base_picture_directory, feature.attribute("Path")))
+
+        # Import new pictures
+        for picture_path in pictures_to_add:
+            jpeg_extensions = ['jpg', 'jpeg', 'JPG', 'JPEG']
+            if not os.path.isdir(os.path.join(base_picture_directory, picture_path)) and picture_path.split(
+                    ".")[1] in jpeg_extensions:
+                geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
+                if geo_info:
+                    feature = QgsFeature(basic_feature_fields)
+                    selected_layer.addFeatures(
+                        QgsJsonUtils.stringToFeatureList(
+                            json.dumps(geo_info), basic_feature_fields))
+        selected_layer.commitChanges()
+
+    def get_geo_infos_from_photo(self, photo_path):
+        self.lon = []
+        self.lat = []
+        try:
+            ImagesSrc = '<img src = "' + photo_path + '" width="300" height="225"/>'
+            if CHECK_MODULE == 'exifread' and not self.pil_module:
+                self.exifread_module = True
+                with open(photo_path, 'rb') as imgpathF:
+                    tags = exifread.process_file(imgpathF, details=False)
+
+                if not set(tags.keys()).union({"GPS GPSLongitude", "GPS GPSLatitude"}):
+                    return False
+
+                lat, lon = self.get_exif_location(tags, "lonlat")
+
+                if 'GPS GPSAltitude' in tags:
+                    altitude = float(tags.get("GPS GPSAltitude").values[0].num) / float(
+                        tags.get("GPS GPSAltitude").values[0].den)
+                else:
+                    altitude = ''
+
+                uuid_ = str(uuid.uuid4())
+
+                try:
+                    dt1, dt2 = tags["EXIF DateTimeOriginal"].values.split()
+                    date = dt1.replace(':', '/')
+                    time_ = dt2
+                    timestamp = dt1.replace(':', '-') + 'T' + time_
+                except:
+                    try:
+                        date = tags["GPS GPSDate"].values.replace(':', '/')
+                        tt = [str(i) for i in tags["GPS GPSTimeStamp"].values]
+                        time_ = "{:0>2}:{:0>2}:{:0>2}".format(tt[0], tt[1], tt[2])
+                        timestamp = tags["GPS GPSDate"].values.replace(':', '-') + 'T' + time_
+                    except:
+                        date = ''
+                        time_ = ''
+                        timestamp = ''
+
+                try:
+                    if 'GPS GPSImgDirection' in tags:
+                        azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(
+                            tags["GPS GPSImgDirection"].values[0].den)
+                    else:
+                        azimuth = ''
+                except:
+                    azimuth = ''
+
+                try:
+                    if 'GPS GPSImgDirectionRef' in tags:
+                        north = str(tags["GPS GPSImgDirectionRef"].values)
+                    else:
+                        north = ''
+                except:
+                    north = ''
+
+                try:
+                    if 'Image Make' in tags:
+                        maker = tags['Image Make']
+                    else:
+                        maker = ''
+                except:
+                    maker = ''
+
+                try:
+                    if 'Image Model' in tags:
+                        model = tags['Image Model']
+                    else:
+                        model = ''
+                except:
+                    model = ''
+
+                try:
+                    if 'Image ImageDescription' in tags:
+                        title = tags['Image ImageDescription']
+                    else:
+                        title = ''
+                except:
+                    title = ''
+
+                try:
+                    if 'EXIF UserComment' in tags:
+                        user_comm = tags['EXIF UserComment'].printable
+                    else:
+                        user_comm = ''
+                except:
+                    user_comm = ''
+
+            if CHECK_MODULE == 'PIL' and not self.exifread_module:
+                self.pil_module = True
+                a = {}
+                info = Image.open(photo_path)
+                info = info._getexif()
+
+                if info == None:
+                    return False
+
+                for tag, value in info.items():
+                    if TAGS.get(tag, tag) == 'GPSInfo' or TAGS.get(tag, tag) == 'DateTime' or TAGS.get(tag,
+                                                                                                        tag) == 'DateTimeOriginal':
+                        a[TAGS.get(tag, tag)] = value
+
+                if a == {}:
+                    return False
+
+                if a['GPSInfo'] != {}:
+                    if 1 and 2 and 3 and 4 in a['GPSInfo']:
+                        lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
+                        latref = a['GPSInfo'][1]
+                        lon = [float(x) / float(y) for x, y in a['GPSInfo'][4]]
+                        lonref = a['GPSInfo'][3]
+
+                        lat = lat[0] + lat[1] / 60 + lat[2] / 3600
+                        lon = lon[0] + lon[1] / 60 + lon[2] / 3600
+
+                        if latref == 'S':
+                            lat = -lat
+                        if lonref == 'W':
+                            lon = -lon
+                    else:
+                        return False
+
+                    uuid_ = str(uuid.uuid4())
+                    if 'DateTime' or 'DateTimeOriginal' in a:
+                        if 'DateTime' in a:
+                            dt1, dt2 = a['DateTime'].split()
+                        if 'DateTimeOriginal' in a:
+                            dt1, dt2 = a['DateTimeOriginal'].split()
+                        date = dt1.replace(':', '/')
+                        time_ = dt2
+                        timestamp = dt1.replace(':', '-') + 'T' + time_
+
+                    try:
+                        if 6 in a['GPSInfo']:
+                            if len(a['GPSInfo'][6]) > 1:
+                                mAltitude = float(a['GPSInfo'][6][0])
+                                mAltitudeDec = float(a['GPSInfo'][6][1])
+                                altitude = mAltitude / mAltitudeDec
+                        else:
+                            altitude = ''
+                    except:
+                        altitude = ''
+
+                    try:
+                        if 16 and 17 in a['GPSInfo']:
+                            north = str(a['GPSInfo'][16])
+                            azimuth = float(a['GPSInfo'][17][0]) / float(a['GPSInfo'][17][1])
+                        else:
+                            north = ''
+                            azimuth = ''
+                    except:
+                        north = ''
+                        azimuth = ''
+
+                    maker = ''
+                    model = ''
+                    user_comm = ''
+                    title = ''
+
+            if self.dlg.canvas_extent.isChecked():
+                if not (self.canvas.extent().xMaximum() > lon > self.canvas.extent().xMinimum() \
+                        and self.canvas.extent().yMaximum() > lat > self.canvas.extent().yMinimum()):
+                    self.out_of_extent_photos = self.out_of_extent_photos + 1
+                    return False
+
+            self.lon.append(lon)
+            self.lat.append(lat)
+
+            self.truePhotosCount = self.truePhotosCount + 1
+
+            return {"type": "Feature",
+                        "properties": {'ID': uuid_, 'Name': os.path.basename(photo_path), 'Date': date, 'Time': time_,
+                                        'Lon': lon,
+                                        'Lat': lat, 'Altitude': altitude, 'North': north,
+                                        'Azimuth': azimuth,
+                                        'Camera Maker': str(maker), 'Camera Model': str(model), 'Title': str(title),
+                                        'Comment': user_comm,'Path': photo_path, 'RelPath': photo_path,
+                                        'Timestamp': timestamp, 'Images': ImagesSrc},
+                        "geometry": {"coordinates": [lon, lat], "type": "Point"}}
+
+        except Exception as e:
+            print(e)
+
     def refresh(self):  # Deselect features
         mc = self.canvas
         for layer in mc.layers():
@@ -501,7 +747,7 @@ class ImportPhotos:
         try:
             for layer in self.canvas.layers():
                 if layer.publicSource() == self.outputPath:
-                    self.Qpr_inst.instance().removeMapLayer(layer.id())
+                    QgsProject.instance().removeMapLayer(layer.id())
                     os.remove(self.outputPath)
         except:
             pass
