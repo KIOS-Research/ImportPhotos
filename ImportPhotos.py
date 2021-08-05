@@ -19,6 +19,8 @@
  ***************************************************************************/
 """
 
+from typing import DefaultDict
+from PyQt5.QtWidgets import QLabel
 from qgis.PyQt.QtWidgets import (QAction, QFileDialog, QMessageBox, QInputDialog)
 from qgis.PyQt.QtGui import (QIcon)
 from qgis.PyQt import (uic)
@@ -26,9 +28,9 @@ from qgis.PyQt.QtWidgets import (QDialog)
 from qgis.PyQt.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication, Qt, QVariant)
 from qgis.core import (QgsRectangle, QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsVectorLayer, \
                        QgsLayerTreeLayer, QgsProject, QgsTask, QgsApplication, QgsMessageLog, QgsMapLayerType, QgsFields, QgsField,
-                       QgsWkbTypes, QgsFeature, QgsPointXY, QgsGeometry, QgsJsonUtils, QgsStyle)
+                       QgsWkbTypes, QgsFeature, QgsPointXY, QgsGeometry, QgsJsonUtils, QgsStyle, QgsFeatureRenderer)
 from qgis.utils import Qgis
-from qgis.gui import QgsRendererPropertiesDialog
+from qgis.gui import QgsRuleBasedRendererWidget
 
 # Initialize Qt resources from file resources.py
 from . import resources
@@ -113,6 +115,8 @@ class ImportPhotos:
         # TODO: We are going to let the user set this up in a future iteration
         self.toolbar = self.iface.addToolBar(u'ImportPhotos')
         self.toolbar.setObjectName(u'ImportPhotos')
+        # Renderer that will be set after the import process
+        self.layer_renderer = None
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -231,6 +235,20 @@ class ImportPhotos:
         self.dlg.toolButtonImport.clicked.connect(self.toolButtonImport)
         self.dlg.toolButtonOut.clicked.connect(self.toolButtonOut)
         self.dlg.input_load_style.clicked.connect(self.loadstyle)
+
+        # Add QgsRuleBasedRendererWidget
+        # temp_layer is a class variable because we need to keep its reference
+        # so the RendererWidget does not crash QGIS
+        # If it's not a class variable, then it goes out of scope after this method
+        # and as metioned, QGIS crashes because it tries to access it.
+        self.temp_layer = QgsVectorLayer('Point&crs=epsg:4326&fields=id:string(10)')
+        self.temp_layer.setRenderer(QgsFeatureRenderer.defaultRenderer(QgsWkbTypes.PointGeometry))
+        renderer_widget = QgsRuleBasedRendererWidget(
+            self.temp_layer, QgsStyle.defaultStyle(),
+            self.temp_layer.renderer())
+        renderer_widget.setObjectName("renderer_widget")
+        self.dlg.gridLayout.addWidget(QLabel("Output layer style"), 5, 0)
+        self.dlg.gridLayout.addWidget(renderer_widget, 5, 2)
 
         self.clickPhotos.setCheckable(True)
         self.clickPhotos.setEnabled(True)
@@ -362,6 +380,7 @@ class ImportPhotos:
         return True
 
     def ok(self):
+        self.layer_renderer = self.dlg.findChild(QgsRuleBasedRendererWidget, "renderer_widget").renderer()
         if self.dlg.imp.text() == '':
             if self.selectDir():
                 return
@@ -784,6 +803,7 @@ class ImportPhotos:
             return
 
         self.layerPhotos_final.setReadOnly(False)
+        self.layerPhotos_final.setRenderer(self.layer_renderer)
         self.layerPhotos_final.reload()
         self.layerPhotos_final.triggerRepaint()
 
@@ -796,10 +816,7 @@ class ImportPhotos:
             self.canvas.setExtent(QgsRectangle(xmin, ymin, xmax, ymax))
         except:
             pass
-        dlg = QgsRendererPropertiesDialog(
-            self.layerPhotos_final, QgsStyle.defaultStyle(), embedded=False)
-        dlg.setMapCanvas(self.iface.mapCanvas())
-        dlg.exec_()
+
         ###########################################
         self.dlg.ok.setEnabled(True)
         self.dlg.closebutton.setEnabled(True)
