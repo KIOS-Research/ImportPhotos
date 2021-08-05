@@ -510,27 +510,34 @@ class ImportPhotos:
         pictures_to_remove = list(set(picture_paths) - set(os.listdir(base_picture_directory)))
         pictures_to_add = list(set(os.listdir(base_picture_directory)) - set(picture_paths))
 
-        selected_layer.startEditing()
+        editing_started = selected_layer.startEditing()
+        if editing_started:
 
-        # Remove pictures that do not exist anymore in base_picture_directory
-        for feature in selected_layer.getFeatures():
-            if os.path.basename(feature.attribute("Path")) in pictures_to_remove:
-                selected_layer.deleteFeature(feature.id())
-            else:
-                self.photos.append(os.path.join(base_picture_directory, feature.attribute("Path")))
+            # Remove pictures that do not exist anymore in base_picture_directory
+            for feature in selected_layer.getFeatures():
+                if os.path.basename(feature.attribute("Path")) in pictures_to_remove:
+                    selected_layer.deleteFeature(feature.id())
+                else:
+                    self.photos.append(os.path.join(base_picture_directory, feature.attribute("Path")))
 
-        # Import new pictures
-        for picture_path in pictures_to_add:
-            jpeg_extensions = ['jpg', 'jpeg', 'JPG', 'JPEG']
-            if not os.path.isdir(os.path.join(base_picture_directory, picture_path)) and picture_path.split(
-                    ".")[1] in jpeg_extensions:
-                geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
-                if geo_info:
-                    feature = QgsFeature(basic_feature_fields)
-                    selected_layer.addFeatures(
-                        QgsJsonUtils.stringToFeatureList(
-                            json.dumps(geo_info), basic_feature_fields))
-        selected_layer.commitChanges()
+            # Import new pictures
+            for picture_path in pictures_to_add:
+                jpeg_extensions = ['jpg', 'jpeg', 'JPG', 'JPEG']
+                if not os.path.isdir(os.path.join(base_picture_directory, picture_path)) and picture_path.split(
+                        ".")[1] in jpeg_extensions:
+                    geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
+                    if geo_info:
+                        feature = QgsFeature(basic_feature_fields)
+                        selected_layer.addFeatures(
+                            QgsJsonUtils.stringToFeatureList(
+                                json.dumps(geo_info), basic_feature_fields))
+
+        if not editing_started or not selected_layer.commitChanges():
+            title = 'Update Photos'
+            msg = 'Update Failed.\n\nDetails:\n  ' +\
+                'Could not update the photos layer.\n  ' +\
+                    "Layer is either read-only or you don't have permissions to edit it."
+            self.showMessage(title, msg, 'Warning')
 
     def get_geo_infos_from_photo(self, photo_path):
         self.lon = []
