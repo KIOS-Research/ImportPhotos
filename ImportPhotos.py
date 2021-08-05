@@ -26,8 +26,9 @@ from qgis.PyQt.QtWidgets import (QDialog)
 from qgis.PyQt.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication, Qt, QVariant)
 from qgis.core import (QgsRectangle, QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsVectorLayer, \
                        QgsLayerTreeLayer, QgsProject, QgsTask, QgsApplication, QgsMessageLog, QgsMapLayerType, QgsFields, QgsField,
-                       QgsWkbTypes, QgsFeature, QgsPointXY, QgsGeometry, QgsJsonUtils)
+                       QgsWkbTypes, QgsFeature, QgsPointXY, QgsGeometry, QgsJsonUtils, QgsStyle)
 from qgis.utils import Qgis
+from qgis.gui import QgsRendererPropertiesDialog
 
 # Initialize Qt resources from file resources.py
 from . import resources
@@ -788,7 +789,10 @@ class ImportPhotos:
             self.canvas.setExtent(QgsRectangle(xmin, ymin, xmax, ymax))
         except:
             pass
-
+        dlg = QgsRendererPropertiesDialog(
+            self.layerPhotos_final, QgsStyle.defaultStyle(), embedded=False)
+        dlg.setMapCanvas(self.iface.mapCanvas())
+        dlg.exec_()
         ###########################################
         self.dlg.ok.setEnabled(True)
         self.dlg.closebutton.setEnabled(True)
