@@ -413,6 +413,7 @@ class ImportPhotos:
             basename = os.path.basename(self.outputPath)
             self.lphoto = basename[:-len(self.extension)]
 
+        self.outDirectoryPhotosGeoJSON = os.path.join(self.plugin_dir, 'tmp.geojson')
         self.dlg.ok.setEnabled(False)
         self.dlg.closebutton.setEnabled(False)
         self.dlg.toolButtonImport.setEnabled(False)
