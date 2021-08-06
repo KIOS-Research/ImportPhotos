@@ -19,16 +19,13 @@
  ***************************************************************************/
 """
 
-from typing import DefaultDict
-from PyQt5.QtWidgets import QLabel
-from qgis.PyQt.QtWidgets import (QAction, QFileDialog, QMessageBox, QInputDialog)
-from qgis.PyQt.QtGui import (QIcon)
-from qgis.PyQt import (uic)
-from qgis.PyQt.QtWidgets import (QDialog)
-from qgis.PyQt.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication, Qt, QVariant)
-from qgis.core import (QgsRectangle, QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsVectorLayer, \
-                       QgsLayerTreeLayer, QgsProject, QgsTask, QgsApplication, QgsMessageLog, QgsMapLayerType, QgsFields, QgsField,
-                       QgsWkbTypes, QgsFeature, QgsPointXY, QgsGeometry, QgsJsonUtils, QgsStyle, QgsFeatureRenderer)
+from logging import setLogRecordFactory
+from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox, QInputDialog, QLabel
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt import uic
+from qgis.PyQt.QtWidgets import QDialog
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt
+from qgis.core import *
 from qgis.utils import Qgis
 from qgis.gui import QgsRuleBasedRendererWidget
 
@@ -47,29 +44,26 @@ CHECK_MODULE = ''
 try:
     import exifread
     CHECK_MODULE = 'exifread'
-except:
+except ModuleNotFoundError:
     pass
-
-#try:
-#    from qgis.utils import plugins
-#    import sys
-#    sys.path.append(':/plugins')
-#    import processing
-#except:
-#    pass
 
 try:
     if CHECK_MODULE == '':
         from PIL import Image
         from PIL.ExifTags import TAGS
         CHECK_MODULE = 'PIL'
-except:
+except ModuleNotFoundError:
     pass
 
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/impphotos.ui'))
 
+
+FIELDS = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Mak',
+                'Camera Mod', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images']
+
+SUPPORTED_PHOTOS_EXTENSIONS = ['jpg', 'jpeg']
 
 # Import ui file
 class ImportPhotosDialog(QDialog, FORM_CLASS):
@@ -93,6 +87,8 @@ class ImportPhotos:
         """
         # Save reference to the QGIS interface
         self.iface = iface
+        self.canvas = self.iface.mapCanvas()
+        self.project_instance = QgsProject.instance()
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
@@ -105,9 +101,6 @@ class ImportPhotos:
         if os.path.exists(locale_path):
             self.translator = QTranslator()
             self.translator.load(locale_path)
-
-            if qVersion() > '4.3.3':
-                QCoreApplication.installTranslator(self.translator)
 
         # Declare instance attributes
         self.actions = []
@@ -138,6 +131,7 @@ class ImportPhotos:
             icon_path,
             text,
             callback,
+            checkable=False,
             enabled_flag=True,
             add_to_menu=True,
             add_to_toolbar=True,
@@ -203,6 +197,8 @@ class ImportPhotos:
             self.iface.addPluginToMenu(
                 self.menu,
                 action)
+        if checkable:
+            action.setCheckable(checkable)
 
         self.actions.append(action)
 
@@ -219,8 +215,9 @@ class ImportPhotos:
         icon_path = ':/plugins/ImportPhotos/icons/SelectImage.svg'
         self.clickPhotos = self.add_action(
             icon_path,
+            checkable=True,
             text=self.tr(u'Click Photos'),
-            callback=self.mouseClick,
+            callback=self.setMouseClickMapTool,
             parent=self.iface.mainWindow())
         self.add_action(
             icon_path,
@@ -230,8 +227,8 @@ class ImportPhotos:
 
         self.dlg = ImportPhotosDialog()
         self.dlg.load_style_path.setPlaceholderText( "e.g." + os.path.join(self.plugin_dir, 'icons', "photos.qml"))
-        self.dlg.ok.clicked.connect(self.ok)
-        self.dlg.closebutton.clicked.connect(self.close)
+        self.dlg.ok.clicked.connect(self.import_photos)
+        self.dlg.closebutton.clicked.connect(self.dlg.close)
         self.dlg.toolButtonImport.clicked.connect(self.toolButtonImport)
         self.dlg.toolButtonOut.clicked.connect(self.toolButtonOut)
         self.dlg.input_load_style.clicked.connect(self.loadstyle)
@@ -250,51 +247,17 @@ class ImportPhotos:
         self.dlg.gridLayout.addWidget(QLabel("Output layer style"), 5, 0)
         self.dlg.gridLayout.addWidget(renderer_widget, 5, 2)
 
-        self.clickPhotos.setCheckable(True)
-        self.clickPhotos.setEnabled(True)
-
-        self.listPhotos = []
-        self.layernamePhotos = []
-        self.canvas = self.iface.mapCanvas()
         self.toolMouseClick = MouseClick(self.canvas, self)
 
-        self.fields = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Mak',
-                       'Camera Mod', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images']
+    def setMouseClickMapTool(self):
 
-        self.extension_switch = {
-            ".shp": "ESRI Shapefile",
-            ".geojson": "GeoJSON",
-            ".gpkg":"GPKG",
-            ".csv": "CSV",
-            ".kml": "KML",
-            ".tab": "MapInfo File"
-        }
+        # Set photos layer as active layer
+        for layer in self.project_instance.mapLayers().values():
+            if layer.type() == QgsMapLayerType.VectorLayer and layer.fields().names() == FIELDS:
+                self.iface.setActiveLayer(layer)
+                break
 
-        self.extension_switch2 = {
-            "ESRI Shapefile (*.shp *.SHP)": ".shp",
-            "GeoJSON (*.geojson *.GEOJSON)": ".geojson",
-            "GeoPackage (*.gpkg *.GPKG)":".gpkg",
-            "Comma Separated Value (*.csv *.CSV)": ".csv",
-            "Keyhole Markup Language (*.kml *.KML)": ".kml",
-            "Mapinfo TAB (*.tab *.TAB)": ".tab"
-        }
-
-        self.extension_switch_types = {
-            ".shp": "ESRI Shapefile",
-            ".geojson": "GeoJSON",
-            ".gpkg":"GPKG",
-            ".csv": "CSV",
-            ".kml": "KML",
-            ".tab": "MapInfo File"
-        }
-
-    def mouseClick(self):
-        try:
-            self.iface.setActiveLayer(self.canvas.layers()[0])
-        except:
-            pass
         self.canvas.setMapTool(self.toolMouseClick)
-        self.clickPhotos.setChecked(True)
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -307,195 +270,189 @@ class ImportPhotos:
         del self.toolbar
 
     def run(self):
-        self.dlg.ok.setEnabled(True)
-        self.dlg.closebutton.setEnabled(True)
-        self.dlg.toolButtonImport.setEnabled(True)
-        self.dlg.toolButtonOut.setEnabled(True)
-        self.dlg.input_load_style.setEnabled(True)
-        self.clickPhotos.setEnabled(True)
+        if CHECK_MODULE == '':
+            self.showMessage(
+                'Python Modules',
+                'Please install python module "exifread" or "PIL".' ,
+                'Warning')
+            return
+
         self.dlg.out.setText('')
         self.dlg.imp.setText('')
         self.dlg.load_style_path.setText('')
         self.dlg.canvas_extent.setChecked(False)
         self.dlg.show()
 
-    def close(self):
-        self.dlg.close()
-
     def toolButtonOut(self):
-        typefiles = 'ESRI Shapefile (*.shp *.SHP);; GeoJSON (*.geojson *.GEOJSON);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB)'
-        desktop_path = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop')
-        if platform.system() == 'Linux':
-            try:
-                self.outputPath, self.extension = QFileDialog.getSaveFileNameAndFilter(None, 'Save File',desktop_path , typefiles)
-            except:
-                self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', desktop_path, typefiles) #hack line
-        else:
-            self.outputPath = QFileDialog.getSaveFileName(None, 'Save File', os.path.join(
-                os.path.join(os.path.expanduser('~')),
-                'Desktop'), typefiles)
 
-        self.extension_type = self.outputPath[1]
-        self.outputPath = self.outputPath[0]
-        if self.extension_type:
-            self.extension2 = self.extension_switch2[self.extension_type]
+        outputPath = QFileDialog.getSaveFileName(
+            self.dlg,
+            "Save output layer", os.path.expanduser('~'),
+            "ESRI Shapefile (*.shp)")[0]
 
-        self.dlg.out.setText(self.outputPath)
+        if outputPath:
+            self.dlg.out.setText(outputPath)
 
     def toolButtonImport(self):
-        self.directoryPhotos = QFileDialog.getExistingDirectory(None, 'Select a folder:',
-                                                                os.path.join(os.path.join(os.path.expanduser('~')),
-                                                                             'Desktop'), QFileDialog.ShowDirsOnly)
-        self.selected_folder = self.directoryPhotos[:]
-        self.selected_folder = './' + os.path.basename(os.path.normpath(self.selected_folder)) + '/'
-        self.dlg.imp.setText(self.directoryPhotos)
+        directory_path = QFileDialog.getExistingDirectory(
+            self.dlg, 'Select a folder:',
+            os.path.expanduser('~'), QFileDialog.ShowDirsOnly)
+
+        if directory_path:
+            self.dlg.imp.setText(directory_path)
 
     def loadstyle(self):
-        self.load_style = QFileDialog.getOpenFileName(None, "Load style",
-                                               os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop'),
-                                               "(*.qml)")
-        if self.load_style[0] == "":
-            return
-        else:
-            self.load_style = self.load_style[0]
+        load_style = QFileDialog.getOpenFileName(
+            self.dlg, "Load style",
+            os.path.expanduser('~'), "Qml (*.qml)")
 
-        self.dlg.load_style_path.setText(self.load_style)
+        if load_style:
+            self.dlg.load_style_path.setText(load_style)
 
-    def selectDir(self):
-        title = 'Warning'
-        msg = 'Please select a directory photos.'
-        self.showMessage(title, msg, 'Warning')
-        return True
-
-    def selectOutp(self):
-        title = 'Warning'
-        msg = 'Please define output file location.'
-        self.showMessage(title, msg, 'Warning')
-        return True
-
-    def noImageFound(self):
-        title = 'Warning'
-        msg = 'No image path found.'
-        self.showMessage(title, msg, 'Warning')
-        return True
-
-    def ok(self):
+    def import_photos(self):
         self.layer_renderer = self.dlg.findChild(QgsRuleBasedRendererWidget, "renderer_widget").renderer()
-        if self.dlg.imp.text() == '':
-            if self.selectDir():
-                return
-        if not os.path.isdir(self.dlg.imp.text()):
-            if self.selectDir():
-                return
-        if self.dlg.out.text() == '':
-            if self.selectOutp():
-                return
-        if not os.path.isabs(self.dlg.out.text()):
-            if self.selectOutp():
-                return
 
-        self.outputPath = self.dlg.out.text()
-        self.directoryPhotos = self.dlg.imp.text()
+        file_not_found = False
+        if self.dlg.imp.text() == '' and not os.path.isdir(self.dlg.imp.text()):
+            file_not_found = True
+            msg = 'Please select a directory photos.'
+        if self.dlg.out.text() == '' and not os.path.isabs(self.dlg.out.text()):
+            file_not_found = True
+            msg = 'Please define output file location.'
 
-        if self.dlg.input_load_style.text() == '':
-            self.load_style = os.path.join(self.plugin_dir, 'icons', "photos.qml")
-        else:
-            self.load_style = self.dlg.load_style_path.text()
+        if file_not_found:
+            self.showMessage('Warning', msg, 'Warning')
+            return
 
-        if self.load_style != '':
-            if not os.path.exists(self.load_style):
-                title = 'Warning'
-                msg = 'No style path found.'
-                self.showMessage(title, msg, 'Warning')
-                return
+        if self.dlg.load_style_path.text() == '':
+            self.dlg.load_style_path.setText(os.path.join(self.plugin_dir, 'icons', "photos.qml"))
 
-        showMessageHide = True
-        self.import_photos(self.directoryPhotos, self.outputPath, self.load_style, showMessageHide)
-
-    def import_photos(self, directoryPhotos, outputPath, load_style, showMessageHide=True):
-
-        if load_style == '':
-            self.load_style = os.path.join(self.plugin_dir, 'icons', "photos.qml")
-        else:
-            self.load_style = load_style
-        self.showMessageHide = showMessageHide
-        self.outputPath = outputPath
-        self.directoryPhotos = directoryPhotos
-
-        if platform.system() == 'Linux':
-            self.lphoto = os.path.basename(self.outputPath)
-            try:
-                self.extension = '.'+self.extension.split()[-1][2:-1].lower()
-            except:
-                self.extension = '.shp' #hack line, temporary
-        else:
-            _ , self.extension = os.path.splitext(self.outputPath)
-            basename = os.path.basename(self.outputPath)
-            self.lphoto = basename[:-len(self.extension)]
-
-        self.outDirectoryPhotosGeoJSON = os.path.join(self.plugin_dir, 'tmp.geojson')
-        self.dlg.ok.setEnabled(False)
-        self.dlg.closebutton.setEnabled(False)
-        self.dlg.toolButtonImport.setEnabled(False)
-        self.dlg.toolButtonOut.setEnabled(False)
-        self.dlg.input_load_style.setEnabled(False)
+        if not os.path.exists(self.dlg.load_style_path.text()):
+            self.showMessage('Warning', 'The specified path for the style does not exist!', 'Warning')
+            return
 
         # get paths of photos
-        extens = ['jpg', 'jpeg', 'JPG', 'JPEG']
-        self.photos = []
-        self.photos_names = []
-        for root, dirs, files in os.walk(self.directoryPhotos):
-            for name in files:
-                if name.lower().endswith(tuple(extens)):
-                    self.photos.append(os.path.join(root, name))
-                    self.photos_names.append(name)
+        photos_to_import = []
+        for root, dirs, files in os.walk(self.dlg.imp.text()):
+            for filename in files:
+                if filename.lower().endswith(tuple(SUPPORTED_PHOTOS_EXTENSIONS)):
+                    photos_to_import.append(os.path.join(root, filename))
 
-        self.initphotos = len(self.photos)
-
-        if self.initphotos == 0 and self.showMessageHide:
-            title = 'Warning'
-            msg = 'No photos.'
-            self.showMessage(title, msg, 'Warning')
-            self.dlg.ok.setEnabled(True)
-            self.dlg.closebutton.setEnabled(True)
-            self.dlg.toolButtonImport.setEnabled(True)
-            self.dlg.toolButtonOut.setEnabled(True)
-            self.dlg.input_load_style.setEnabled(True)
-            self.clickPhotos.setChecked(True)
+        if len(photos_to_import) == 0 :
+            self.showMessage('Warning', 'No photos were found!', 'Warning')
             return
 
-        self.canvas.setMapTool(self.toolMouseClick)
-
-        self.truePhotosCount = 0
-        self.out_of_extent_photos = 0
-
-        self.Qpr_inst = QgsProject.instance()
-        if platform.system()=='Darwin':
-            self.layernamePhotos.append(self.lphoto+' OGRGeoJSON Point')
-        else:
-            self.layernamePhotos.append(self.lphoto)
-
-        if platform.system() == 'Linux':
-            self.outputPath = self.outputPath + self.extension
-            self.extension = self.extension_switch[self.extension]
-        else:
-            self.extension = self.extension_switch[self.extension.lower()]
-
-        self.exifread_module = False
-        self.pil_module = False
-
-        if CHECK_MODULE == '' and self.showMessageHide:
-            self.showMessage('Python Modules', 'Please install python module "exifread" or "PIL".' , 'Warning')
-
-        #self.import_photos_task('', '')
-        self.call_import_photos()
         self.dlg.close()
+
+        # This needs to be a class variable, because we need to keep its reference
+        # or else QGIS crashes
+        self.taskPhotos = QgsTask.fromFunction(
+            'ImportPhotos',
+            self.import_photos_task, on_finished=self.completed,
+            photos_to_import=photos_to_import)
+        QgsApplication.taskManager().addTask(self.taskPhotos)
+
+    def import_photos_task(self, task, photos_to_import):
+        temp_photos_layer = self.project_instance.addMapLayer(
+            QgsVectorLayer("Point?crs=epsg:4326", None, "memory"), False)
+
+        imported_photos_counter = 0
+        out_of_bounds_photos_counter = 0
+        editing_started = temp_photos_layer.startEditing()
+
+        if editing_started:
+            # Import new pictures
+            attribute_fields_set = False
+            for photo_path in photos_to_import:
+                if not os.path.isdir(photo_path) and os.path.basename(photo_path).split(
+                        ".")[1] in SUPPORTED_PHOTOS_EXTENSIONS:
+
+                    geo_info = self.get_geo_infos_from_photo(photo_path)
+                    if geo_info:
+                        geo_info = json.dumps(geo_info)
+                        fields = QgsJsonUtils.stringToFields(geo_info)
+
+                        if not attribute_fields_set:
+                            attribute_fields_set = True
+                            for field in fields.toList():
+                                temp_photos_layer.addAttribute(field)
+
+                        feature = QgsJsonUtils.stringToFeatureList(
+                            geo_info, fields)[0]
+
+                        temp_photos_layer.addFeature(feature)
+                        imported_photos_counter += 1
+                    elif geo_info is False:
+                        out_of_bounds_photos_counter += 1
+
+        if not editing_started or not temp_photos_layer.commitChanges():
+            title = 'Update Photos'
+            msg = 'Update Failed.\n\nDetails:\n  ' +\
+                'Could not update the photos layer.\n  ' +\
+                    "Layer is either read-only or you don't have permissions to edit it."
+            self.showMessage(title, msg, 'Warning')
+            return False, len(photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
+
+        # Save vector layer as a Shapefile
+        error_code, error_message = QgsVectorFileWriter.writeAsVectorFormat(
+            temp_photos_layer, self.dlg.out.text(), "utf-8",
+            QgsCoordinateReferenceSystem(temp_photos_layer.crs().authid()),
+            "ESRI Shapefile")
+
+        if error_code != 0:
+            self.showMessage('Writing output file error', error_message, 'Warning')
+            return False, len(photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
+
+        self.setMouseClickMapTool()
+
+        layerPhotos_final = QgsVectorLayer(
+            self.dlg.out.text(),
+            os.path.basename(self.dlg.out.text()).split(".")[0],
+            "ogr")
+
+        layerPhotos_final.setReadOnly(False)
+        layerPhotos_final.setRenderer(self.layer_renderer)
+        layerPhotos_final.loadNamedStyle(self.dlg.load_style_path.text())
+        layerPhotos_final.reload()
+        layerPhotos_final.triggerRepaint()
+
+        group = self.project_instance.layerTreeRoot().insertGroup(
+            0, os.path.basename(self.dlg.imp.text()))
+        self.project_instance.addMapLayer(layerPhotos_final)
+        # Remove temp layer
+        self.project_instance.removeMapLayer(temp_photos_layer)
+        nn = QgsLayerTreeLayer(layerPhotos_final)
+        group.insertChildNode(0, nn)
+
+        return True, len(photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
+
+    def completed(self, exception, result):
+
+        if exception:
+            self.showMessage('Unexpected Error', str(exception), 'Warning')
+        else:
+            import_ok, photos_to_import_number, imported_photos_counter, out_of_bounds_photos_counter = result
+            no_location_photos_counter = photos_to_import_number - imported_photos_counter - out_of_bounds_photos_counter
+
+            if import_ok:
+                if imported_photos_counter == 0:
+                    title = 'Import Photos'
+                    msg = 'Import Completed.\n\nDetails:\n  No new photos were added.'
+                    self.showMessage(title, msg, 'Information')
+                    return
+                else:
+                    title = 'Import Photos'
+                    msg = 'Import Completed.\n\nDetails:\n  ' + str(
+                        int(imported_photos_counter)) + ' photo(s) added without error.\n  ' + str(
+                        int(no_location_photos_counter)) + ' photo(s) skipped (because of missing location).\n  ' + str(
+                        int(out_of_bounds_photos_counter)) + ' photo(s) skipped (because not in canvas extent).'
+                    self.showMessage(title, msg, 'Information')
 
     def update_photos(self):
         layers = {}
 
-        for layer in QgsProject.instance().mapLayers().values():
-            if layer.type() == QgsMapLayerType.VectorLayer and layer.fields().names() == self.fields:
+        for layer in self.project_instance.mapLayers().values():
+            if layer.type() == QgsMapLayerType.VectorLayer and layer.fields().names() == FIELDS:
                 layers[layer.name()] = layer
 
         selected_layer_name, ok = QInputDialog.getItem(
@@ -509,15 +466,10 @@ class ImportPhotos:
 
         # All picture paths that are currently saved in the shapefile layer
         picture_paths = []
-        # Pictures that will be added
-        self.photos = []
         # Path of the parent directory where the pictures are saved in
         base_picture_directory = ""
         # Feature fields
         basic_feature_fields = None
-        # No idea why this is needed
-        self.pil_module = False
-        self.truePhotosCount = 0
 
         for feature in selected_layer.getFeatures():
             if not base_picture_directory:
@@ -536,8 +488,6 @@ class ImportPhotos:
             for feature in selected_layer.getFeatures():
                 if os.path.basename(feature.attribute("Path")) in pictures_to_remove:
                     selected_layer.deleteFeature(feature.id())
-                else:
-                    self.photos.append(os.path.join(base_picture_directory, feature.attribute("Path")))
 
             # Import new pictures
             for picture_path in pictures_to_add:
@@ -546,7 +496,6 @@ class ImportPhotos:
                         ".")[1] in jpeg_extensions:
                     geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
                     if geo_info:
-                        feature = QgsFeature(basic_feature_fields)
                         selected_layer.addFeatures(
                             QgsJsonUtils.stringToFeatureList(
                                 json.dumps(geo_info), basic_feature_fields))
@@ -559,12 +508,9 @@ class ImportPhotos:
             self.showMessage(title, msg, 'Warning')
 
     def get_geo_infos_from_photo(self, photo_path):
-        self.lon = []
-        self.lat = []
         try:
             ImagesSrc = '<img src = "' + photo_path + '" width="300" height="225"/>'
-            if CHECK_MODULE == 'exifread' and not self.pil_module:
-                self.exifread_module = True
+            if CHECK_MODULE == 'exifread':
                 with open(photo_path, 'rb') as imgpathF:
                     tags = exifread.process_file(imgpathF, details=False)
 
@@ -646,8 +592,7 @@ class ImportPhotos:
                 except:
                     user_comm = ''
 
-            if CHECK_MODULE == 'PIL' and not self.exifread_module:
-                self.pil_module = True
+            elif CHECK_MODULE == 'PIL':
                 a = {}
                 info = Image.open(photo_path)
                 info = info._getexif()
@@ -720,13 +665,7 @@ class ImportPhotos:
             if self.dlg.canvas_extent.isChecked():
                 if not (self.canvas.extent().xMaximum() > lon > self.canvas.extent().xMinimum() \
                         and self.canvas.extent().yMaximum() > lat > self.canvas.extent().yMinimum()):
-                    self.out_of_extent_photos = self.out_of_extent_photos + 1
                     return False
-
-            self.lon.append(lon)
-            self.lat.append(lat)
-
-            self.truePhotosCount = self.truePhotosCount + 1
 
             return {"type": "Feature",
                         "properties": {'ID': uuid_, 'Name': os.path.basename(photo_path), 'Date': date, 'Time': time_,
@@ -740,13 +679,7 @@ class ImportPhotos:
 
         except Exception as e:
             print(e)
-
-    def refresh(self):  # Deselect features
-        mc = self.canvas
-        for layer in mc.layers():
-            if layer.type() == layer.VectorLayer:
-                layer.removeSelection()
-        mc.refresh()
+            return False
 
     def showMessage(self, title, msg, icon):
         if icon == 'Warning':
@@ -761,319 +694,13 @@ class ImportPhotos:
         msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
         msgBox.exec_()
 
-    def completed(self, exception, result=None):
-        geojson = {"type": "FeatureCollection",
-                   "name": self.lphoto,
-                   "crs": {"type": "name", "properties": {"name": "crs:OGC:1.3:CRS84"}},
-                   "features": self.geoPhotos}
+    def refresh(self):
+        self.iface.mainWindow().findChild(
+            QAction, 'mActionDeselectAll').trigger()
+        self.canvas.refresh()
 
-        geofile = open(self.outDirectoryPhotosGeoJSON, 'w')
-        json.dump(geojson, geofile)
-        geofile.close()
-        del self.geoPhotos, geojson
-
-        try:
-            for layer in self.canvas.layers():
-                if layer.publicSource() == self.outputPath:
-                    QgsProject.instance().removeMapLayer(layer.id())
-                    os.remove(self.outputPath)
-        except:
-            pass
-
-        self.layerPhotos = QgsVectorLayer(self.outDirectoryPhotosGeoJSON, self.lphoto, "ogr")
-        QgsVectorFileWriter.writeAsVectorFormat(self.layerPhotos, self.outputPath, "utf-8",
-                                                    QgsCoordinateReferenceSystem(self.layerPhotos.crs().authid()),
-                                                    self.extension)
-        self.layerPhotos_final = QgsVectorLayer(self.outputPath, self.lphoto, "ogr")
-
-        # clear temp.geojson file
-        try:
-            f = open(self.outDirectoryPhotosGeoJSON, 'r+')
-            f.truncate(0)  # need '0' when using r+
-        except:
-            pass
-
-        try:
-            self.layerPhotos_final.loadNamedStyle(self.load_style)
-        except:
-            title = 'Warning'
-            msg = 'No geo-tagged images were detected.'
-            self.showMessage(title, msg, 'Warning')
-            self.taskPhotos.destroyed()
-            return
-
-        self.layerPhotos_final.setReadOnly(False)
-        self.layerPhotos_final.setRenderer(self.layer_renderer)
-        self.layerPhotos_final.reload()
-        self.layerPhotos_final.triggerRepaint()
-
-        try:
-            xmin = min(self.lon)
-            ymin = min(self.lat)
-            xmax = max(self.lon)
-            ymax = max(self.lat)
-            self.canvas.zoomToSelected(self.layerPhotos_final)
-            self.canvas.setExtent(QgsRectangle(xmin, ymin, xmax, ymax))
-        except:
-            pass
-
-        ###########################################
-        self.dlg.ok.setEnabled(True)
-        self.dlg.closebutton.setEnabled(True)
-        self.dlg.toolButtonImport.setEnabled(True)
-        self.dlg.toolButtonOut.setEnabled(True)
-        self.dlg.input_load_style.setEnabled(True)
-        self.clickPhotos.setChecked(True)
-
-        noLocationPhotosCounter = self.initphotos - self.truePhotosCount - self.out_of_extent_photos
-        if (self.truePhotosCount == noLocationPhotosCounter == 0 or self.truePhotosCount == 0 ) and self.showMessageHide:
-            title = 'Import Photos'
-            msg = 'Import Completed.\n\nDetails:\n  No new photos were added.'
-            self.showMessage(title, msg, 'Information')
-            self.taskPhotos.destroyed()
-            return
-        elif ((self.truePhotosCount == self.initphotos) or ((noLocationPhotosCounter + self.truePhotosCount + self.out_of_extent_photos) == self.initphotos) )and self.showMessageHide:
-            title = 'Import Photos'
-            msg = 'Import Completed.\n\nDetails:\n  ' + str(
-                int(self.truePhotosCount)) + ' photo(s) added without error.\n  ' + str(
-                int(noLocationPhotosCounter)) + ' photo(s) skipped (because of missing location).\n  ' + str(
-                int(self.out_of_extent_photos)) + ' photo(s) skipped (because not in canvas extent).'
-            self.showMessage(title, msg, 'Information')
-
-        g = self.Qpr_inst.layerTreeRoot().insertGroup(0, self.lphoto)
-        self.Qpr_inst.addMapLayer(self.layerPhotos_final, False)
-        nn = QgsLayerTreeLayer(self.layerPhotos_final)
-        g.insertChildNode(0, nn)
-
-    def stopped(self, task):
-        QgsMessageLog.logMessage(
-            'Task "{name}" was canceled'.format(
-                name=task.description()),
-            'ImportPhotos', Qgis.Info)
-
-    def import_photos_task(self, task, wait_time):
-        self.geoPhotos = []
-        self.lon = []
-        self.lat = []
-        for count, imgpath in enumerate(self.photos):
-            try:
-                name = os.path.basename(imgpath)
-                RelPath = self.selected_folder + self.photos_names[count]
-                ImagesSrc = '<img src = "' + RelPath + '" width="300" height="225"/>'
-                if CHECK_MODULE == 'exifread' and not self.pil_module:
-                    self.exifread_module = True
-                    self.taskPhotos.setProgress(count/self.initphotos)
-                    with open(imgpath, 'rb') as imgpathF:
-                        tags = exifread.process_file(imgpathF, details=False)
-                    if not tags.keys() & {"GPS GPSLongitude", "GPS GPSLatitude"}:
-                        continue
-
-                    lat, lon = self.get_exif_location(tags, "lonlat")
-                    try:
-                        if 'GPS GPSAltitude' in tags:
-                            altitude = float(tags["GPS GPSAltitude"].values[0].num) / float(
-                                tags["GPS GPSAltitude"].values[0].den)
-                        else:
-                            altitude = ''
-                    except:
-                        altitude = ''
-                    uuid_ = str(uuid.uuid4())
-
-                    try:
-                        dt1, dt2 = tags["EXIF DateTimeOriginal"].values.split()
-                        date = dt1.replace(':', '/')
-                        time_ = dt2
-                        timestamp = dt1.replace(':', '-') + 'T' + time_
-                    except:
-                        try:
-                            date = tags["GPS GPSDate"].values.replace(':', '/')
-                            tt = [str(i) for i in tags["GPS GPSTimeStamp"].values]
-                            time_ = "{:0>2}:{:0>2}:{:0>2}".format(tt[0], tt[1], tt[2])
-                            timestamp = tags["GPS GPSDate"].values.replace(':', '-') + 'T' + time_
-                        except:
-                            date = ''
-                            time_ = ''
-                            timestamp = ''
-
-                    try:
-                        if 'GPS GPSImgDirection' in tags:
-                            azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(
-                                tags["GPS GPSImgDirection"].values[0].den)
-                        else:
-                            azimuth = ''
-                    except:
-                        azimuth = ''
-
-                    try:
-                        if 'GPS GPSImgDirectionRef' in tags:
-                            north = str(tags["GPS GPSImgDirectionRef"].values)
-                        else:
-                            north = ''
-                    except:
-                        north = ''
-
-                    try:
-                        if 'Image Make' in tags:
-                           maker = tags['Image Make']
-                        else:
-                            maker = ''
-                    except:
-                        maker = ''
-
-                    try:
-                        if 'Image Model' in tags:
-                            model = tags['Image Model']
-                        else:
-                            model = ''
-                    except:
-                        model = ''
-
-                    try:
-                        if 'Image ImageDescription' in tags:
-                            title = tags['Image ImageDescription']
-                        else:
-                            title = ''
-                    except:
-                        title = ''
-
-                    try:
-                        if 'EXIF UserComment' in tags:
-                            user_comm = tags['EXIF UserComment'].printable
-                        else:
-                            user_comm = ''
-                    except:
-                        user_comm = ''
-
-                if CHECK_MODULE == 'PIL' and not self.exifread_module:
-                    self.pil_module = True
-                    a = {}
-                    info = Image.open(imgpath)
-                    info = info._getexif()
-
-                    if info == None:
-                        continue
-
-                    for tag, value in info.items():
-                        if TAGS.get(tag, tag) == 'GPSInfo' or TAGS.get(tag, tag) == 'DateTime' or TAGS.get(tag,
-                                                                                                           tag) == 'DateTimeOriginal':
-                            a[TAGS.get(tag, tag)] = value
-
-                    if a == {}:
-                        continue
-
-                    if a['GPSInfo'] != {}:
-                        if 1 and 2 and 3 and 4 in a['GPSInfo']:
-                            lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
-                            latref = a['GPSInfo'][1]
-                            lon = [float(x) / float(y) for x, y in a['GPSInfo'][4]]
-                            lonref = a['GPSInfo'][3]
-
-                            lat = lat[0] + lat[1] / 60 + lat[2] / 3600
-                            lon = lon[0] + lon[1] / 60 + lon[2] / 3600
-
-                            if latref == 'S':
-                                lat = -lat
-                            if lonref == 'W':
-                                lon = -lon
-                        else:
-                            continue
-
-                        uuid_ = str(uuid.uuid4())
-                        if 'DateTime' or 'DateTimeOriginal' in a:
-                            if 'DateTime' in a:
-                                dt1, dt2 = a['DateTime'].split()
-                            if 'DateTimeOriginal' in a:
-                                dt1, dt2 = a['DateTimeOriginal'].split()
-                            date = dt1.replace(':', '/')
-                            time_ = dt2
-                            timestamp = dt1.replace(':', '-') + 'T' + time_
-
-                        try:
-                            if 6 in a['GPSInfo']:
-                                if len(a['GPSInfo'][6]) > 1:
-                                    mAltitude = float(a['GPSInfo'][6][0])
-                                    mAltitudeDec = float(a['GPSInfo'][6][1])
-                                    altitude = mAltitude / mAltitudeDec
-                            else:
-                                altitude = ''
-                        except:
-                            altitude = ''
-
-                        try:
-                            if 16 and 17 in a['GPSInfo']:
-                                north = str(a['GPSInfo'][16])
-                                azimuth = float(a['GPSInfo'][17][0]) / float(a['GPSInfo'][17][1])
-                            else:
-                                north = ''
-                                azimuth = ''
-                        except:
-                            north = ''
-                            azimuth = ''
-
-                        maker = ''
-                        model = ''
-                        user_comm = ''
-                        title = ''
-
-                if self.dlg.canvas_extent.isChecked():
-                    if not (self.canvas.extent().xMaximum() > lon > self.canvas.extent().xMinimum() \
-                            and self.canvas.extent().yMaximum() > lat > self.canvas.extent().yMinimum()):
-                        self.out_of_extent_photos = self.out_of_extent_photos + 1
-                        continue
-
-                self.lon.append(lon)
-                self.lat.append(lat)
-
-                self.truePhotosCount = self.truePhotosCount + 1
-
-                geo_info = {"type": "Feature",
-                            "properties": {'ID': uuid_, 'Name': name, 'Date': date, 'Time': time_,
-                                           'Lon': lon,
-                                           'Lat': lat, 'Altitude': altitude, 'North': north,
-                                           'Azimuth': azimuth,
-                                           'Camera Maker': str(maker), 'Camera Model': str(model), 'Title': str(title),
-                                           'Comment': user_comm,'Path': imgpath, 'RelPath': RelPath,
-                                           'Timestamp': timestamp, 'Images': ImagesSrc},
-                            "geometry": {"coordinates": [lon, lat], "type": "Point"}}
-                self.geoPhotos.append(geo_info)
-
-                if self.taskPhotos.isCanceled():
-                    self.stopped(self.taskPhotos)
-                    self.taskPhotos.destroyed()
-                    return None
-            except:
-                pass
-        return True
-
-    def call_import_photos(self):
-        self.taskPhotos = QgsTask.fromFunction(u'ImportPhotos', self.import_photos_task,
-                                 on_finished=self.completed, wait_time=4)
-        QgsApplication.taskManager().addTask(self.taskPhotos)
-
-######################################################
-# based on http://www.codegists.com/snippet/python/exif_gpspy_snakeye_python
-
-    def _get_if_exist(self, data, key):
-        if key in data:
-            return data[key]
-
-        return None
-
-
-    def _convert_to_degress(self, value):
-        """
-        Helper function to convert the GPS coordinates stored in the EXIF to degress in float format
-
-        :param value:
-        :type value: exifread.utils.Ratio
-        :rtype: float
-        """
-        d = float(value.values[0].num) / float(value.values[0].den)
-        m = float(value.values[1].num) / float(value.values[1].den)
-        s = float(value.values[2].num) / float(value.values[2].den)
-
-        return d + (m / 60.0) + (s / 3600.0)
-
+    ######################################################
+    # based on http://www.codegists.com/snippet/python/exif_gpspy_snakeye_python
 
     def get_exif_location(self, exif_data, lonlat):
         """
@@ -1098,3 +725,23 @@ class ImportPhotos:
                     lon = 0 - lon
 
             return lat, lon
+
+    def _get_if_exist(self, data, key):
+        if key in data:
+            return data[key]
+
+        return None
+
+    def _convert_to_degress(self, value):
+        """
+        Helper function to convert the GPS coordinates stored in the EXIF to degress in float format
+
+        :param value:
+        :type value: exifread.utils.Ratio
+        :rtype: float
+        """
+        d = float(value.values[0].num) / float(value.values[0].den)
+        m = float(value.values[1].num) / float(value.values[1].den)
+        s = float(value.values[2].num) / float(value.values[2].den)
+
+        return d + (m / 60.0) + (s / 3600.0)
