@@ -226,12 +226,10 @@ class ImportPhotos:
             parent=self.iface.mainWindow())
 
         self.dlg = ImportPhotosDialog()
-        self.dlg.load_style_path.setPlaceholderText( "e.g." + os.path.join(self.plugin_dir, 'icons', "photos.qml"))
         self.dlg.ok.clicked.connect(self.import_photos)
         self.dlg.closebutton.clicked.connect(self.dlg.close)
         self.dlg.toolButtonImport.clicked.connect(self.toolButtonImport)
         self.dlg.toolButtonOut.clicked.connect(self.toolButtonOut)
-        self.dlg.input_load_style.clicked.connect(self.loadstyle)
 
         # Add QgsRuleBasedRendererWidget
         # temp_layer is a class variable because we need to keep its reference
@@ -247,8 +245,8 @@ class ImportPhotos:
             self.temp_layer, QgsStyle.defaultStyle(),
             self.temp_layer.renderer())
         renderer_widget.setObjectName("renderer_widget")
-        self.dlg.gridLayout.addWidget(QLabel("Output layer style"), 5, 0)
-        self.dlg.gridLayout.addWidget(renderer_widget, 5, 2)
+        self.dlg.gridLayout.addWidget(QLabel("Output layer style"), 4, 0)
+        self.dlg.gridLayout.addWidget(renderer_widget, 4, 2)
 
         self.toolMouseClick = MouseClick(self.canvas, self)
 
@@ -282,7 +280,6 @@ class ImportPhotos:
 
         self.dlg.out.setText('')
         self.dlg.imp.setText('')
-        self.dlg.load_style_path.setText('')
         self.dlg.canvas_extent.setChecked(False)
         self.dlg.show()
 
@@ -304,14 +301,6 @@ class ImportPhotos:
         if directory_path:
             self.dlg.imp.setText(directory_path)
 
-    def loadstyle(self):
-        load_style = QFileDialog.getOpenFileName(
-            self.dlg, "Load style",
-            os.path.expanduser('~'), "Qml (*.qml)")
-
-        if load_style:
-            self.dlg.load_style_path.setText(load_style)
-
     def import_photos(self):
         self.layer_renderer = self.dlg.findChild(QgsRuleBasedRendererWidget, "renderer_widget").renderer()
 
@@ -325,13 +314,6 @@ class ImportPhotos:
 
         if file_not_found:
             self.showMessage('Warning', msg, 'Warning')
-            return
-
-        if self.dlg.load_style_path.text() == '':
-            self.dlg.load_style_path.setText(os.path.join(self.plugin_dir, 'icons', "photos.qml"))
-
-        if not os.path.exists(self.dlg.load_style_path.text()):
-            self.showMessage('Warning', 'The specified path for the style does not exist!', 'Warning')
             return
 
         # get paths of photos
@@ -389,6 +371,7 @@ class ImportPhotos:
                         out_of_bounds_photos_counter += 1
 
         if not editing_started or not temp_photos_layer.commitChanges():
+            self.project_instance.removeMapLayer(temp_photos_layer)
             title = 'Update Photos'
             msg = 'Update Failed.\n\nDetails:\n  ' +\
                 'Could not update the photos layer.\n  ' +\
@@ -403,6 +386,7 @@ class ImportPhotos:
             "ESRI Shapefile")
 
         if error_code != 0:
+            self.project_instance.removeMapLayer(temp_photos_layer)
             self.showMessage('Writing output file error', error_message, 'Warning')
             return False, len(photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
 
@@ -415,7 +399,6 @@ class ImportPhotos:
 
         layerPhotos_final.setReadOnly(False)
         layerPhotos_final.setRenderer(self.layer_renderer)
-        layerPhotos_final.loadNamedStyle(self.dlg.load_style_path.text())
         layerPhotos_final.reload()
         layerPhotos_final.triggerRepaint()
 
@@ -423,7 +406,6 @@ class ImportPhotos:
             0, os.path.basename(self.dlg.imp.text()))
         self.project_instance.addMapLayer(layerPhotos_final)
         # Remove temp layer
-        self.project_instance.removeMapLayer(temp_photos_layer)
         nn = QgsLayerTreeLayer(layerPhotos_final)
         group.insertChildNode(0, nn)
 
