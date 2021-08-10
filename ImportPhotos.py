@@ -238,7 +238,10 @@ class ImportPhotos:
         # so the RendererWidget does not crash QGIS
         # If it's not a class variable, then it goes out of scope after this method
         # and as metioned, QGIS crashes because it tries to access it.
-        self.temp_layer = QgsVectorLayer('Point&crs=epsg:4326&fields=id:string(10)')
+        self.temp_layer = QgsVectorLayer(
+            'Point?crs=epsg:4326&field=Date:date&field=timestamp:datetime',
+            'temp_layer',
+            'memory')
         self.temp_layer.setRenderer(QgsFeatureRenderer.defaultRenderer(QgsWkbTypes.PointGeometry))
         renderer_widget = QgsRuleBasedRendererWidget(
             self.temp_layer, QgsStyle.defaultStyle(),
