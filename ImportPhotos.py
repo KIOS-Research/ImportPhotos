@@ -468,15 +468,24 @@ class ImportPhotos:
                     selected_layer.deleteFeature(feature.id())
 
             # Import new pictures
+            imported_pictures_counter = 0
+            out_of_bounds_photos_counter = 0
+            photos_to_import_counter = 0
+
             for picture_path in pictures_to_add:
                 jpeg_extensions = ['jpg', 'jpeg', 'JPG', 'JPEG']
                 if not os.path.isdir(os.path.join(base_picture_directory, picture_path)) and picture_path.split(
                         ".")[1] in jpeg_extensions:
+                    photos_to_import_counter =+ 1
                     geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
-                    if geo_info:
+                    if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
                         selected_layer.addFeatures(
                             QgsJsonUtils.stringToFeatureList(
                                 json.dumps(geo_info), basic_feature_fields))
+                        imported_pictures_counter =+ 1
+                    elif geo_info is False:
+                        out_of_bounds_photos_counter += 1
+
 
         if not editing_started or not selected_layer.commitChanges():
             title = 'Update Photos'
@@ -484,6 +493,15 @@ class ImportPhotos:
                 'Could not update the photos layer.\n  ' +\
                     "Layer is either read-only or you don't have permissions to edit it."
             self.showMessage(title, msg, 'Warning')
+
+        no_location_photos_counter = photos_to_import_counter - imported_pictures_counter - out_of_bounds_photos_counter
+        title = 'Update Photos'
+        msg = 'Update Completed.\n\nDetails:\n  ' + str(
+            int(imported_pictures_counter)) + ' photo(s) added without error.\n  ' + str(
+            int(no_location_photos_counter)) + ' photo(s) skipped (because of missing location).\n  ' + str(
+            int(out_of_bounds_photos_counter)) + ' photo(s) skipped (because not in canvas extent).' + str(
+            int(len(pictures_to_remove))) + '\n photo(s) removed.'
+        self.showMessage(title, msg, 'Information')
 
     def get_geo_infos_from_photo(self, photo_path):
         try:
