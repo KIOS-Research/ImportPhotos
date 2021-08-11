@@ -433,10 +433,14 @@ class ImportPhotos:
             if layer.type() == QgsMapLayerType.VectorLayer and layer.fields().names() == FIELDS:
                 layers[layer.name()] = layer
 
-        selected_layer_name, ok = QInputDialog.getItem(
-            self.iface.mainWindow(),
-            "Select layer to update",
-            "Layer List:", layers.keys(), 0, False)
+        if layers.keys():
+            selected_layer_name, ok = QInputDialog.getItem(
+                self.iface.mainWindow(),
+                "Select layer to update",
+                "Layer List:", layers.keys(), 0, False)
+        else:
+            self.showMessage('Error', 'No photos layer(s) found', 'Warning')
+            return
 
         if not ok:
             return
