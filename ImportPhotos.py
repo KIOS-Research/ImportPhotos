@@ -19,14 +19,12 @@
  ***************************************************************************/
 """
 
-from logging import setLogRecordFactory
 from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox, QInputDialog, QLabel
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtGui import QIcon, QGuiApplication
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDialog
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt
 from qgis.core import *
-from qgis.utils import Qgis
 from qgis.gui import QgsRuleBasedRendererWidget
 
 # Initialize Qt resources from file resources.py
@@ -329,15 +327,15 @@ class ImportPhotos:
 
         self.dlg.close()
 
-        # This needs to be a class variable, because we need to keep its reference
-        # or else QGIS crashes
-        self.taskPhotos = QgsTask.fromFunction(
-            'ImportPhotos',
-            self.import_photos_task, on_finished=self.completed,
-            photos_to_import=photos_to_import)
-        QgsApplication.taskManager().addTask(self.taskPhotos)
+        QGuiApplication.setOverrideCursor(Qt.WaitCursor)
+        try:
+            result = self.import_photos_task(photos_to_import)
+            self.completed(result)
+        except Exception as e:
+            self.showMessage('Unexpected Error', str(e), 'Warning')
+            QGuiApplication.restoreOverrideCursor()
 
-    def import_photos_task(self, task, photos_to_import):
+    def import_photos_task(self, photos_to_import):
         temp_photos_layer = self.project_instance.addMapLayer(
             QgsVectorLayer("Point?crs=epsg:4326", None, "memory"), False)
 
@@ -353,7 +351,7 @@ class ImportPhotos:
                         ".")[1] in SUPPORTED_PHOTOS_EXTENSIONS:
 
                     geo_info = self.get_geo_infos_from_photo(photo_path)
-                    if geo_info:
+                    if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
                         geo_info = json.dumps(geo_info)
                         fields = QgsJsonUtils.stringToFields(geo_info)
 
@@ -372,10 +370,9 @@ class ImportPhotos:
 
         if not editing_started or not temp_photos_layer.commitChanges():
             self.project_instance.removeMapLayer(temp_photos_layer)
-            title = 'Update Photos'
-            msg = 'Update Failed.\n\nDetails:\n  ' +\
-                'Could not update the photos layer.\n  ' +\
-                    "Layer is either read-only or you don't have permissions to edit it."
+            title = 'Import Photos'
+            msg = "Import Failed.\n\nDetails: {}".format(
+                "\n".join(temp_photos_layer.commitErrors()))
             self.showMessage(title, msg, 'Warning')
             return False, len(photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
 
@@ -390,6 +387,7 @@ class ImportPhotos:
             self.showMessage('Writing output file error', error_message, 'Warning')
             return False, len(photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
 
+        self.project_instance.removeMapLayer(temp_photos_layer)
         self.setMouseClickMapTool()
 
         layerPhotos_final = QgsVectorLayer(
@@ -404,34 +402,28 @@ class ImportPhotos:
 
         group = self.project_instance.layerTreeRoot().insertGroup(
             0, os.path.basename(self.dlg.imp.text()))
-        self.project_instance.addMapLayer(layerPhotos_final)
-        # Remove temp layer
-        nn = QgsLayerTreeLayer(layerPhotos_final)
-        group.insertChildNode(0, nn)
+        self.project_instance.addMapLayer(layerPhotos_final, False)
+        group.addLayer(layerPhotos_final)
 
         return True, len(photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
 
-    def completed(self, exception, result):
+    def completed(self, result):
 
-        if exception:
-            self.showMessage('Unexpected Error', str(exception), 'Warning')
-        else:
-            import_ok, photos_to_import_number, imported_photos_counter, out_of_bounds_photos_counter = result
-            no_location_photos_counter = photos_to_import_number - imported_photos_counter - out_of_bounds_photos_counter
+        import_ok, photos_to_import_number, imported_photos_counter, out_of_bounds_photos_counter = result
+        no_location_photos_counter = photos_to_import_number - imported_photos_counter - out_of_bounds_photos_counter
 
-            if import_ok:
-                if imported_photos_counter == 0:
-                    title = 'Import Photos'
-                    msg = 'Import Completed.\n\nDetails:\n  No new photos were added.'
-                    self.showMessage(title, msg, 'Information')
-                    return
-                else:
-                    title = 'Import Photos'
-                    msg = 'Import Completed.\n\nDetails:\n  ' + str(
-                        int(imported_photos_counter)) + ' photo(s) added without error.\n  ' + str(
-                        int(no_location_photos_counter)) + ' photo(s) skipped (because of missing location).\n  ' + str(
-                        int(out_of_bounds_photos_counter)) + ' photo(s) skipped (because not in canvas extent).'
-                    self.showMessage(title, msg, 'Information')
+        if import_ok:
+            if imported_photos_counter == 0:
+                title = 'Import Photos'
+                msg = 'Import Completed.\n\nDetails:\n  No new photos were added.'
+                self.showMessage(title, msg, 'Information')
+            else:
+                title = 'Import Photos'
+                msg = 'Import Completed.\n\nDetails:\n  ' + str(
+                    int(imported_photos_counter)) + ' photo(s) added without error.\n  ' + str(
+                    int(no_location_photos_counter)) + ' photo(s) skipped (because of missing location).\n  ' + str(
+                    int(out_of_bounds_photos_counter)) + ' photo(s) skipped (because not in canvas extent).'
+                self.showMessage(title, msg, 'Information')
 
     def update_photos(self):
         layers = {}
@@ -677,6 +669,7 @@ class ImportPhotos:
         msgBox.setWindowTitle(title)
         msgBox.setText(msg)
         msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+        QGuiApplication.restoreOverrideCursor()
         msgBox.exec_()
 
     def refresh(self):
