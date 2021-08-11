@@ -486,7 +486,7 @@ class ImportPhotos:
                         selected_layer.addFeatures(
                             QgsJsonUtils.stringToFeatureList(
                                 json.dumps(geo_info), basic_feature_fields))
-                        imported_pictures_counter =+ 1
+                        imported_pictures_counter += 1
                     elif geo_info is False:
                         out_of_bounds_photos_counter += 1
 
