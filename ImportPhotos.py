@@ -239,6 +239,7 @@ class ImportPhotos:
             'temp_layer',
             'memory')
         self.temp_layer.setRenderer(QgsFeatureRenderer.defaultRenderer(QgsWkbTypes.PointGeometry))
+        self.temp_layer.loadNamedStyle(os.path.join(self.plugin_dir, 'icons', "photos.qml"))
         renderer_widget = QgsRuleBasedRendererWidget(
             self.temp_layer, QgsStyle.defaultStyle(),
             self.temp_layer.renderer())
