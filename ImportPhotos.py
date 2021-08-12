@@ -480,7 +480,7 @@ class ImportPhotos:
                 jpeg_extensions = ['jpg', 'jpeg', 'JPG', 'JPEG']
                 if not os.path.isdir(os.path.join(base_picture_directory, picture_path)) and picture_path.split(
                         ".")[1] in jpeg_extensions:
-                    photos_to_import_counter =+ 1
+                    photos_to_import_counter += 1
                     geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
                     if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
                         selected_layer.addFeatures(
@@ -497,6 +497,7 @@ class ImportPhotos:
                 'Could not update the photos layer.\n  ' +\
                     "Layer is either read-only or you don't have permissions to edit it."
             self.showMessage(title, msg, 'Warning')
+            return
 
         no_location_photos_counter = photos_to_import_counter - imported_pictures_counter - out_of_bounds_photos_counter
         title = 'Update Photos'
