@@ -66,7 +66,7 @@ class MouseClick(QgsMapTool):
             fields = [field.name().upper() for field in layer.fields()]
             if 'PATH' or 'PHOTO' in fields:
                 lRect = self.canvas.mapSettings().mapToLayerCoordinates(layer, rect)
-                layer.selectByRect(lRect, False)
+                layer.selectByRect(lRect)
                 selected_features = layer.selectedFeatures()
                 if selected_features != []:
                     layersSelected.append(layer)
