@@ -218,7 +218,7 @@ class ImportPhotos:
             callback=self.setMouseClickMapTool,
             parent=self.iface.mainWindow())
         self.add_action(
-            icon_path,
+            ":/images/themes/default/sync_views.svg",
             text=self.tr(u'Update Photos'),
             callback=self.update_photos,
             parent=self.iface.mainWindow())
