@@ -235,7 +235,7 @@ class ImportPhotos:
         # If it's not a class variable, then it goes out of scope after this method
         # and as metioned, QGIS crashes because it tries to access it.
         self.temp_layer = QgsVectorLayer(
-            'Point?crs=epsg:4326&field=Date:date&field=timestamp:datetime',
+            'Point?crs=epsg:4326&field=ID:string&field=Name:string&field=Date:date&field=Time:text&field=Lon:double&field=Lat:double&field=Altitude:double&field=Camera Mak:string&field=Camera Mod:string&field=Title:string&field=Comment:string&field=Path:string&field=RelPath:string&field=Timestamp:string&field=Images:string',
             'temp_layer',
             'memory')
         self.temp_layer.setRenderer(QgsFeatureRenderer.defaultRenderer(QgsWkbTypes.PointGeometry))
