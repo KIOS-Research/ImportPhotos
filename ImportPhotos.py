@@ -504,8 +504,8 @@ class ImportPhotos:
         msg = 'Update Completed.\n\nDetails:\n  ' + str(
             int(imported_pictures_counter)) + ' photo(s) added without error.\n  ' + str(
             int(no_location_photos_counter)) + ' photo(s) skipped (because of missing location).\n  ' + str(
-            int(out_of_bounds_photos_counter)) + ' photo(s) skipped (because not in canvas extent).' + str(
-            int(len(pictures_to_remove))) + '\n photo(s) removed.'
+            int(out_of_bounds_photos_counter)) + ' photo(s) skipped (because not in canvas extent).\n  ' + str(
+            int(len(pictures_to_remove))) + ' photo(s) removed.'
         self.showMessage(title, msg, 'Information')
 
     def get_geo_infos_from_photo(self, photo_path):
