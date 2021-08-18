@@ -347,9 +347,11 @@ class ImportPhotos:
         if editing_started:
             # Import new pictures
             attribute_fields_set = False
+            
             for photo_path in photos_to_import:
+                
                 if not os.path.isdir(photo_path) and os.path.basename(photo_path).split(
-                        ".")[1] in SUPPORTED_PHOTOS_EXTENSIONS:
+                        ".")[1].lower() in SUPPORTED_PHOTOS_EXTENSIONS:
 
                     geo_info = self.get_geo_infos_from_photo(photo_path)
                     if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
@@ -520,7 +522,7 @@ class ImportPhotos:
 
                 lat, lon = self.get_exif_location(tags, "lonlat")
 
-                if 'GPS GPSAltitude' in tags:
+                if 'GPS GPSAltitude' in tags and abs( float(tags.get("GPS GPSAltitude").values[0].den)) > 0:
                     altitude = float(tags.get("GPS GPSAltitude").values[0].num) / float(
                         tags.get("GPS GPSAltitude").values[0].den)
                 else:
