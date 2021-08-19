@@ -399,7 +399,7 @@ class ImportPhotos:
             "ogr")
 
         layerPhotos_final.setReadOnly(False)
-        layerPhotos_final.setRenderer(self.layer_renderer)
+        layerPhotos_final.setRenderer(self.layer_renderer.clone())
         layerPhotos_final.reload()
         layerPhotos_final.triggerRepaint()
 
