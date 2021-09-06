@@ -448,7 +448,7 @@ class ImportPhotos:
         self.out_of_extent_photos = 0
 
         self.Qpr_inst = QgsProject.instance()
-        if platform.system()=='Darwin':
+        if platform.system() == 'Darwin':
             self.layernamePhotos.append(self.lphoto+' OGRGeoJSON Point')
         else:
             self.layernamePhotos.append(self.lphoto)
@@ -577,10 +577,10 @@ class ImportPhotos:
             )
             self.showMessage(title, msg, self.tr('Information'))
 
-        g = self.Qpr_inst.layerTreeRoot().insertGroup(0, self.lphoto)
-        self.Qpr_inst.addMapLayer(self.layerPhotos_final, False)
-        nn = QgsLayerTreeLayer(self.layerPhotos_final)
-        g.insertChildNode(0, nn)
+        #g = self.Qpr_inst.layerTreeRoot().insertGroup(0, self.lphoto)
+        self.Qpr_inst.addMapLayer(self.layerPhotos_final)
+        #nn = QgsLayerTreeLayer(self.layerPhotos_final)
+        #g.insertChildNode(0, nn)
 
     def stopped(self, task):
         QgsMessageLog.logMessage(
