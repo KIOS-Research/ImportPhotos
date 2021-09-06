@@ -240,27 +240,27 @@ class ImportPhotos:
                        'Camera Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images']
 
         self.extension_switch = {
+            ".gpkg": "GPKG",
             ".shp": "ESRI Shapefile",
             ".geojson": "GeoJSON",
-            ".gpkg":"GPKG",
             ".csv": "CSV",
             ".kml": "KML",
             ".tab": "MapInfo File"
         }
 
         self.extension_switch2 = {
+            "GeoPackage (*.gpkg *.GPKG)": ".gpkg",
             "ESRI Shapefile (*.shp *.SHP)": ".shp",
             "GeoJSON (*.geojson *.GEOJSON)": ".geojson",
-            "GeoPackage (*.gpkg *.GPKG)":".gpkg",
             "Comma Separated Value (*.csv *.CSV)": ".csv",
             "Keyhole Markup Language (*.kml *.KML)": ".kml",
             "Mapinfo TAB (*.tab *.TAB)": ".tab"
         }
 
         self.extension_switch_types = {
+            ".gpkg": "GPKG",
             ".shp": "ESRI Shapefile",
             ".geojson": "GeoJSON",
-            ".gpkg":"GPKG",
             ".csv": "CSV",
             ".kml": "KML",
             ".tab": "MapInfo File"
@@ -301,7 +301,7 @@ class ImportPhotos:
         self.dlg.close()
 
     def toolButtonOut(self):
-        typefiles = 'ESRI Shapefile (*.shp *.SHP);; GeoJSON (*.geojson *.GEOJSON);; GeoPackage (*.gpkg *.GPKG);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB)'
+        typefiles = 'GeoPackage (*.gpkg *.GPKG);; ESRI Shapefile (*.shp *.SHP);; GeoJSON (*.geojson *.GEOJSON);; Comma Separated Value (*.csv *.CSV);; Keyhole Markup Language (*.kml *.KML);; Mapinfo TAB (*.tab *.TAB)'
         desktop_path = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop')
         if platform.system() == 'Linux':
             try:
@@ -617,7 +617,7 @@ class ImportPhotos:
                     uuid_ = str(uuid.uuid4())
 
                     try:
-                        dt1, dt2 = tags["EXIF DateTimeOriginal"].values.split()
+                        dt1, dt2 = tags["EXIF DateTimeOriginal"].values.split(' ')
                         date = dt1.replace(':', '/')
                         time_ = dt2
                         timestamp = dt1.replace(':', '-') + 'T' + time_
@@ -783,6 +783,8 @@ class ImportPhotos:
         return True
 
     def call_import_photos(self):
+        #self.import_photos_task('', '')
+        #self.completed('', '')
         self.taskPhotos = QgsTask.fromFunction('ImportPhotos', self.import_photos_task,
                                  on_finished=self.completed, wait_time=4)
         QgsApplication.taskManager().addTask(self.taskPhotos)
