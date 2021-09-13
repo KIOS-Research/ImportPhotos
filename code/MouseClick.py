@@ -26,10 +26,6 @@ from qgis.gui import (QgsMapTool, QgsRubberBand)
 from .PhotosViewer import PhotoWindow
 import os.path
 
-from win32gui import SetWindowPos
-import win32con
-
-
 # Mouseclik import file
 class MouseClick(QgsMapTool):
     afterLeftClick = pyqtSignal()
