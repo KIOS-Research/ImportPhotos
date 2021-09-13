@@ -26,6 +26,9 @@ repository=https://github.com/KIOS-Research/ImportPhotos/
 changelog=2021-09-06  ImportPhotos 2.3.0:
 			Display photo dialog only once - Click instead of double-click by 
 			French translation (Thank you very much @sigeal)
+			Remove group when added layer
+			Update photos qml file
+			Default save as geopackage
 	  2019-08-07  ImportPhotos 2.2.3:
 			Add field column Images.
 	  2019-07-18  ImportPhotos 2.2.2:
