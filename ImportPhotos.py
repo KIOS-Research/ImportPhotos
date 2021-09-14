@@ -54,9 +54,9 @@ except ModuleNotFoundError:
     pass
 
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'ui/impphotos.ui'))
-
+#FORM_CLASS, _ = uic.loadUiType(os.path.join(
+#    os.path.dirname(__file__), 'ui/impphotos.ui'))
+from .ui.impphotos import Ui_photosImp
 
 FIELDS = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Mak',
                 'Camera Mod', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images']
@@ -64,7 +64,9 @@ FIELDS = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azim
 SUPPORTED_PHOTOS_EXTENSIONS = ['jpg', 'jpeg']
 
 # Import ui file
-class ImportPhotosDialog(QDialog, FORM_CLASS):
+#class ImportPhotosDialog(QDialog, FORM_CLASS):
+class ImportPhotosDialog(QDialog, Ui_photosImp):
+
     def __init__(self, parent=None):
         # """Constructor."""
         QDialog.__init__(self, None, Qt.WindowStaysOnTopHint)
@@ -102,10 +104,10 @@ class ImportPhotos:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&ImportPhotos')
+        self.menu = self.tr('&ImportPhotos')
         # TODO: We are going to let the user set this up in a future iteration
-        self.toolbar = self.iface.addToolBar(u'ImportPhotos')
-        self.toolbar.setObjectName(u'ImportPhotos')
+        self.toolbar = self.iface.addToolBar('ImportPhotos')
+        self.toolbar.setObjectName('ImportPhotos')
         # Renderer that will be set after the import process
         self.layer_renderer = None
 
@@ -207,19 +209,19 @@ class ImportPhotos:
         icon_path = ':/plugins/ImportPhotos/icons/ImportImage.svg'
         self.add_action(
             icon_path,
-            text=self.tr(u'Import Photos'),
+            text=self.tr('Import Photos'),
             callback=self.run,
             parent=self.iface.mainWindow())
         icon_path = ':/plugins/ImportPhotos/icons/SelectImage.svg'
         self.clickPhotos = self.add_action(
             icon_path,
             checkable=True,
-            text=self.tr(u'Click Photos'),
+            text=self.tr('Click Photos'),
             callback=self.setMouseClickMapTool,
             parent=self.iface.mainWindow())
         self.add_action(
             ":/images/themes/default/sync_views.svg",
-            text=self.tr(u'Update Photos'),
+            text=self.tr('Update Photos'),
             callback=self.update_photos,
             parent=self.iface.mainWindow())
 
@@ -263,7 +265,7 @@ class ImportPhotos:
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.tr(u'&ImportPhotos'),
+                self.tr('&ImportPhotos'),
                 action)
             self.iface.removeToolBarIcon(action)
             # remove the toolbar
@@ -347,9 +349,9 @@ class ImportPhotos:
         if editing_started:
             # Import new pictures
             attribute_fields_set = False
-            
+
             for photo_path in photos_to_import:
-                
+
                 if not os.path.isdir(photo_path) and os.path.basename(photo_path).split(
                         ".")[1].lower() in SUPPORTED_PHOTOS_EXTENSIONS:
 

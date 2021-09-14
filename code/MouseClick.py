@@ -19,14 +19,12 @@
  ***************************************************************************/
 """
 
-from qgis.PyQt.QtWidgets import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtCore import *
-from qgis.core import QgsRectangle, QgsProject
-from qgis.gui import QgsMapTool, QgsRubberBand
+from qgis.PyQt.QtGui import (QPixmap, QImage)
+from qgis.PyQt.QtCore import (Qt, pyqtSignal, QCoreApplication, QFileInfo, QRectF)
+from qgis.core import (QgsRectangle, QgsProject)
+from qgis.gui import (QgsMapTool, QgsRubberBand)
 from .PhotosViewer import PhotoWindow
 import os.path
-
 
 # Mouseclik import file
 class MouseClick(QgsMapTool):
@@ -39,19 +37,26 @@ class MouseClick(QgsMapTool):
         self.canvas = canvas
         self.drawSelf = drawSelf
         self.drawSelf.rb = None
+        self.photosDLG = None
 
     def canvasPressEvent(self, event):
         if event.button() == 1:
+            # sigeal : keep photo viewer on top of other windows
+            if self.photosDLG != None :
+                self.photosDLG.setWindowFlags(Qt.WindowStaysOnTopHint)
             self.drawSelf.refresh()
 
     def canvasMoveEvent(self, event):
         pass
 
-    def canvasReleaseEvent(self, event):
+    # sigeal : display photo on click instead of double-click
+    #def canvasReleaseEvent(self, event):
+    def canvasDoubleClickEvent(self, event):
         pass
 
-    def canvasDoubleClickEvent(self, event):
-
+    # sigeal : display photo on click instead of double-click
+    #def canvasDoubleClickEvent(self, event):
+    def canvasReleaseEvent(self, event):
         layers = self.canvas.layers()
         p = self.toMapCoordinates(event.pos())
         w = self.canvas.mapUnitsPerPixel() * 10
@@ -104,7 +109,9 @@ class MouseClick(QgsMapTool):
 
                     self.drawSelf.getImage = QImage(imPath)
 
-                    self.photosDLG = PhotoWindow(self.drawSelf)
+                    # sigeal : create new photo viewer if it doesn't exist
+                    if self.photosDLG == None:
+                        self.photosDLG = PhotoWindow(self.drawSelf)
                     self.photosDLG.viewer.scene.clear()
                     pixmap = QPixmap.fromImage(self.drawSelf.getImage)
                     self.photosDLG.viewer.scene.addPixmap(pixmap)
@@ -130,11 +137,11 @@ class MouseClick(QgsMapTool):
                             name_ = ''
 
                     try:
-                        self.photosDLG.infoPhoto1.setText('Date: ' + dateTrue)
-                        self.photosDLG.infoPhoto2.setText('Time: ' + timeTrue[0:8])
+                        self.photosDLG.infoPhoto1.setText(self.tr('Date: ') + dateTrue)
+                        self.photosDLG.infoPhoto2.setText(self.tr('Time: ') + timeTrue[0:8])
                     except:
                         pass
-                    self.photosDLG.infoPhoto3.setText('Layer: ' + self.drawSelf.layerActiveName)
+                    self.photosDLG.infoPhoto3.setText(self.tr('Layer: ') + self.drawSelf.layerActiveName)
                     self.photosDLG.add_window_place.setText(name_)
 
                     azimuth = feature.attributes()[feature.fieldNameIndex('Azimuth')]
@@ -163,3 +170,18 @@ class MouseClick(QgsMapTool):
 
     def isEditTool(self):
         return True
+
+    # noinspection PyMethodMayBeStatic
+    def tr(self, message):
+        """Get the translation for a string using Qt translation API.
+
+        We implement this ourselves since we do not inherit QObject.
+
+        :param message: String for translation.
+        :type message: str, QString
+
+        :returns: Translated version of message.
+        :rtype: QString
+        """
+        # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
+        return QCoreApplication.translate('PhotoWindow', message)
