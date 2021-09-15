@@ -19,6 +19,7 @@
  ***************************************************************************/
 """
 
+from PIL.Image import EXTENSION
 from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox, QInputDialog, QLabel
 from qgis.PyQt.QtGui import QIcon, QGuiApplication
 from qgis.PyQt import uic
@@ -32,7 +33,6 @@ from . import resources
 # Import the code for the dialog
 from .code.MouseClick import MouseClick
 import os
-import platform
 import uuid
 import json
 
@@ -54,19 +54,35 @@ except ModuleNotFoundError:
     pass
 
 
-#FORM_CLASS, _ = uic.loadUiType(os.path.join(
-#    os.path.dirname(__file__), 'ui/impphotos.ui'))
-from .ui.impphotos import Ui_photosImp
+FORM_CLASS, _ = uic.loadUiType(os.path.join(
+   os.path.dirname(__file__), 'ui/impphotos.ui'))
 
-FIELDS = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Mak',
-                'Camera Mod', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images']
+FIELDS = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Camera Maker',
+                'Camera Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images']
 
 SUPPORTED_PHOTOS_EXTENSIONS = ['jpg', 'jpeg']
 
-# Import ui file
-#class ImportPhotosDialog(QDialog, FORM_CLASS):
-class ImportPhotosDialog(QDialog, Ui_photosImp):
+SUPPORTED_OUTPUT_FILE_EXTENSIONS = {
+    "GeoPackage (*.gpkg *.GPKG)": ".gpkg",
+    "ESRI Shapefile (*.shp *.SHP)": ".shp",
+    "GeoJSON (*.geojson *.GEOJSON)": ".geojson",
+    "Comma Separated Value (*.csv *.CSV)": ".csv",
+    "Keyhole Markup Language (*.kml *.KML)": ".kml",
+    "Mapinfo TAB (*.tab *.TAB)": ".tab"
+    }
 
+EXTENSION_DRIVERS = {
+    ".gpkg": "GPKG",
+    ".shp": "ESRI Shapefile",
+    ".geojson": "GeoJSON",
+    ".csv": "CSV",
+    ".kml": "KML",
+    ".tab": "MapInfo File"
+}
+
+
+# Import ui file
+class ImportPhotosDialog(QDialog, FORM_CLASS):
     def __init__(self, parent=None):
         # """Constructor."""
         QDialog.__init__(self, None, Qt.WindowStaysOnTopHint)
@@ -274,8 +290,8 @@ class ImportPhotos:
     def run(self):
         if CHECK_MODULE == '':
             self.showMessage(
-                'Python Modules',
-                'Please install python module "exifread" or "PIL".' ,
+                self.tr('Python Modules'),
+                self.tr('Please install python module "exifread" or "PIL".'),
                 'Warning')
             return
 
@@ -286,17 +302,23 @@ class ImportPhotos:
 
     def toolButtonOut(self):
 
-        outputPath = QFileDialog.getSaveFileName(
+        outputPath, selected_extension_filter = QFileDialog.getSaveFileName(
             self.dlg,
-            "Save output layer", os.path.expanduser('~'),
-            "ESRI Shapefile (*.shp)")[0]
+            self.tr("Save output layer"), os.path.expanduser('~'),
+            ";;".join(list(SUPPORTED_OUTPUT_FILE_EXTENSIONS.keys())))
 
         if outputPath:
-            self.dlg.out.setText(outputPath)
+            extension = SUPPORTED_OUTPUT_FILE_EXTENSIONS[selected_extension_filter]
+            if os.path.splitext(outputPath)[1] == '':
+                # Add extension to filepath if user did not specify it
+                self.dlg.out.setText(outputPath + extension)
+            else:
+                # Set extension with the specified filter
+                self.dlg.out.setText(os.path.splitext(outputPath)[0] + extension)
 
     def toolButtonImport(self):
         directory_path = QFileDialog.getExistingDirectory(
-            self.dlg, 'Select a folder:',
+            self.dlg, self.tr('Select a folder:'),
             os.path.expanduser('~'), QFileDialog.ShowDirsOnly)
 
         if directory_path:
@@ -308,10 +330,10 @@ class ImportPhotos:
         file_not_found = False
         if self.dlg.imp.text() == '' and not os.path.isdir(self.dlg.imp.text()):
             file_not_found = True
-            msg = 'Please select a directory photos.'
+            msg = self.tr('Please select a directory photos.')
         if self.dlg.out.text() == '' and not os.path.isabs(self.dlg.out.text()):
             file_not_found = True
-            msg = 'Please define output file location.'
+            msg = self.tr('Please define output file location.')
 
         if file_not_found:
             self.showMessage('Warning', msg, 'Warning')
@@ -325,17 +347,18 @@ class ImportPhotos:
                     photos_to_import.append(os.path.join(root, filename))
 
         if len(photos_to_import) == 0 :
-            self.showMessage('Warning', 'No photos were found!', 'Warning')
+            self.showMessage('Warning', self.tr('No photos were found!'), 'Warning')
             return
 
         self.dlg.close()
 
         QGuiApplication.setOverrideCursor(Qt.WaitCursor)
+        photos_to_import.sort()
         try:
             result = self.import_photos_task(photos_to_import)
             self.completed(result)
         except Exception as e:
-            self.showMessage('Unexpected Error', str(e), 'Warning')
+            self.showMessage(self.tr('Unexpected Error'), str(e), 'Warning')
             QGuiApplication.restoreOverrideCursor()
 
     def import_photos_task(self, photos_to_import):
@@ -375,21 +398,24 @@ class ImportPhotos:
 
         if not editing_started or not temp_photos_layer.commitChanges():
             self.project_instance.removeMapLayer(temp_photos_layer)
-            title = 'Import Photos'
-            msg = "Import Failed.\n\nDetails: {}".format(
+            title = self.tr('Import Photos')
+            msg = "{}\n\n{} {}".format(
+                self.tr("Import Failed."),
+                self.tr("Details:"),
                 "\n".join(temp_photos_layer.commitErrors()))
             self.showMessage(title, msg, 'Warning')
             return False, len(photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
 
         # Save vector layer as a Shapefile
+        driver = EXTENSION_DRIVERS[os.path.splitext(self.dlg.out.text())[1]]
         error_code, error_message = QgsVectorFileWriter.writeAsVectorFormat(
             temp_photos_layer, self.dlg.out.text(), "utf-8",
             QgsCoordinateReferenceSystem(temp_photos_layer.crs().authid()),
-            "ESRI Shapefile")
+            driver)
 
         if error_code != 0:
             self.project_instance.removeMapLayer(temp_photos_layer)
-            self.showMessage('Writing output file error', error_message, 'Warning')
+            self.showMessage(self.tr('Writing output file error'), error_message, 'Warning')
             return False, len(photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
 
         self.project_instance.removeMapLayer(temp_photos_layer)
@@ -405,10 +431,7 @@ class ImportPhotos:
         layerPhotos_final.reload()
         layerPhotos_final.triggerRepaint()
 
-        group = self.project_instance.layerTreeRoot().insertGroup(
-            0, os.path.basename(self.dlg.imp.text()))
-        self.project_instance.addMapLayer(layerPhotos_final, False)
-        group.addLayer(layerPhotos_final)
+        self.project_instance.addMapLayer(layerPhotos_final)
 
         return True, len(photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
 
@@ -419,31 +442,39 @@ class ImportPhotos:
 
         if import_ok:
             if imported_photos_counter == 0:
-                title = 'Import Photos'
-                msg = 'Import Completed.\n\nDetails:\n  No new photos were added.'
-                self.showMessage(title, msg, 'Information')
+                title = self.tr('ImportPhotos')
+                msg = '{}\n\n{}\n  {}'.format(
+                    self.tr('Import Completed.'),
+                    self.tr('Details:'),
+                    self.tr('No new photos were added.'))
             else:
-                title = 'Import Photos'
-                msg = 'Import Completed.\n\nDetails:\n  ' + str(
-                    int(imported_photos_counter)) + ' photo(s) added without error.\n  ' + str(
-                    int(no_location_photos_counter)) + ' photo(s) skipped (because of missing location).\n  ' + str(
-                    int(out_of_bounds_photos_counter)) + ' photo(s) skipped (because not in canvas extent).'
-                self.showMessage(title, msg, 'Information')
+                title = self.tr('ImportPhotos')
+                msg = '{}\n\n{}\n  {} {}\n  {} {}\n  {} {}\n'.format(
+                    self.tr('Import Completed.'),
+                    self.tr('Details:'),
+                    str(int(imported_photos_counter)),
+                    self.tr('photo(s) added without error.'),
+                    str(int(no_location_photos_counter)),
+                    self.tr('photo(s) skipped (because of missing location).'),
+                    str(int(out_of_bounds_photos_counter)),
+                    self.tr('photo(s) skipped (because not in canvas extent).'))
+            self.showMessage(title, msg, self.tr('Information'))
 
     def update_photos(self):
         layers = {}
 
         for layer in self.project_instance.mapLayers().values():
-            if layer.type() == QgsMapLayerType.VectorLayer and layer.fields().names() == FIELDS:
+            if layer.type() == QgsMapLayerType.VectorLayer and all(
+                    field in layer.fields().names() for field in FIELDS):
                 layers[layer.name()] = layer
 
         if layers.keys():
             selected_layer_name, ok = QInputDialog.getItem(
                 self.iface.mainWindow(),
-                "Select layer to update",
+                self.tr("Select layer to update"),
                 "Layer List:", layers.keys(), 0, False)
         else:
-            self.showMessage('Error', 'No photos layer(s) found', 'Warning')
+            self.showMessage('Error', self.tr('No photos layer(s) found'), 'Warning')
             return
 
         if not ok:
@@ -487,6 +518,9 @@ class ImportPhotos:
                     photos_to_import_counter += 1
                     geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
                     if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
+                        # QGIS automatically adds the fid attribute when saving the photos layer
+                        if "gpkg" in picture_path:
+                            geo_info["properties"]["fid"] = selected_layer.featureCounts() + 1
                         selected_layer.addFeatures(
                             QgsJsonUtils.stringToFeatureList(
                                 json.dumps(geo_info), basic_feature_fields))
@@ -496,20 +530,27 @@ class ImportPhotos:
 
 
         if not editing_started or not selected_layer.commitChanges():
-            title = 'Update Photos'
-            msg = 'Update Failed.\n\nDetails:\n  ' +\
-                'Could not update the photos layer.\n  ' +\
-                    "Layer is either read-only or you don't have permissions to edit it."
+            title = self.tr('Update Photos')
+            msg = self.tr(
+                "Update Failed.\n\nDetails:\n  Could not update the photos layer.\n  "
+                "Layer is either read-only or you don't have permissions to edit it.")
             self.showMessage(title, msg, 'Warning')
             return
 
         no_location_photos_counter = photos_to_import_counter - imported_pictures_counter - out_of_bounds_photos_counter
-        title = 'Update Photos'
-        msg = 'Update Completed.\n\nDetails:\n  ' + str(
-            int(imported_pictures_counter)) + ' photo(s) added without error.\n  ' + str(
-            int(no_location_photos_counter)) + ' photo(s) skipped (because of missing location).\n  ' + str(
-            int(out_of_bounds_photos_counter)) + ' photo(s) skipped (because not in canvas extent).\n  ' + str(
-            int(len(pictures_to_remove))) + ' photo(s) removed.'
+        title = self.tr('Update Photos')
+        msg = '{}\n\n{}\n  {} {}\n  {} {}\n  {} {}\n{} {}'.format(
+            self.tr('Update Completed.'),
+            self.tr('Details:'),
+            str(int(imported_pictures_counter)),
+            self.tr('photo(s) added without error.'),
+            str(int(no_location_photos_counter)),
+            self.tr('photo(s) skipped (because of missing location).'),
+            str(int(out_of_bounds_photos_counter)),
+            self.tr('photo(s) skipped (because not in canvas extent).'),
+            str(int(len(pictures_to_remove))),
+            self.tr('photo(s) removed.'))
+
         self.showMessage(title, msg, 'Information')
 
     def get_geo_infos_from_photo(self, photo_path):
@@ -533,7 +574,7 @@ class ImportPhotos:
                 uuid_ = str(uuid.uuid4())
 
                 try:
-                    dt1, dt2 = tags["EXIF DateTimeOriginal"].values.split()
+                    dt1, dt2 = tags["EXIF DateTimeOriginal"].values.split(' ')
                     date = dt1.replace(':', '/')
                     time_ = dt2
                     timestamp = dt1.replace(':', '-') + 'T' + time_
