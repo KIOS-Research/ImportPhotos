@@ -1,7 +1,7 @@
-# This file contains metadata for your plugin. Since 
-# version 2.0 of QGIS this is the proper way to supply 
-# information about a plugin. The old method of 
-# embedding metadata in __init__.py will 
+# This file contains metadata for your plugin. Since
+# version 2.0 of QGIS this is the proper way to supply
+# information about a plugin. The old method of
+# embedding metadata in __init__.py will
 # is no longer supported since version 2.0.
 
 # This file should be included when you package your plugin.# Mandatory items:
@@ -24,7 +24,7 @@ repository=https://github.com/KIOS-Research/ImportPhotos/
 # Recommended items:
 # Uncomment the following line and add your changelog:
 changelog=2021-09-06  ImportPhotos 2.3.0:
-			Display photo dialog only once - Click instead of double-click by 
+			Display photo dialog only once - Click instead of double-click by
 			French translation (Thank you very much @sigeal)
 			Remove group when added layer
 			Update photos qml file
@@ -49,7 +49,7 @@ changelog=2021-09-06  ImportPhotos 2.3.0:
 	  2019-02-25  ImportPhotos 2.0:
 			Call from python
 			Add fields title, user comment, relative path
-			Add option to load specific qml style 
+			Add option to load specific qml style
 			Change main ui window
 	  2019-01-25  ImportPhotos 1.9:
 			Add group with layer
@@ -95,7 +95,7 @@ changelog=2021-09-06  ImportPhotos 2.3.0:
 			Update version
 	  2018-02-20  ImportPhotos 0.2:
 			Fixed error with activation
-		
+
 # Tags are comma separated with spaces allowed
 tags=photos, jpeg, jpg, geotag
 

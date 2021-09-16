@@ -299,8 +299,6 @@
         </layer>
       </symbol>
     </symbols>
-    <rotation/>
-    <sizescale/>
   </renderer-v2>
   <customproperties>
     <property key="dualview/previewExpressions" value="&quot;Name&quot;"/>
@@ -663,7 +661,7 @@
   <attributeactions>
     <defaultAction key="Canvas" value="{00000000-0000-0000-0000-000000000000}"/>
   </attributeactions>
-  <attributetableconfig sortOrder="1" actionWidgetStyle="dropDown" sortExpression="&quot;Camera Model&quot;">
+  <attributetableconfig actionWidgetStyle="dropDown" sortOrder="1" sortExpression="&quot;Camera Model&quot;">
     <columns>
       <column width="63" name="ID" type="field" hidden="0"/>
       <column width="-1" type="actions" hidden="1"/>
