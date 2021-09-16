@@ -19,7 +19,6 @@
  ***************************************************************************/
 """
 
-from PIL.Image import EXTENSION
 from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox, QInputDialog, QLabel
 from qgis.PyQt.QtGui import QIcon, QGuiApplication
 from qgis.PyQt import uic
