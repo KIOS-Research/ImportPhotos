@@ -196,6 +196,11 @@
     </symbols>
   </renderer-v2>
   <customproperties>
+    <property key="QFieldSync/action" value="no_action"/>
+    <property key="QFieldSync/photo_naming" value="{&quot;Path&quot;: &quot;'DCIM/test-1_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.jpg'&quot;}"/>
+    <property key="dualview/previewExpressions">
+      <value>"Name"</value>
+    </property>
     <property key="embeddedWidgets/count" value="0"/>
     <property key="variableNames"/>
     <property key="variableValues"/>
@@ -357,9 +362,23 @@
       </editWidget>
     </field>
     <field configurationFlags="None" name="Path">
-      <editWidget type="TextEdit">
+      <editWidget type="ExternalResource">
         <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="DocumentViewer" value="1" type="int"/>
+            <Option name="DocumentViewerHeight" value="250" type="int"/>
+            <Option name="DocumentViewerWidth" value="350" type="int"/>
+            <Option name="FileWidget" value="true" type="bool"/>
+            <Option name="FileWidgetButton" value="true" type="bool"/>
+            <Option name="FileWidgetFilter" value="" type="QString"/>
+            <Option name="PropertyCollection" type="Map">
+              <Option name="name" value="" type="QString"/>
+              <Option name="properties"/>
+              <Option name="type" value="collection" type="QString"/>
+            </Option>
+            <Option name="RelativeStorage" value="0" type="int"/>
+            <Option name="StorageMode" value="0" type="int"/>
+          </Option>
         </config>
       </editWidget>
     </field>
@@ -562,7 +581,7 @@ def my_form_open(dialog, layer, feature):
   </labelOnTop>
   <dataDefinedFieldProperties/>
   <widgets/>
-  <previewExpression>"Path"</previewExpression>
+  <previewExpression>"Name"</previewExpression>
   <mapTip>&lt;img src="file:///[% Path %]" width="350" height="250"></mapTip>
   <layerGeometryType>0</layerGeometryType>
 </qgis>
