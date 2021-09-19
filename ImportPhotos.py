@@ -569,7 +569,7 @@ class ImportPhotos:
                     altitude = float(tags.get("GPS GPSAltitude").values[0].num) / float(
                         tags.get("GPS GPSAltitude").values[0].den)
                 else:
-                    altitude = ''
+                    altitude = None
 
                 uuid_ = str(uuid.uuid4())
 
@@ -688,9 +688,9 @@ class ImportPhotos:
                                 mAltitudeDec = float(a['GPSInfo'][6][1])
                                 altitude = mAltitude / mAltitudeDec
                         else:
-                            altitude = ''
+                            altitude = None
                     except:
-                        altitude = ''
+                        altitude = None
 
                     try:
                         if 16 and 17 in a['GPSInfo']:
