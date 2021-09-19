@@ -56,7 +56,7 @@ except ModuleNotFoundError:
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
    os.path.dirname(__file__), 'ui/impphotos.ui'))
 
-FIELDS = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Cam. Maker',
+FIELDS = ['fid', 'ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Cam. Maker',
                 'Cam. Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images']
 
 SUPPORTED_PHOTOS_EXTENSIONS = ['jpg', 'jpeg', 'JPG', 'JPEG']
@@ -342,104 +342,122 @@ class ImportPhotos:
             return
 
         # get paths of photos
-        photos_to_import = []
+        self.photos_to_import = []
         for root, dirs, files in os.walk(self.dlg.imp.text()):
             for filename in files:
                 if filename.lower().endswith(tuple(SUPPORTED_PHOTOS_EXTENSIONS)):
-                    photos_to_import.append(os.path.join(root, filename))
+                    self.photos_to_import.append(os.path.join(root, filename))
 
-        if len(photos_to_import) == 0:
+        if len(self.photos_to_import) == 0:
             self.showMessage('Warning', self.tr('No photos were found!'), 'Warning')
             return
 
         self.dlg.close()
+        self.call_import_photos()
+        # QGuiApplication.setOverrideCursor(Qt.WaitCursor)
+        # photos_to_import.sort()
+        # try:
+        #     result = self.import_photos_task(photos_to_import)
+        #     self.completed(result)
+        # except Exception as e:
+        #     self.showMessage(self.tr('Unexpected Error'), str(e), 'Warning')
+        #     QGuiApplication.restoreOverrideCursor()
 
-        QGuiApplication.setOverrideCursor(Qt.WaitCursor)
-        photos_to_import.sort()
-        try:
-            result = self.import_photos_task(photos_to_import)
-            self.completed(result)
-        except Exception as e:
-            self.showMessage(self.tr('Unexpected Error'), str(e), 'Warning')
-            QGuiApplication.restoreOverrideCursor()
+    def call_import_photos(self):
+        #self.import_photos_task('', '')
+        #self.completed('')
+        self.taskPhotos = QgsTask.fromFunction('ImportPhotos', self.import_photos_task,
+                                 on_finished=self.completed, wait_time=4)
+        QgsApplication.taskManager().addTask(self.taskPhotos)
 
-    def import_photos_task(self, photos_to_import):
-        temp_photos_layer = self.project_instance.addMapLayer(
+    def stopped(self, task):
+        QgsMessageLog.logMessage(
+            'Task "{name}" was canceled'.format(
+                name=task.description()),
+            'ImportPhotos', Qgis.Info)
+
+    def import_photos_task(self, task, wait_time):
+        self.temp_photos_layer = self.project_instance.addMapLayer(
             QgsVectorLayer("Point?crs=epsg:4326", None, "memory"), False)
 
         imported_photos_counter = 0
         out_of_bounds_photos_counter = 0
-        editing_started = temp_photos_layer.startEditing()
+        editing_started = self.temp_photos_layer.startEditing()
+
+        self.photos = []
+        self.photos_names = []
+        for root, dirs, files in os.walk(self.selected_folder):
+            for name in files:
+                if name.lower().endswith(tuple(SUPPORTED_PHOTOS_EXTENSIONS)):
+                    self.photos.append(os.path.join(root, name))
+
+        self.initphotos = len(self.photos)
 
         if editing_started:
             # Import new pictures
             attribute_fields_set = False
 
-            for photo_path in photos_to_import:
+            for count, photo_path in enumerate(self.photos_to_import):
+                try:
+                    #self.taskPhotos.setProgress(count / self.initphotos)
+                    if not os.path.isdir(photo_path) and os.path.basename(photo_path).split(
+                            ".")[1].lower() in SUPPORTED_PHOTOS_EXTENSIONS:
 
-                if not os.path.isdir(photo_path) and os.path.basename(photo_path).split(
-                        ".")[1].lower() in SUPPORTED_PHOTOS_EXTENSIONS:
+                        geo_info = self.get_geo_infos_from_photo(photo_path)
+                        if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
+                            geo_info = json.dumps(geo_info)
+                            fields = QgsJsonUtils.stringToFields(geo_info)
 
-                    geo_info = self.get_geo_infos_from_photo(photo_path)
-                    if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
-                        geo_info = json.dumps(geo_info)
-                        fields = QgsJsonUtils.stringToFields(geo_info)
+                            if not attribute_fields_set:
+                                attribute_fields_set = True
+                                for field in fields.toList():
+                                    self.temp_photos_layer.addAttribute(field)
 
-                        if not attribute_fields_set:
-                            attribute_fields_set = True
-                            for field in fields.toList():
-                                temp_photos_layer.addAttribute(field)
+                            feature = QgsJsonUtils.stringToFeatureList(
+                                geo_info, fields)[0]
 
-                        feature = QgsJsonUtils.stringToFeatureList(
-                            geo_info, fields)[0]
+                            self.temp_photos_layer.addFeature(feature)
+                            imported_photos_counter += 1
+                        elif geo_info is False:
+                            out_of_bounds_photos_counter += 1
 
-                        temp_photos_layer.addFeature(feature)
-                        imported_photos_counter += 1
-                    elif geo_info is False:
-                        out_of_bounds_photos_counter += 1
+                    #if self.taskPhotos.isCanceled():
+                    #    self.stopped(self.taskPhotos)
+                    #    self.taskPhotos.destroyed()
+                    #    return None
+                except:
+                    pass
 
-        if not editing_started or not temp_photos_layer.commitChanges():
-            self.project_instance.removeMapLayer(temp_photos_layer)
+        if not editing_started or not self.temp_photos_layer.commitChanges():
+            self.project_instance.removeMapLayer(self.temp_photos_layer)
             title = self.tr('Import Photos')
             msg = "{}\n\n{} {}".format(
                 self.tr("Import Failed."),
                 self.tr("Details:"),
-                "\n".join(temp_photos_layer.commitErrors()))
+                "\n".join(self.temp_photos_layer.commitErrors()))
             self.showMessage(title, msg, 'Warning')
-            return False, len(photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
+            self.result = False, len(self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
 
         # Save vector layer as a Shapefile
         driver = EXTENSION_DRIVERS[os.path.splitext(self.dlg.out.text())[1]]
         error_code, error_message = QgsVectorFileWriter.writeAsVectorFormat(
-            temp_photos_layer, self.dlg.out.text(), "utf-8",
-            QgsCoordinateReferenceSystem(temp_photos_layer.crs().authid()),
+            self.temp_photos_layer, self.dlg.out.text(), "utf-8",
+            QgsCoordinateReferenceSystem(self.temp_photos_layer.crs().authid()),
             driver)
 
         if error_code != 0:
-            self.project_instance.removeMapLayer(temp_photos_layer)
+            self.project_instance.removeMapLayer(self.temp_photos_layer)
             self.showMessage(self.tr('Writing output file error'), error_message, 'Warning')
-            return False, len(photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
+            return False, len(self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
 
-        self.project_instance.removeMapLayer(temp_photos_layer)
+        self.project_instance.removeMapLayer(self.temp_photos_layer)
         self.setMouseClickMapTool()
 
-        layerPhotos_final = QgsVectorLayer(
-            self.dlg.out.text(),
-            os.path.basename(self.dlg.out.text()).split(".")[0],
-            "ogr")
-
-        layerPhotos_final.setReadOnly(False)
-        layerPhotos_final.setRenderer(self.layer_renderer.clone())
-        layerPhotos_final.reload()
-        layerPhotos_final.triggerRepaint()
-
-        self.project_instance.addMapLayer(layerPhotos_final)
-
-        return True, len(photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
+        self.result = True, len(self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
 
     def completed(self, result):
 
-        import_ok, photos_to_import_number, imported_photos_counter, out_of_bounds_photos_counter = result
+        import_ok, photos_to_import_number, imported_photos_counter, out_of_bounds_photos_counter = self.result
         no_location_photos_counter = photos_to_import_number - imported_photos_counter - out_of_bounds_photos_counter
 
         if import_ok:
@@ -461,6 +479,17 @@ class ImportPhotos:
                     str(int(out_of_bounds_photos_counter)),
                     self.tr('photo(s) skipped (because not in canvas extent).'))
             self.showMessage(title, msg, self.tr('Information'))
+
+        self.layerPhotos_final = QgsVectorLayer(
+            self.dlg.out.text(),
+            os.path.basename(self.dlg.out.text()).split(".")[0],
+            "ogr")
+
+        self.layerPhotos_final.setReadOnly(False)
+        self.layerPhotos_final.setRenderer(self.layer_renderer.clone())
+        self.layerPhotos_final.reload()
+        self.layerPhotos_final.triggerRepaint()
+        self.project_instance.addMapLayer(self.layerPhotos_final)
 
     def update_photos(self):
         layers = {}
@@ -521,9 +550,8 @@ class ImportPhotos:
                     geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
                     if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
                         # QGIS automatically adds the fid attribute when saving the photos layer
-                        if "gpkg" in picture_path:
-                            idx = selected_layer.dataProvider().fieldNameIndex('fid')
-                            geo_info["properties"]["fid"] = selected_layer.maximumValue(idx) + 1
+                        if "gpkg" in selected_layer.source().lower():
+                            geo_info["properties"]["fid"] = selected_layer.featureCount() + 1
                         selected_layer.addFeatures(
                             QgsJsonUtils.stringToFeatureList(
                                 json.dumps(geo_info), basic_feature_fields))
@@ -569,7 +597,7 @@ class ImportPhotos:
 
                 lat, lon = self.get_exif_location(tags, "lonlat")
 
-                if 'GPS GPSAltitude' in tags and abs( float(tags.get("GPS GPSAltitude").values[0].den)) > 0:
+                if 'GPS GPSAltitude' in tags and abs(float(tags.get("GPS GPSAltitude").values[0].den)) > 0:
                     altitude = float(tags.get("GPS GPSAltitude").values[0].num) / float(
                         tags.get("GPS GPSAltitude").values[0].den)
                 else:
