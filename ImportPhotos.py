@@ -510,7 +510,7 @@ class ImportPhotos:
 
         if not ok:
             return
-        selected_layer = layers[selected_layer_name]
+        self.selected_layer = layers[selected_layer_name]
 
         # All picture paths that are currently saved in the shapefile layer
         picture_paths = []
@@ -519,48 +519,58 @@ class ImportPhotos:
         # Feature fields
         basic_feature_fields = None
 
-        for feature in selected_layer.getFeatures():
+        for feature in self.selected_layer.getFeatures():
             if not base_picture_directory:
                 base_picture_directory = os.path.dirname(feature.attribute("Path"))
                 basic_feature_fields = feature.fields()
             picture_paths.append(os.path.basename(feature.attribute("Path")))
 
         # Pictures that should be removed from the layer
-        pictures_to_remove = list(set(picture_paths) - set(os.listdir(base_picture_directory)))
-        pictures_to_add = list(set(os.listdir(base_picture_directory)) - set(picture_paths))
+        self.selected_folder = './' + os.path.basename(os.path.normpath(base_picture_directory)) + '/'
+        list_pictures = []
+        try:
+            for root, dirs, files in os.walk(base_picture_directory):
+                for name in files:
+                    if name.lower().endswith(tuple(SUPPORTED_PHOTOS_EXTENSIONS)):
+                        list_pictures.append(name)
+        except:
+            pass
 
-        editing_started = selected_layer.startEditing()
+        pictures_to_remove = list(set(picture_paths) - set(list_pictures))
+        pictures_to_add = list(set(list_pictures) - set(picture_paths))
+
+        editing_started = self.selected_layer.startEditing()
         if editing_started:
 
             # Remove pictures that do not exist anymore in base_picture_directory
-            for feature in selected_layer.getFeatures():
+            for feature in self.selected_layer.getFeatures():
                 if os.path.basename(feature.attribute("Path")) in pictures_to_remove:
-                    selected_layer.deleteFeature(feature.id())
+                    self.selected_layer.deleteFeature(feature.id())
 
             # Import new pictures
             imported_pictures_counter = 0
             out_of_bounds_photos_counter = 0
             photos_to_import_counter = 0
-
+            if "gpkg" in self.selected_layer.source().lower():
+                idx = self.selected_layer.dataProvider().fieldNameIndex('fid')
+                counter = self.selected_layer.maximumValue(idx)
             for picture_path in pictures_to_add:
-                if not os.path.isdir(os.path.join(base_picture_directory, picture_path)) and picture_path.split(
-                        ".")[1] in SUPPORTED_PHOTOS_EXTENSIONS:
+                if picture_path.split(".")[1] in SUPPORTED_PHOTOS_EXTENSIONS:
                     photos_to_import_counter += 1
-                    self.selected_folder = base_picture_directory
                     geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
                     if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
                         # QGIS automatically adds the fid attribute when saving the photos layer
-                        if "gpkg" in selected_layer.source().lower():
-                            geo_info["properties"]["fid"] = selected_layer.featureCount() + 1
-                        selected_layer.addFeatures(
+                        if "gpkg" in self.selected_layer.source().lower():
+                            geo_info["properties"]["fid"] = counter + 1
+                            counter += 1
+                        self.selected_layer.addFeatures(
                             QgsJsonUtils.stringToFeatureList(
                                 json.dumps(geo_info), basic_feature_fields))
                         imported_pictures_counter += 1
                     elif geo_info is False:
                         out_of_bounds_photos_counter += 1
 
-
-        if not editing_started or not selected_layer.commitChanges():
+        if not editing_started or not self.selected_layer.commitChanges():
             title = self.tr('Update Photos')
             msg = self.tr(
                 "Update Failed.\n\nDetails:\n  Could not update the photos layer.\n  "
@@ -745,13 +755,27 @@ class ImportPhotos:
                         and self.canvas.extent().yMaximum() > lat > self.canvas.extent().yMinimum()):
                     return False
 
-            return {"type": "Feature",
+            geo_info = {"type": "Feature",
                     "properties": {'ID': uuid_, 'Name': os.path.basename(photo_path), 'Date': date, 'Time': time_,
                                    'Lon': lon, 'Lat': lat, 'Altitude': altitude, 'North': north,
                                    'Azimuth': azimuth, 'Cam. Maker': str(maker), 'Cam. Model': str(model),
                                    'Title': str(title), 'Comment': user_comm, 'Path': photo_path,
                                    'RelPath': rel_path, 'Timestamp': timestamp, 'Images': ImagesSrc},
                     "geometry": {"coordinates": [lon, lat], "type": "Point"}}
+            try:
+                if "gpkg" in self.selected_layer.source().lower():
+                    geo_info = {"type": "Feature",
+                         "properties": {'fid': 0, 'ID': uuid_, 'Name': os.path.basename(photo_path), 'Date': date,
+                                'Time': time_,
+                                'Lon': lon, 'Lat': lat, 'Altitude': altitude, 'North': north,
+                                'Azimuth': azimuth, 'Cam. Maker': str(maker), 'Cam. Model': str(model),
+                                'Title': str(title), 'Comment': user_comm, 'Path': photo_path,
+                                'RelPath': rel_path, 'Timestamp': timestamp, 'Images': ImagesSrc},
+                    "geometry": {"coordinates": [lon, lat], "type": "Point"}}
+            except:
+                pass
+
+            return geo_info
 
         except Exception as e:
             print(e)
