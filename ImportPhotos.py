@@ -234,8 +234,9 @@ class ImportPhotos:
             text=self.tr('Click Photos'),
             callback=self.setMouseClickMapTool,
             parent=self.iface.mainWindow())
+        icon_path = ':/plugins/ImportPhotos/icons/sync_views.svg'
         self.add_action(
-            ":/images/themes/default/sync_views.svg",
+            icon_path,
             text=self.tr('Update Photos'),
             callback=self.update_photos,
             parent=self.iface.mainWindow())
@@ -345,7 +346,7 @@ class ImportPhotos:
                 if filename.lower().endswith(tuple(SUPPORTED_PHOTOS_EXTENSIONS)):
                     photos_to_import.append(os.path.join(root, filename))
 
-        if len(photos_to_import) == 0 :
+        if len(photos_to_import) == 0:
             self.showMessage('Warning', self.tr('No photos were found!'), 'Warning')
             return
 
