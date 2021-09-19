@@ -23,7 +23,9 @@ repository=https://github.com/KIOS-Research/ImportPhotos/
 
 # Recommended items:
 # Uncomment the following line and add your changelog:
-changelog=2021-09-19  ImportPhotos 3.0.0:
+changelog=2021-09-19  ImportPhotos 3.0.1:
+			 Fix rel path / show photo with map tip and attribute table
+      2021-09-19  ImportPhotos 3.0.0:
 			 Adds a new button to synchronize changes in the photo directory with an already existing layer
 			 User can set the layer symbology (rules, symbols) before import (Thank you very much @mhugent and @HusseinKabbout - http://sourcepole.ch)
 	  2021-09-06  ImportPhotos 2.3.0:

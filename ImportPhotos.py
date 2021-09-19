@@ -322,6 +322,8 @@ class ImportPhotos:
             os.path.expanduser('~'), QFileDialog.ShowDirsOnly)
 
         if directory_path:
+            self.selected_folder = directory_path[:]
+            self.selected_folder = './' + os.path.basename(os.path.normpath(self.selected_folder)) + '/'
             self.dlg.imp.setText(directory_path)
 
     def import_photos(self):
@@ -555,7 +557,8 @@ class ImportPhotos:
 
     def get_geo_infos_from_photo(self, photo_path):
         try:
-            ImagesSrc = '<img src = "' + photo_path + '" width="300" height="225"/>'
+            rel_path = self.selected_folder + os.path.basename(photo_path)
+            ImagesSrc = '<img src = "' + rel_path + '" width="300" height="225"/>'
             if CHECK_MODULE == 'exifread':
                 with open(photo_path, 'rb') as imgpathF:
                     tags = exifread.process_file(imgpathF, details=False)
@@ -714,14 +717,12 @@ class ImportPhotos:
                     return False
 
             return {"type": "Feature",
-                        "properties": {'ID': uuid_, 'Name': os.path.basename(photo_path), 'Date': date, 'Time': time_,
-                                        'Lon': lon,
-                                        'Lat': lat, 'Altitude': altitude, 'North': north,
-                                        'Azimuth': azimuth,
-                                        'Cam. Maker': str(maker), 'Cam. Model': str(model), 'Title': str(title),
-                                        'Comment': user_comm,'Path': photo_path, 'RelPath': photo_path,
-                                        'Timestamp': timestamp, 'Images': ImagesSrc},
-                        "geometry": {"coordinates": [lon, lat], "type": "Point"}}
+                    "properties": {'ID': uuid_, 'Name': os.path.basename(photo_path), 'Date': date, 'Time': time_,
+                                   'Lon': lon, 'Lat': lat, 'Altitude': altitude, 'North': north,
+                                   'Azimuth': azimuth, 'Cam. Maker': str(maker), 'Cam. Model': str(model),
+                                   'Title': str(title), 'Comment': user_comm, 'Path': photo_path,
+                                   'RelPath': rel_path, 'Timestamp': timestamp, 'Images': ImagesSrc},
+                    "geometry": {"coordinates": [lon, lat], "type": "Point"}}
 
         except Exception as e:
             print(e)
