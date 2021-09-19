@@ -59,7 +59,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 FIELDS = ['ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Cam. Maker',
                 'Cam. Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images']
 
-SUPPORTED_PHOTOS_EXTENSIONS = ['jpg', 'jpeg']
+SUPPORTED_PHOTOS_EXTENSIONS = ['jpg', 'jpeg', 'JPG', 'JPEG']
 
 SUPPORTED_OUTPUT_FILE_EXTENSIONS = {
     "GeoPackage (*.gpkg *.GPKG)": ".gpkg",
@@ -514,15 +514,16 @@ class ImportPhotos:
             photos_to_import_counter = 0
 
             for picture_path in pictures_to_add:
-                jpeg_extensions = ['jpg', 'jpeg', 'JPG', 'JPEG']
                 if not os.path.isdir(os.path.join(base_picture_directory, picture_path)) and picture_path.split(
-                        ".")[1] in jpeg_extensions:
+                        ".")[1] in SUPPORTED_PHOTOS_EXTENSIONS:
                     photos_to_import_counter += 1
+                    self.selected_folder = base_picture_directory
                     geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
                     if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
                         # QGIS automatically adds the fid attribute when saving the photos layer
                         if "gpkg" in picture_path:
-                            geo_info["properties"]["fid"] = selected_layer.featureCounts() + 1
+                            idx = selected_layer.dataProvider().fieldNameIndex('fid')
+                            geo_info["properties"]["fid"] = selected_layer.maximumValue(idx) + 1
                         selected_layer.addFeatures(
                             QgsJsonUtils.stringToFeatureList(
                                 json.dumps(geo_info), basic_feature_fields))
