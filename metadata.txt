@@ -28,6 +28,7 @@ changelog=2021-09-19  ImportPhotos 3.0.1:
       2021-09-19  ImportPhotos 3.0.0:
 			 Adds a new button to synchronize changes in the photo directory with an already existing layer
 			 User can set the layer symbology (rules, symbols) before import (Thank you very much @mhugent and @HusseinKabbout - http://sourcepole.ch)
+			 Fix filename and extension handling and some other improvements (Thank you @jekhor)
 	  2021-09-06  ImportPhotos 2.3.0:
 			Display photo dialog only once - Click instead of double-click by
 			French translation (Thank you very much @sigeal)
