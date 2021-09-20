@@ -25,7 +25,7 @@ repository=https://github.com/KIOS-Research/ImportPhotos/
 # Uncomment the following line and add your changelog:
 changelog=2021-09-19  ImportPhotos 3.0.1:
 			 Fix rel path / show photo with map tip and attribute table
-      2021-09-19  ImportPhotos 3.0.0:
+          2021-09-19  ImportPhotos 3.0.0:
 			 Adds a new button to synchronize changes in the photo directory with an already existing layer
 			 User can set the layer symbology (rules, symbols) before import (Thank you very much @mhugent and @HusseinKabbout - http://sourcepole.ch)
 			 Fix filename and extension handling and some other improvements (Thank you @jekhor)
@@ -43,7 +43,7 @@ changelog=2021-09-19  ImportPhotos 3.0.1:
 			Add option to import photos in canvas extent
 	  2019-07-16  ImportPhotos 2.2.1:
 			Fix tab Filters works without Opencv
-      2019-07-15  ImportPhotos 2.2:
+          2019-07-15  ImportPhotos 2.2:
 			Add tabs options File, Filters, Opencv, Bands
 			Add filters gray and mirror, mono, edges, averaging, gaussian, gaussian highpass (req. opencv-python)
 			Add bands red, blue, green
@@ -60,7 +60,7 @@ changelog=2021-09-19  ImportPhotos 3.0.1:
 	  2019-01-25  ImportPhotos 1.9:
 			Add group with layer
 			Fix issue in right/left transparent
-      2018-11-28  ImportPhotos 1.8:
+          2018-11-28  ImportPhotos 1.8:
 			Drop update for qgis 2
 			Add QgsTask for the ImportPhotos
 			Change main ui file
