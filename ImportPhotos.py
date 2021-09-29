@@ -384,6 +384,7 @@ class ImportPhotos:
 
         imported_photos_counter = 0
         out_of_bounds_photos_counter = 0
+        no_location_photos_counter = 0
         editing_started = self.temp_photos_layer.startEditing()
 
         self.photos = []
@@ -419,8 +420,10 @@ class ImportPhotos:
 
                             self.temp_photos_layer.addFeature(feature)
                             imported_photos_counter += 1
-                        elif geo_info is False:
+                        elif geo_info == 'out':
                             out_of_bounds_photos_counter += 1
+                        elif geo_info is False:
+                            no_location_photos_counter += 1
                 except:
                     pass
 
@@ -432,7 +435,7 @@ class ImportPhotos:
                 self.tr("Details:"),
                 "\n".join(self.temp_photos_layer.commitErrors()))
             self.showMessage(title, msg, 'Warning')
-            self.result = False, len(self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
+            self.result = False, len(self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter, no_location_photos_counter
 
         # Save vector layer as a Shapefile
         driver = EXTENSION_DRIVERS[os.path.splitext(self.dlg.out.text())[1]]
@@ -444,17 +447,17 @@ class ImportPhotos:
         if error_code != 0:
             self.project_instance.removeMapLayer(self.temp_photos_layer)
             self.showMessage(self.tr('Writing output file error'), error_message, 'Warning')
-            return False, len(self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
+            return False, len(self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter, no_location_photos_counter
 
         self.project_instance.removeMapLayer(self.temp_photos_layer)
         self.setMouseClickMapTool()
 
-        self.result = True, len(self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter
+        self.result = True, len(self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter, no_location_photos_counter
 
     def completed(self, result):
 
-        import_ok, photos_to_import_number, imported_photos_counter, out_of_bounds_photos_counter = self.result
-        no_location_photos_counter = photos_to_import_number - imported_photos_counter - out_of_bounds_photos_counter
+        import_ok, photos_to_import_number, imported_photos_counter, out_of_bounds_photos_counter, no_location_photos_counter = self.result
+        no_location_photos_counter = no_location_photos_counter + photos_to_import_number - imported_photos_counter - out_of_bounds_photos_counter
 
         if import_ok:
             if imported_photos_counter == 0:
@@ -548,6 +551,7 @@ class ImportPhotos:
                 imported_pictures_counter = 0
                 out_of_bounds_photos_counter = 0
                 photos_to_import_counter = 0
+                no_location_photos_counter = 0
                 if "gpkg" in self.selected_layer.source().lower():
                     idx = self.selected_layer.dataProvider().fieldNameIndex('fid')
                     counter = self.selected_layer.maximumValue(idx)
@@ -564,8 +568,10 @@ class ImportPhotos:
                                 QgsJsonUtils.stringToFeatureList(
                                     json.dumps(geo_info), basic_feature_fields, CODEC))
                             imported_pictures_counter += 1
-                        elif geo_info is False:
+                        elif geo_info == 'out':
                             out_of_bounds_photos_counter += 1
+                        elif geo_info is False:
+                            no_location_photos_counter += 1
             except:
                 pass
 
@@ -577,9 +583,9 @@ class ImportPhotos:
             self.showMessage(title, msg, 'Warning')
             return
 
-        no_location_photos_counter = photos_to_import_counter - imported_pictures_counter - out_of_bounds_photos_counter
+        no_location_photos_counter = no_location_photos_counter + photos_to_import_counter - imported_pictures_counter - out_of_bounds_photos_counter
         title = self.tr('Update Photos')
-        msg = '{}\n\n{}\n  {} {}\n  {} {}\n  {} {}\n{} {}'.format(
+        msg = '{}\n\n{}\n  {} {}\n  {} {}\n  {} {}\n  {} {}'.format(
             self.tr('Update Completed.'),
             self.tr('Details:'),
             str(int(imported_pictures_counter)),
@@ -752,7 +758,7 @@ class ImportPhotos:
             if self.dlg.canvas_extent.isChecked():
                 if not (self.canvas.extent().xMaximum() > lon > self.canvas.extent().xMinimum() \
                         and self.canvas.extent().yMaximum() > lat > self.canvas.extent().yMinimum()):
-                    return False
+                    return 'out'
 
             geo_info = {"type": "Feature",
                     "properties": {'ID': uuid_, 'Name': os.path.basename(photo_path), 'Date': date, 'Time': time_,
@@ -777,7 +783,7 @@ class ImportPhotos:
             return geo_info
 
         except Exception as e:
-            return False
+            return ''
 
     def showMessage(self, title, msg, icon):
         if icon == 'Warning':
