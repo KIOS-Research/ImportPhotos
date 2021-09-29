@@ -79,6 +79,8 @@ EXTENSION_DRIVERS = {
     ".tab": "MapInfo File"
 }
 
+CODEC = QTextCodec.codecForName("UTF-8")
+
 
 # Import ui file
 class ImportPhotosDialog(QDialog, FORM_CLASS):
@@ -393,8 +395,6 @@ class ImportPhotos:
 
         self.initphotos = len(self.photos)
 
-        codec = QTextCodec.codecForName("UTF-8")
-
         if editing_started:
             # Import new pictures
             attribute_fields_set = False
@@ -407,7 +407,7 @@ class ImportPhotos:
                         geo_info = self.get_geo_infos_from_photo(photo_path)
                         if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
                             geo_info = json.dumps(geo_info)
-                            fields = QgsJsonUtils.stringToFields(geo_info, codec)
+                            fields = QgsJsonUtils.stringToFields(geo_info, CODEC)
 
                             if not attribute_fields_set:
                                 attribute_fields_set = True
@@ -415,7 +415,7 @@ class ImportPhotos:
                                     self.temp_photos_layer.addAttribute(field)
 
                             feature = QgsJsonUtils.stringToFeatureList(
-                                geo_info, fields, codec)[0]
+                                geo_info, fields, CODEC)[0]
 
                             self.temp_photos_layer.addFeature(feature)
                             imported_photos_counter += 1
@@ -538,33 +538,36 @@ class ImportPhotos:
         editing_started = self.selected_layer.startEditing()
         if editing_started:
 
-            # Remove pictures that do not exist anymore in base_picture_directory
-            for feature in self.selected_layer.getFeatures():
-                if os.path.basename(feature.attribute("Path")) in pictures_to_remove:
-                    self.selected_layer.deleteFeature(feature.id())
+            try:
+                # Remove pictures that do not exist anymore in base_picture_directory
+                for feature in self.selected_layer.getFeatures():
+                    if os.path.basename(feature.attribute("Path")) in pictures_to_remove:
+                        self.selected_layer.deleteFeature(feature.id())
 
-            # Import new pictures
-            imported_pictures_counter = 0
-            out_of_bounds_photos_counter = 0
-            photos_to_import_counter = 0
-            if "gpkg" in self.selected_layer.source().lower():
-                idx = self.selected_layer.dataProvider().fieldNameIndex('fid')
-                counter = self.selected_layer.maximumValue(idx)
-            for picture_path in pictures_to_add:
-                if picture_path.split(".")[1] in SUPPORTED_PHOTOS_EXTENSIONS:
-                    photos_to_import_counter += 1
-                    geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
-                    if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
-                        # QGIS automatically adds the fid attribute when saving the photos layer
-                        if "gpkg" in self.selected_layer.source().lower():
-                            geo_info["properties"]["fid"] = counter + 1
-                            counter += 1
-                        self.selected_layer.addFeatures(
-                            QgsJsonUtils.stringToFeatureList(
-                                json.dumps(geo_info), basic_feature_fields))
-                        imported_pictures_counter += 1
-                    elif geo_info is False:
-                        out_of_bounds_photos_counter += 1
+                # Import new pictures
+                imported_pictures_counter = 0
+                out_of_bounds_photos_counter = 0
+                photos_to_import_counter = 0
+                if "gpkg" in self.selected_layer.source().lower():
+                    idx = self.selected_layer.dataProvider().fieldNameIndex('fid')
+                    counter = self.selected_layer.maximumValue(idx)
+                for picture_path in pictures_to_add:
+                    if picture_path.split(".")[1] in SUPPORTED_PHOTOS_EXTENSIONS:
+                        photos_to_import_counter += 1
+                        geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
+                        if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
+                            # QGIS automatically adds the fid attribute when saving the photos layer
+                            if "gpkg" in self.selected_layer.source().lower():
+                                geo_info["properties"]["fid"] = counter + 1
+                                counter += 1
+                            self.selected_layer.addFeatures(
+                                QgsJsonUtils.stringToFeatureList(
+                                    json.dumps(geo_info), basic_feature_fields, CODEC))
+                            imported_pictures_counter += 1
+                        elif geo_info is False:
+                            out_of_bounds_photos_counter += 1
+            except:
+                pass
 
         if not editing_started or not self.selected_layer.commitChanges():
             title = self.tr('Update Photos')
@@ -774,7 +777,6 @@ class ImportPhotos:
             return geo_info
 
         except Exception as e:
-            print(e)
             return False
 
     def showMessage(self, title, msg, icon):
