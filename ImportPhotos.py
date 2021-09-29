@@ -23,7 +23,7 @@ from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox, QInputDialog,
 from qgis.PyQt.QtGui import QIcon, QGuiApplication
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDialog
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt, QTextCodec
 from qgis.core import *
 from qgis.gui import QgsRuleBasedRendererWidget
 
@@ -393,20 +393,21 @@ class ImportPhotos:
 
         self.initphotos = len(self.photos)
 
+        codec = QTextCodec.codecForName("UTF-8")
+
         if editing_started:
             # Import new pictures
             attribute_fields_set = False
 
             for count, photo_path in enumerate(self.photos_to_import):
                 try:
-                    #self.taskPhotos.setProgress(count / self.initphotos)
                     if not os.path.isdir(photo_path) and os.path.basename(photo_path).split(
                             ".")[1].lower() in SUPPORTED_PHOTOS_EXTENSIONS:
 
                         geo_info = self.get_geo_infos_from_photo(photo_path)
                         if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
                             geo_info = json.dumps(geo_info)
-                            fields = QgsJsonUtils.stringToFields(geo_info)
+                            fields = QgsJsonUtils.stringToFields(geo_info, codec)
 
                             if not attribute_fields_set:
                                 attribute_fields_set = True
@@ -414,17 +415,12 @@ class ImportPhotos:
                                     self.temp_photos_layer.addAttribute(field)
 
                             feature = QgsJsonUtils.stringToFeatureList(
-                                geo_info, fields)[0]
+                                geo_info, fields, codec)[0]
 
                             self.temp_photos_layer.addFeature(feature)
                             imported_photos_counter += 1
                         elif geo_info is False:
                             out_of_bounds_photos_counter += 1
-
-                    #if self.taskPhotos.isCanceled():
-                    #    self.stopped(self.taskPhotos)
-                    #    self.taskPhotos.destroyed()
-                    #    return None
                 except:
                     pass
 
