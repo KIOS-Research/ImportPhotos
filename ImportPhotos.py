@@ -395,7 +395,6 @@ class ImportPhotos:
                     self.photos.append(os.path.join(root, name))
 
         self.initphotos = len(self.photos)
-
         if editing_started:
             # Import new pictures
             attribute_fields_set = False
@@ -403,7 +402,7 @@ class ImportPhotos:
             for count, photo_path in enumerate(self.photos_to_import):
                 try:
                     if not os.path.isdir(photo_path) and os.path.basename(photo_path).split(
-                            ".")[1].lower() in SUPPORTED_PHOTOS_EXTENSIONS:
+                            ".")[-1].lower() in SUPPORTED_PHOTOS_EXTENSIONS:
 
                         geo_info = self.get_geo_infos_from_photo(photo_path)
                         if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
