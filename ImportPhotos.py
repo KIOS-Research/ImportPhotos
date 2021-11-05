@@ -401,9 +401,7 @@ class ImportPhotos:
 
             for count, photo_path in enumerate(self.photos_to_import):
                 try:
-                    if not os.path.isdir(photo_path) and os.path.basename(photo_path).split(
-                            ".")[-1].lower() in SUPPORTED_PHOTOS_EXTENSIONS:
-
+                    if not os.path.isdir(photo_path) and photo_path.lower().endswith(tuple(SUPPORTED_PHOTOS_EXTENSIONS)):
                         geo_info = self.get_geo_infos_from_photo(photo_path)
                         if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
                             geo_info = json.dumps(geo_info)
@@ -555,7 +553,7 @@ class ImportPhotos:
                     idx = self.selected_layer.dataProvider().fieldNameIndex('fid')
                     counter = self.selected_layer.maximumValue(idx)
                 for picture_path in pictures_to_add:
-                    if picture_path.split(".")[1] in SUPPORTED_PHOTOS_EXTENSIONS:
+                    if picture_path.lower().endswith(tuple(SUPPORTED_PHOTOS_EXTENSIONS)):
                         photos_to_import_counter += 1
                         geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
                         if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
