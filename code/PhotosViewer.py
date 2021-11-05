@@ -138,18 +138,10 @@ class PhotosViewer(QGraphicsView):
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Right:
-            self.selfwindow.drawSelf.featureIndex = self.selfwindow.drawSelf.featureIndex+1
-
-            if self.selfwindow.drawSelf.featureIndex > len(self.selfwindow.allpictures)-1:
-                self.selfwindow.drawSelf.featureIndex = 0
-            self.selfwindow.updateWindow()
+            self.selfwindow.rightClickButton()
 
         if e.key() == Qt.Key_Left:
-            self.selfwindow.drawSelf.featureIndex = self.selfwindow.drawSelf.featureIndex - 1
-
-            if self.selfwindow.drawSelf.featureIndex < 0:
-                self.selfwindow.drawSelf.featureIndex = len(self.selfwindow.allpictures)-1
-            self.selfwindow.updateWindow()
+            self.selfwindow.leftClickButton()
 
         if e.key() == Qt.Key_Escape:
             if self.selfwindow.isFullScreen():
@@ -187,12 +179,12 @@ class PhotoWindow(QWidget):
         self.drawSelf = drawSelf
 
         ## Update for photo
-        self.allpictures = []
-        self.allpicturesdates = []
-        self.allpicturestimes = []
-        self.allpicturesImpath= []
-        self.allpicturesAzimuth=[]
-        self.allpicturesName=[]
+        self.allpictures = {}
+        self.allpicturesdates = {}
+        self.allpicturestimes = {}
+        self.allpicturesImpath= {} #feature id / picture path
+        self.allpicturesAzimuth={}
+        self.allpicturesName={}
         for i, f in enumerate(self.drawSelf.layerActive.getFeatures()):
             if 'PATH' in self.drawSelf.fields:
                 imPath = f.attributes()[f.fieldNameIndex('Path')]
@@ -229,12 +221,12 @@ class PhotoWindow(QWidget):
             except:
                 azimuth = ''
 
-            self.allpictures.append(name_)
-            self.allpicturesdates.append(dateTrue)
-            self.allpicturestimes.append(timeTrue)
-            self.allpicturesImpath.append(imPath)
-            self.allpicturesAzimuth.append(azimuth)
-            self.allpicturesName.append(name_)
+            self.allpictures[f.id()] = name_
+            self.allpicturesdates[f.id()] = dateTrue
+            self.allpicturestimes[f.id()] = timeTrue
+            self.allpicturesImpath[f.id()] = imPath
+            self.allpicturesAzimuth[f.id()] = azimuth
+            self.allpicturesName[f.id()] = name_
 
         self.viewer = PhotosViewer(self)
 
@@ -579,15 +571,24 @@ class PhotoWindow(QWidget):
             self.hide_arrow.setIcon(icon_right)
 
     def leftClickButton(self):
-        self.drawSelf.featureIndex = self.drawSelf.featureIndex - 1
-        if self.drawSelf.featureIndex < 0:
-            self.drawSelf.featureIndex = len(self.allpictures) - 1
+        lastId = list(self.allpicturesImpath.keys())[-1]
+        it = iter(self.allpicturesImpath)
+        
+        prevKey = lastId
+        for key in it:
+            if key == self.drawSelf.featureIndex:
+                self.drawSelf.featureIndex = prevKey
+                break
+            prevKey = key
         self.updateWindow()
 
     def rightClickButton(self):
-        self.drawSelf.featureIndex = self.drawSelf.featureIndex + 1
-        if self.drawSelf.featureIndex > len(self.allpictures) - 1:
-            self.drawSelf.featureIndex = 0
+        firstId = list(self.allpicturesImpath.keys())[0]
+        it = iter(self.allpicturesImpath)
+        for key in it:
+            if key == self.drawSelf.featureIndex:
+                self.drawSelf.featureIndex = next(it, firstId)
+                break
         self.updateWindow()
 
     def updateWindow(self):
