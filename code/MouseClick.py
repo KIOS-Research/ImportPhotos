@@ -78,6 +78,7 @@ class MouseClick(QgsMapTool):
                     ########## SHOW PHOTOS ############
                     feature = selected_features[0]
                     self.drawSelf.featureIndex = feature.id()
+                    activeLayerChanged =  not hasattr(self.drawSelf, 'layerActive') or (self.drawSelf.layerActive != layer)
                     self.drawSelf.layerActive = layer
                     self.drawSelf.fields = fields
                     self.drawSelf.maxlen = len(self.drawSelf.layerActive.name())
@@ -109,8 +110,7 @@ class MouseClick(QgsMapTool):
 
                     self.drawSelf.getImage = QImage(imPath)
 
-                    # sigeal : create new photo viewer if it doesn't exist
-                    if self.photosDLG == None:
+                    if self.photosDLG is None or activeLayerChanged:
                         self.photosDLG = PhotoWindow(self.drawSelf)
                     self.photosDLG.viewer.scene.clear()
                     pixmap = QPixmap.fromImage(self.drawSelf.getImage)
