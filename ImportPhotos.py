@@ -549,7 +549,7 @@ class ImportPhotos:
                 out_of_bounds_photos_counter = 0
                 photos_to_import_counter = 0
                 no_location_photos_counter = 0
-                if "gpkg" in self.selected_layer.source().lower():
+                if self.selected_layer.source().lower().endswith("gpkg"):
                     idx = self.selected_layer.dataProvider().fieldNameIndex('fid')
                     counter = self.selected_layer.maximumValue(idx)
                 for picture_path in pictures_to_add:
@@ -558,7 +558,7 @@ class ImportPhotos:
                         geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
                         if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
                             # QGIS automatically adds the fid attribute when saving the photos layer
-                            if "gpkg" in self.selected_layer.source().lower():
+                            if self.selected_layer.source().lower().endswith("gpkg"):
                                 geo_info["properties"]["fid"] = counter + 1
                                 counter += 1
                             self.selected_layer.addFeatures(
@@ -776,7 +776,7 @@ class ImportPhotos:
                 }
 
             try:
-                if "gpkg" in self.selected_layer.source().lower()[:-4]:
+                if self.selected_layer.source().lower().endswith("gpkg"):
                     geo_info = {
                         "type": "Feature",
                         "properties": {
