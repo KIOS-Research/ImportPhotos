@@ -549,7 +549,7 @@ class ImportPhotos:
                 out_of_bounds_photos_counter = 0
                 photos_to_import_counter = 0
                 no_location_photos_counter = 0
-                if "gpkg" in self.selected_layer.source().lower():
+                if self.selected_layer.source().lower().endswith("gpkg"):
                     idx = self.selected_layer.dataProvider().fieldNameIndex('fid')
                     counter = self.selected_layer.maximumValue(idx)
                 for picture_path in pictures_to_add:
@@ -558,7 +558,7 @@ class ImportPhotos:
                         geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
                         if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
                             # QGIS automatically adds the fid attribute when saving the photos layer
-                            if "gpkg" in self.selected_layer.source().lower():
+                            if self.selected_layer.source().lower().endswith("gpkg"):
                                 geo_info["properties"]["fid"] = counter + 1
                                 counter += 1
                             self.selected_layer.addFeatures(
@@ -684,15 +684,18 @@ class ImportPhotos:
 
             elif CHECK_MODULE == 'PIL':
                 a = {}
-                info = Image.open(photo_path)
-                info = info._getexif()
+                with Image.open(photo_path) as img:
+                    info = img._getexif()
 
                 if info == None:
                     return False
 
                 for tag, value in info.items():
-                    if TAGS.get(tag, tag) == 'GPSInfo' or TAGS.get(tag, tag) == 'DateTime' or TAGS.get(tag,
-                                                                                                        tag) == 'DateTimeOriginal':
+                    if (
+                        TAGS.get(tag, tag) == 'GPSInfo' or
+                        TAGS.get(tag, tag) == 'DateTime' or
+                        TAGS.get(tag, tag) == 'DateTimeOriginal'
+                    ):
                         a[TAGS.get(tag, tag)] = value
 
                 if a == {}:
@@ -700,13 +703,13 @@ class ImportPhotos:
 
                 if a['GPSInfo'] != {}:
                     if 1 and 2 and 3 and 4 in a['GPSInfo']:
-                        lat = [float(x) / float(y) for x, y in a['GPSInfo'][2]]
+                        lat = a['GPSInfo'][2]
                         latref = a['GPSInfo'][1]
-                        lon = [float(x) / float(y) for x, y in a['GPSInfo'][4]]
+                        lon = a['GPSInfo'][4]
                         lonref = a['GPSInfo'][3]
 
-                        lat = lat[0] + lat[1] / 60 + lat[2] / 3600
-                        lon = lon[0] + lon[1] / 60 + lon[2] / 3600
+                        lat = float(lat[0] + lat[1] / 60 + lat[2] / 3600)
+                        lon = float(lon[0] + lon[1] / 60 + lon[2] / 3600)
 
                         if latref == 'S':
                             lat = -lat
@@ -727,10 +730,7 @@ class ImportPhotos:
 
                     try:
                         if 6 in a['GPSInfo']:
-                            if len(a['GPSInfo'][6]) > 1:
-                                mAltitude = float(a['GPSInfo'][6][0])
-                                mAltitudeDec = float(a['GPSInfo'][6][1])
-                                altitude = mAltitude / mAltitudeDec
+                            altitude = float(a['GPSInfo'][6])
                         else:
                             altitude = None
                     except:
@@ -738,8 +738,8 @@ class ImportPhotos:
 
                     try:
                         if 16 and 17 in a['GPSInfo']:
-                            north = str(a['GPSInfo'][16])
-                            azimuth = float(a['GPSInfo'][17][0]) / float(a['GPSInfo'][17][1])
+                            north = a['GPSInfo'][16]
+                            azimuth = float(a['GPSInfo'][17])
                         else:
                             north = ''
                             azimuth = ''
@@ -757,23 +757,43 @@ class ImportPhotos:
                         and self.canvas.extent().yMaximum() > lat > self.canvas.extent().yMinimum()):
                     return 'out'
 
-            geo_info = {"type": "Feature",
-                    "properties": {'ID': uuid_, 'Name': os.path.basename(photo_path), 'Date': date, 'Time': time_,
-                                   'Lon': lon, 'Lat': lat, 'Altitude': altitude, 'North': north,
-                                   'Azimuth': azimuth, 'Cam. Maker': str(maker), 'Cam. Model': str(model),
-                                   'Title': str(title), 'Comment': user_comm, 'Path': photo_path,
-                                   'RelPath': rel_path, 'Timestamp': timestamp, 'Images': ImagesSrc},
-                    "geometry": {"coordinates": [lon, lat], "type": "Point"}}
+            geo_info = {
+                "type": "Feature",
+                "properties": {
+                    'ID': uuid_, 'Name': os.path.basename(photo_path),
+                    'Date': date, 'Time': time_,
+                    'Lon': lon, 'Lat': lat, 'Altitude': altitude,
+                    'North': north, 'Azimuth': azimuth,
+                    'Cam. Maker': str(maker), 'Cam. Model': str(model),
+                    'Title': str(title), 'Comment': user_comm,
+                    'Path': photo_path, 'RelPath': rel_path,
+                    'Timestamp': timestamp, 'Images': ImagesSrc
+                    },
+                "geometry": {
+                    "coordinates": [lon, lat],
+                    "type": "Point"
+                    }
+                }
+
             try:
-                if "gpkg" in self.selected_layer.source().lower():
-                    geo_info = {"type": "Feature",
-                         "properties": {'fid': 0, 'ID': uuid_, 'Name': os.path.basename(photo_path), 'Date': date,
-                                'Time': time_,
-                                'Lon': lon, 'Lat': lat, 'Altitude': altitude, 'North': north,
-                                'Azimuth': azimuth, 'Cam. Maker': str(maker), 'Cam. Model': str(model),
-                                'Title': str(title), 'Comment': user_comm, 'Path': photo_path,
-                                'RelPath': rel_path, 'Timestamp': timestamp, 'Images': ImagesSrc},
-                    "geometry": {"coordinates": [lon, lat], "type": "Point"}}
+                if self.selected_layer.source().lower().endswith("gpkg"):
+                    geo_info = {
+                        "type": "Feature",
+                        "properties": {
+                            'fid': 0, 'ID': uuid_, 'Name': os.path.basename(photo_path), 
+                            'Date': date, 'Time': time_,
+                            'Lon': lon, 'Lat': lat, 'Altitude': altitude,
+                            'North': north, 'Azimuth': azimuth,
+                            'Cam. Maker': str(maker), 'Cam. Model': str(model),
+                            'Title': str(title), 'Comment': user_comm,
+                            'Path': photo_path, 'RelPath': rel_path,
+                            'Timestamp': timestamp, 'Images': ImagesSrc
+                            },
+                        "geometry": {
+                            "coordinates": [lon, lat],
+                            "type": "Point"
+                            }
+                        }
             except:
                 pass
 
