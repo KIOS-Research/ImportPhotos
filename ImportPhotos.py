@@ -34,6 +34,10 @@ from .code.MouseClick import MouseClick
 import os
 import uuid
 import json
+try:
+    import subprocess
+except:
+    pass
 
 # Import python module
 CHECK_MODULE = ''
