@@ -112,20 +112,21 @@ class PhotosViewer(QGraphicsView):
     def resizeEvent(self, event):
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
 
+
         if len(self.selfwindow.allpictures) > 1:
             loc = self.viewport().geometry()
-            self.left_newloc =  list(loc.getRect())
+            self.left_newloc =  list(map(float, loc.getRect()))
             self.left_newloc[0] = self.left_newloc[0] # x
             self.left_newloc[1] = self.left_newloc[3]/2.4 # y
             self.left_newloc[2] = self.left_newloc[2]/5 # width
             self.left_newloc[3] = self.left_newloc[3]/5 # height
-            self.leftClick.setGeometry(QRect(self.left_newloc[0], self.left_newloc[1], self.left_newloc[2], self.left_newloc[3]))
-            newloc =  list(loc.getRect())
+            self.leftClick.setGeometry(QRect(*(map(round, self.left_newloc))))
+            newloc =  list(map(float, loc.getRect()))
             newloc[0] = newloc[2] - newloc[2]/5 # x
             newloc[1] = newloc[3]/2.4 # y
             newloc[2] = newloc[2]/5 # width
             newloc[3] = newloc[3]/5 # height
-            self.rightClick.setGeometry(QRect(newloc[0], newloc[1], newloc[2], newloc[3]))
+            self.rightClick.setGeometry(QRect(*(map(round, self.left_newloc))))
 
         # Fix rotate for the next photo
         self.rotate(-self.rotate_value)
