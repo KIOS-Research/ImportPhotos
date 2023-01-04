@@ -3,8 +3,8 @@
 /***************************************************************************
  ImportPhotos
                                  A QGIS plugin
- Import photos jpegs
-                              -------------------
+ Import photos
+        last update          : 04/01/2023
         begin                : February 2018
         copyright            : (C) 2019 by KIOS Research Center
         email                : mariosmsk@gmail.com
@@ -35,11 +35,11 @@ import os
 import uuid
 import json
 
-
 # Import python module
 CHECK_MODULE = ''
 try:
     import exifread
+
     CHECK_MODULE = 'exifread'
 except ModuleNotFoundError:
     pass
@@ -48,16 +48,16 @@ try:
     if CHECK_MODULE == '':
         from PIL import Image
         from PIL.ExifTags import TAGS
+
         CHECK_MODULE = 'PIL'
 except ModuleNotFoundError:
     pass
 
-
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
-   os.path.dirname(__file__), 'ui/impphotos.ui'))
+    os.path.dirname(__file__), 'ui/impphotos.ui'))
 
 FIELDS = ['fid', 'ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Cam. Maker',
-                'Cam. Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images']
+          'Cam. Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images']
 
 SUPPORTED_PHOTOS_EXTENSIONS = ['jpg', 'jpeg', 'JPG', 'JPEG']
 
@@ -68,7 +68,7 @@ SUPPORTED_OUTPUT_FILE_EXTENSIONS = {
     "Comma Separated Value (*.csv *.CSV)": ".csv",
     "Keyhole Markup Language (*.kml *.KML)": ".kml",
     "Mapinfo TAB (*.tab *.TAB)": ".tab"
-    }
+}
 
 EXTENSION_DRIVERS = {
     ".gpkg": "GPKG",
@@ -253,7 +253,7 @@ class ImportPhotos:
         # temp_layer is a class variable because we need to keep its reference
         # so the RendererWidget does not crash QGIS
         # If it's not a class variable, then it goes out of scope after this method
-        # and as metioned, QGIS crashes because it tries to access it.
+        # and as mentioned, QGIS crashes because it tries to access it.
         self.temp_layer = QgsVectorLayer(
             'Point?crs=epsg:4326&field=ID:string&field=Name:string&field=Date:date&field=Time:text&field=Lon:double&field=Lat:double&field=Altitude:double&field=Cam.Mak:string&field=Cam.Mod:string&field=Title:string&field=Comment:string&field=Path:string&field=RelPath:string&field=Timestamp:string&field=Images:string',
             'temp_layer',
@@ -366,10 +366,10 @@ class ImportPhotos:
         #     QGuiApplication.restoreOverrideCursor()
 
     def call_import_photos(self):
-        #self.import_photos_task('', '')
-        #self.completed('')
+        # self.import_photos_task('', '')
+        # self.completed('')
         self.taskPhotos = QgsTask.fromFunction('ImportPhotos', self.import_photos_task,
-                                 on_finished=self.completed, wait_time=4)
+                                               on_finished=self.completed, wait_time=4)
         QgsApplication.taskManager().addTask(self.taskPhotos)
 
     def stopped(self, task):
@@ -401,7 +401,8 @@ class ImportPhotos:
 
             for count, photo_path in enumerate(self.photos_to_import):
                 try:
-                    if not os.path.isdir(photo_path) and photo_path.lower().endswith(tuple(SUPPORTED_PHOTOS_EXTENSIONS)):
+                    if not os.path.isdir(photo_path) and photo_path.lower().endswith(
+                            tuple(SUPPORTED_PHOTOS_EXTENSIONS)):
                         geo_info = self.get_geo_infos_from_photo(photo_path)
                         if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
                             geo_info = json.dumps(geo_info)
@@ -432,7 +433,8 @@ class ImportPhotos:
                 self.tr("Details:"),
                 "\n".join(self.temp_photos_layer.commitErrors()))
             self.showMessage(title, msg, 'Warning')
-            self.result = False, len(self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter, no_location_photos_counter
+            self.result = False, len(
+                self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter, no_location_photos_counter
 
         # Save vector layer as a Shapefile
         driver = EXTENSION_DRIVERS[os.path.splitext(self.dlg.out.text())[1]]
@@ -444,12 +446,14 @@ class ImportPhotos:
         if error_code != 0:
             self.project_instance.removeMapLayer(self.temp_photos_layer)
             self.showMessage(self.tr('Writing output file error'), error_message, 'Warning')
-            return False, len(self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter, no_location_photos_counter
+            return False, len(
+                self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter, no_location_photos_counter
 
         self.project_instance.removeMapLayer(self.temp_photos_layer)
         self.setMouseClickMapTool()
 
-        self.result = True, len(self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter, no_location_photos_counter
+        self.result = True, len(
+            self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter, no_location_photos_counter
 
     def completed(self, result):
 
@@ -486,6 +490,18 @@ class ImportPhotos:
         self.layerPhotos_final.reload()
         self.layerPhotos_final.triggerRepaint()
         self.project_instance.addMapLayer(self.layerPhotos_final)
+
+        expression = """
+            <table>
+                <tr>
+                    <th>[% Name %]</th>
+                </tr> 
+                <tr>
+                <th><img src="file:///[% Path %]" width="350" height="250"></th>
+                </tr>
+            </table>
+        """
+        self.layerPhotos_final.setMapTipTemplate(expression)
 
     def update_photos(self):
         layers = {}
@@ -692,9 +708,9 @@ class ImportPhotos:
 
                 for tag, value in info.items():
                     if (
-                        TAGS.get(tag, tag) == 'GPSInfo' or
-                        TAGS.get(tag, tag) == 'DateTime' or
-                        TAGS.get(tag, tag) == 'DateTimeOriginal'
+                            TAGS.get(tag, tag) == 'GPSInfo' or
+                            TAGS.get(tag, tag) == 'DateTime' or
+                            TAGS.get(tag, tag) == 'DateTimeOriginal'
                     ):
                         a[TAGS.get(tag, tag)] = value
 
@@ -768,19 +784,19 @@ class ImportPhotos:
                     'Title': str(title), 'Comment': user_comm,
                     'Path': photo_path, 'RelPath': rel_path,
                     'Timestamp': timestamp, 'Images': ImagesSrc
-                    },
+                },
                 "geometry": {
                     "coordinates": [lon, lat],
                     "type": "Point"
-                    }
                 }
+            }
 
             try:
                 if self.selected_layer.source().lower().endswith("gpkg"):
                     geo_info = {
                         "type": "Feature",
                         "properties": {
-                            'fid': 0, 'ID': uuid_, 'Name': os.path.basename(photo_path), 
+                            'fid': 0, 'ID': uuid_, 'Name': os.path.basename(photo_path),
                             'Date': date, 'Time': time_,
                             'Lon': lon, 'Lat': lat, 'Altitude': altitude,
                             'North': north, 'Azimuth': azimuth,
@@ -788,12 +804,12 @@ class ImportPhotos:
                             'Title': str(title), 'Comment': user_comm,
                             'Path': photo_path, 'RelPath': rel_path,
                             'Timestamp': timestamp, 'Images': ImagesSrc
-                            },
+                        },
                         "geometry": {
                             "coordinates": [lon, lat],
                             "type": "Point"
-                            }
                         }
+                    }
             except:
                 pass
 
@@ -829,7 +845,7 @@ class ImportPhotos:
         Returns the latitude and longitude, if available, from the provided exif_data (obtained through get_exif_data above)
         """
 
-        if lonlat=='lonlat':
+        if lonlat == 'lonlat':
             lat = ''
             lon = ''
             gps_latitude = self._get_if_exist(exif_data, 'GPS GPSLatitude')
