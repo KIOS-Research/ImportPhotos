@@ -3,8 +3,8 @@
 /***************************************************************************
  ImportPhotos
                                  A QGIS plugin
- Import photos jpegs
-                              -------------------
+ Import photos
+        last update          : 04/01/2023
         begin                : February 2018
         copyright            : (C) 2019 by KIOS Research Center
         email                : mariosmsk@gmail.com
@@ -26,6 +26,7 @@ from qgis.gui import (QgsMapTool, QgsRubberBand)
 from .PhotosViewer import PhotoWindow
 import os.path
 
+
 # Mouseclik import file
 class MouseClick(QgsMapTool):
     afterLeftClick = pyqtSignal()
@@ -42,7 +43,7 @@ class MouseClick(QgsMapTool):
     def canvasPressEvent(self, event):
         if event.button() == 1:
             # sigeal : keep photo viewer on top of other windows
-            if self.photosDLG != None :
+            if self.photosDLG is not None:
                 self.photosDLG.setWindowFlags(Qt.WindowStaysOnTopHint)
             self.drawSelf.refresh()
 
@@ -50,12 +51,12 @@ class MouseClick(QgsMapTool):
         pass
 
     # sigeal : display photo on click instead of double-click
-    #def canvasReleaseEvent(self, event):
+    # def canvasReleaseEvent(self, event):
     def canvasDoubleClickEvent(self, event):
         pass
 
     # sigeal : display photo on click instead of double-click
-    #def canvasDoubleClickEvent(self, event):
+    # def canvasDoubleClickEvent(self, event):
     def canvasReleaseEvent(self, event):
         layers = self.canvas.layers()
         p = self.toMapCoordinates(event.pos())
@@ -78,16 +79,17 @@ class MouseClick(QgsMapTool):
                     ########## SHOW PHOTOS ############
                     feature = selected_features[0]
                     self.drawSelf.featureIndex = feature.id()
-                    activeLayerChanged =  not hasattr(self.drawSelf, 'layerActive') or (self.drawSelf.layerActive != layer)
+                    activeLayerChanged = not hasattr(self.drawSelf, 'layerActive') or (
+                            self.drawSelf.layerActive != layer)
                     self.drawSelf.layerActive = layer
                     self.drawSelf.fields = fields
                     self.drawSelf.maxlen = len(self.drawSelf.layerActive.name())
                     self.drawSelf.layerActiveName = layer.name()
                     self.drawSelf.iface.setActiveLayer(layer)
 
-                    if self.drawSelf.maxlen>13:
+                    if self.drawSelf.maxlen > 13:
                         self.drawSelf.maxlen = 14
-                        self.drawSelf.layerActiveName = self.drawSelf.layerActive.name()+'...'
+                        self.drawSelf.layerActiveName = self.drawSelf.layerActive.name() + '...'
 
                     if 'PATH' in fields:
                         imPath = feature.attributes()[feature.fieldNameIndex('Path')]
@@ -100,13 +102,16 @@ class MouseClick(QgsMapTool):
                         if not os.path.exists(imPath):
                             self.prj = QgsProject.instance()
                             if self.prj.fileName() and 'RELPATH' in fields:
-                                imPath = os.path.join(QFileInfo(self.prj.fileName()).absolutePath(), feature.attributes()[feature.fieldNameIndex('RelPath')])
+                                imPath = os.path.join(QFileInfo(self.prj.fileName()).absolutePath(),
+                                                      feature.attributes()[feature.fieldNameIndex('RelPath')])
                             else:
                                 c = self.drawSelf.noImageFound()
-                                if c: return
+                                if c:
+                                    return
                     except:
                         c = self.drawSelf.noImageFound()
-                        if c: return
+                        if c:
+                            return
 
                     self.drawSelf.getImage = QImage(imPath)
 

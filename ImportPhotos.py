@@ -41,17 +41,23 @@ try:
     import exifread
 
     CHECK_MODULE = 'exifread'
-except ModuleNotFoundError:
-    pass
-
+except:
+    try:
+        subprocess.call(['pip', 'install', 'exifread'])
+        CHECK_MODULE = ''
+    except ModuleNotFoundError:
+        pass
 try:
     if CHECK_MODULE == '':
         from PIL import Image
         from PIL.ExifTags import TAGS
-
         CHECK_MODULE = 'PIL'
-except ModuleNotFoundError:
-    pass
+except:
+    try:
+        subprocess.call(['pip', 'install', 'pillow'])
+        CHECK_MODULE = ''
+    except ModuleNotFoundError:
+        pass
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/impphotos.ui'))
@@ -645,18 +651,18 @@ class ImportPhotos:
                         time_ = "{:0>2}:{:0>2}:{:0>2}".format(tt[0], tt[1], tt[2])
                         timestamp = tags["GPS GPSDate"].values.replace(':', '-') + 'T' + time_
                     except:
-                        date = ''
-                        time_ = ''
-                        timestamp = ''
+                        date = None
+                        time_ = None
+                        timestamp = None
 
                 try:
                     if 'GPS GPSImgDirection' in tags:
                         azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(
                             tags["GPS GPSImgDirection"].values[0].den)
                     else:
-                        azimuth = ''
+                        azimuth = None
                 except:
-                    azimuth = ''
+                    azimuth = None
 
                 try:
                     if 'GPS GPSImgDirectionRef' in tags:
@@ -703,7 +709,7 @@ class ImportPhotos:
                 with Image.open(photo_path) as img:
                     info = img._getexif()
 
-                if info == None:
+                if info is None:
                     return False
 
                 for tag, value in info.items():
@@ -758,10 +764,10 @@ class ImportPhotos:
                             azimuth = float(a['GPSInfo'][17])
                         else:
                             north = ''
-                            azimuth = ''
+                            azimuth = None
                     except:
                         north = ''
-                        azimuth = ''
+                        azimuth = None
 
                     maker = ''
                     model = ''

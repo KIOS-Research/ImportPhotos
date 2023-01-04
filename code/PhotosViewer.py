@@ -3,8 +3,8 @@
 /***************************************************************************
  ImportPhotos
                                  A QGIS plugin
- Import photos jpegs
-                              -------------------
+ Import photos
+        last update          : 04/01/2023
         begin                : February 2018
         copyright            : (C) 2019 by KIOS Research Center
         email                : mariosmsk@gmail.com
@@ -20,12 +20,13 @@
 """
 
 from qgis.PyQt.QtWidgets import (QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget,
-    QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame, QMenuBar, QAction, qApp, QFileDialog, QMessageBox)
-from qgis.PyQt.QtCore import (Qt, pyqtSignal, QRectF, QRect, QSize, QCoreApplication)
+                                 QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame, QMenuBar, QAction, qApp,
+                                 QFileDialog, QMessageBox)
+from qgis.PyQt.QtCore import (QFileInfo, Qt, pyqtSignal, QRectF, QRect, QSize, QCoreApplication)
 from qgis.PyQt.QtGui import (QPainterPath, QIcon, QPixmap, QImage, QFont)
 import os.path
 
-#Filtering opencv
+# Filtering opencv
 opencv = False
 try:
     import cv2
@@ -34,6 +35,11 @@ try:
     opencv = True
 except:
     opencv = False
+    try:
+        subprocess.call(['pip', 'install', 'opencv-python'])
+        opencv = True
+    except ModuleNotFoundError:
+        pass
 
 
 class PhotosViewer(QGraphicsView):
@@ -112,21 +118,20 @@ class PhotosViewer(QGraphicsView):
     def resizeEvent(self, event):
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
 
-
         if len(self.selfwindow.allpictures) > 1:
             loc = self.viewport().geometry()
-            self.left_newloc =  list(map(float, loc.getRect()))
-            self.left_newloc[0] = self.left_newloc[0] # x
-            self.left_newloc[1] = self.left_newloc[3]/2.4 # y
-            self.left_newloc[2] = self.left_newloc[2]/5 # width
-            self.left_newloc[3] = self.left_newloc[3]/5 # height
+            newloc = list(loc.getRect())
+            self.left_newloc = newloc[:]
+            self.left_newloc[0] = self.left_newloc[0]  # x
+            self.left_newloc[1] = self.left_newloc[3] / 2.4  # y
+            self.left_newloc[2] = self.left_newloc[2] / 5  # width
+            self.left_newloc[3] = self.left_newloc[3] / 5  # height
             self.leftClick.setGeometry(QRect(*(map(round, self.left_newloc))))
-            newloc =  list(map(float, loc.getRect()))
-            newloc[0] = newloc[2] - newloc[2]/5 # x
-            newloc[1] = newloc[3]/2.4 # y
-            newloc[2] = newloc[2]/5 # width
-            newloc[3] = newloc[3]/5 # height
-            self.rightClick.setGeometry(QRect(*(map(round, self.left_newloc))))
+            newloc[0] = newloc[2] - newloc[2] / 5  # x
+            newloc[1] = newloc[3] / 2.4  # y
+            newloc[2] = newloc[2] / 5  # width
+            newloc[3] = newloc[3] / 5  # height
+            self.rightClick.setGeometry(QRect(*(map(round, newloc))))
 
         # Fix rotate for the next photo
         self.rotate(-self.rotate_value)
@@ -179,48 +184,49 @@ class PhotoWindow(QWidget):
         super(PhotoWindow, self).__init__()
         self.drawSelf = drawSelf
 
-        ## Update for photo
+        # Update for photo
         self.allpictures = {}
         self.allpicturesdates = {}
         self.allpicturestimes = {}
-        self.allpicturesImpath= {} #feature id / picture path
-        self.allpicturesAzimuth={}
-        self.allpicturesName={}
+        self.allpicturesImpath = {}  # feature id / picture path
+        self.allpicturesAzimuth = {}
+        self.allpicturesName = {}
         for i, f in enumerate(self.drawSelf.layerActive.getFeatures()):
+            attributes = f.attributes()
             if 'PATH' in self.drawSelf.fields:
-                imPath = f.attributes()[f.fieldNameIndex('Path')]
-            elif 'PHOTO' in self.drawSelf.fields :
-                imPath = f.attributes()[f.fieldNameIndex('photo')]
+                imPath = attributes[f.fieldNameIndex('Path')]
+            elif 'PHOTO' in self.drawSelf.fields:
+                imPath = attributes[f.fieldNameIndex('photo')]
             else:
                 imPath = ''
             try:
-                dateTrue = str(f.attributes()[f.fieldNameIndex('Date')].toString('yyyy-MM-dd'))
+                dateTrue = str(attributes[f.fieldNameIndex('Date')].toString('yyyy-MM-dd'))
             except:
-                dateTrue = str(f.attributes()[f.fieldNameIndex('Date')])
+                dateTrue = str(attributes[f.fieldNameIndex('Date')])
             try:
-                timeTrue = str(f.attributes()[f.fieldNameIndex('Time')].toString('hh:mm:ss'))
+                timeTrue = str(attributes[f.fieldNameIndex('Time')].toString('hh:mm:ss'))
             except:
-                timeTrue = str(f.attributes()[f.fieldNameIndex('Time')])
+                timeTrue = str(attributes[f.fieldNameIndex('Time')])
             try:
-                name_ = f.attributes()[f.fieldNameIndex('Name')]
+                name_ = attributes[f.fieldNameIndex('Name')]
                 name_ = name_[:-4]
             except:
                 try:
-                    name_ = f.attributes()[f.fieldNameIndex('filename')]
+                    name_ = attributes[f.fieldNameIndex('filename')]
                 except:
                     name_ = ''
 
             if not os.path.exists(imPath):
                 try:
                     if self.drawSelf.prj.fileName() and 'RELPATH' in self.drawSelf.fields:
-                        imPath = QFileInfo(prj.fileName()).absolutePath() + \
-                                 feature.attributes()[feature.fieldNameIndex('RelPath')]
+                        imPath = QFileInfo(self.drawSelf.prj.fileName()).absolutePath() + \
+                                 attributes[f.fieldNameIndex('RelPath')]
                 except:
                     imPath = ''
             try:
-                azimuth = f.attributes()[f.fieldNameIndex('Azimuth')]
+                azimuth = attributes[f.fieldNameIndex('Azimuth')]
             except:
-                azimuth = ''
+                azimuth = None
 
             self.allpictures[f.id()] = name_
             self.allpicturesdates[f.id()] = dateTrue
@@ -235,7 +241,6 @@ class PhotoWindow(QWidget):
 
         self.setWindowTitle('Photo')
         self.setWindowIcon(QIcon(':/plugins/ImportPhotos/icons/icon.png'))
-
 
         menu_bar = QMenuBar(self)
         menu_bar.setGeometry(QRect(0, 0, 10000, 26))
@@ -267,7 +272,8 @@ class PhotoWindow(QWidget):
                 bands_menu = menu_bar.addMenu(self.tr('Bands'))
 
                 self.opencv_filt_status = {'Edges': False, 'Red': False, 'Green': False, 'Blue': False,
-                                           '2DConvolution': False, 'Median': False, 'Gaussian': False, 'Gaussian Highpass': False}
+                                           '2DConvolution': False, 'Median': False, 'Gaussian': False,
+                                           'Gaussian Highpass': False}
                 self.edges_filter_btn = opencv_menu.addAction(self.tr('Edges Filter'))
                 self.edges_filter_btn.setCheckable(True)
                 self.edges_filter_btn.triggered.connect(self.edges_filter_call)
@@ -304,24 +310,21 @@ class PhotoWindow(QWidget):
         # # Add Filter buttons
         sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
 
-        self.add_window_place = QLabel(self) #temporary
+        self.add_window_place = QLabel(self)  # temporary
         self.add_window_place.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum))
         self.add_window_place.setFrameShape(QFrame.NoFrame)
 
         self.infoPhoto1 = QLabel(self)
         self.infoPhoto1.setSizePolicy(sizePolicy)
         self.infoPhoto1.setFrameShape(QFrame.Box)
-#        self.infoPhoto1.setAlignment(Qt.AlignCenter)
 
         self.infoPhoto2 = QLabel(self)
         self.infoPhoto2.setSizePolicy(sizePolicy)
         self.infoPhoto2.setFrameShape(QFrame.Box)
-#        self.infoPhoto2.setAlignment(Qt.AlignCenter)
 
         self.infoPhoto3 = QLabel(self)
         self.infoPhoto3.setSizePolicy(sizePolicy)
         self.infoPhoto3.setFrameShape(QFrame.Box)
-#        self.infoPhoto3.setAlignment(Qt.AlignCenter)
 
         self.extent = QPushButton(self)
         self.extent.setSizePolicy(sizePolicy)
@@ -390,6 +393,10 @@ class PhotoWindow(QWidget):
         HBlayout.addWidget(self.rotate_azimuth)
         HBlayout.addWidget(self.zoom_to_select)
         HBlayout.addWidget(self.hide_arrow)
+
+        spacelabel = QHBoxLayout()
+        spacelabel.addWidget(QLabel(self))
+        VBlayout.addLayout(spacelabel)
 
         VBlayout.addLayout(HBlayoutTop)
         VBlayout.addLayout(HBlayout2)
@@ -537,14 +544,16 @@ class PhotoWindow(QWidget):
         self.outputPath = self.outputPath[0]
         if self.outputPath == '':
             return
-        self.drawSelf.getImage.save(self.outputPath+'.png')
-        self.showMessage(title='ImportPhotos', msg=self.tr('Save image at "')+self.outputPath+'.png'+self.tr('" succesfull.'), button='OK', icon='Info')
+        self.drawSelf.getImage.save(self.outputPath + '.png')
+        self.showMessage(title='ImportPhotos',
+                         msg=self.tr('Save image at "') + self.outputPath + '.png' + self.tr('" succesfull.'),
+                         button='OK', icon='Info')
 
     def showMessage(self, title, msg, button, icon):
         msgBox = QMessageBox()
-        if icon=='Warning':
+        if icon == 'Warning':
             msgBox.setIcon(QMessageBox.Warning)
-        if icon=='Info':
+        if icon == 'Info':
             msgBox.setIcon(QMessageBox.Information)
         msgBox.setWindowTitle(title)
         msgBox.setText(msg)
@@ -574,7 +583,7 @@ class PhotoWindow(QWidget):
     def leftClickButton(self):
         lastId = list(self.allpicturesImpath.keys())[-1]
         it = iter(self.allpicturesImpath)
-        
+
         prevKey = lastId
         for key in it:
             if key == self.drawSelf.featureIndex:
@@ -595,7 +604,7 @@ class PhotoWindow(QWidget):
     def updateWindow(self):
         imPath = self.allpicturesImpath[self.drawSelf.featureIndex]
         try:
-            if os.path.exists(imPath) == False:
+            if not os.path.exists(imPath):
                 c = self.drawSelf.noImageFound()
                 imPath = ''
         except:
@@ -747,4 +756,3 @@ class PhotoWindow(QWidget):
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('PhotoWindow', message)
-
