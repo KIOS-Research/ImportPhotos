@@ -35,11 +35,6 @@ try:
     opencv = True
 except:
     opencv = False
-    try:
-        subprocess.call(['pip', 'install', 'opencv-python'])
-        opencv = True
-    except ModuleNotFoundError:
-        pass
 
 
 class PhotosViewer(QGraphicsView):

@@ -24,8 +24,8 @@ repository=https://github.com/KIOS-Research/ImportPhotos/
 # Recommended items:
 # Uncomment the following line and add your changelog:
 changelog=2023-01-04  ImportPhotos 3.0.5:
-			 Automatically install some modules (exifread, pillow, opencv-python)
-			 Add label space in the window of the photo
+			 Show the photo in the tooltip window
+			 Add label space in the window of the photo (show the title/name of the file more clearly)
 			 Fix some issues with empty fields (Thanks @gaspermeister)
 			 Fix python type error on photos viewer setGeometry (Thanks @faebebin)
 			 Fix the error if the file in the Path field doesn't exist (Thanks @KrisRadowski, @turzik-x)

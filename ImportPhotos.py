@@ -34,10 +34,6 @@ from .code.MouseClick import MouseClick
 import os
 import uuid
 import json
-try:
-    import subprocess
-except:
-    pass
 
 # Import python module
 CHECK_MODULE = ''
@@ -46,22 +42,15 @@ try:
 
     CHECK_MODULE = 'exifread'
 except:
-    try:
-        subprocess.call(['pip', 'install', 'exifread'])
-        CHECK_MODULE = ''
-    except ModuleNotFoundError:
-        pass
+    CHECK_MODULE = ''
+
 try:
     if CHECK_MODULE == '':
         from PIL import Image
         from PIL.ExifTags import TAGS
         CHECK_MODULE = 'PIL'
 except:
-    try:
-        subprocess.call(['pip', 'install', 'pillow'])
-        CHECK_MODULE = ''
-    except ModuleNotFoundError:
-        pass
+    CHECK_MODULE = ''
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/impphotos.ui'))
