@@ -613,7 +613,7 @@ class ImportPhotos:
 
     def get_geo_infos_from_photo(self, photo_path):
         try:
-            rel_path = self.selected_folder + os.path.basename(photo_path)
+            rel_path = os.path.relpath(photo_path,start=os.path.dirname(self.dlg.out.text()))
             ImagesSrc = '<img src = "' + rel_path + '" width="300" height="225"/>'
             if CHECK_MODULE == 'exifread':
                 with open(photo_path, 'rb') as imgpathF:
