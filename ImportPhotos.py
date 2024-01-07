@@ -24,6 +24,7 @@ from qgis.PyQt.QtGui import QIcon, QGuiApplication
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDialog
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt, QTextCodec
+from qgis.PyQt.QtCore import QFileInfo
 from qgis.core import *
 from qgis.gui import QgsRuleBasedRendererWidget
 
@@ -316,6 +317,17 @@ class ImportPhotos:
             else:
                 # Set extension with the specified filter
                 self.dlg.out.setText(os.path.splitext(outputPath)[0] + extension)
+    
+    def get_path_relative_to_project_root(self, abs_path):
+        project_folder = QFileInfo(
+            self.project_instance.fileName()).absolutePath()
+        try:
+            rel_path = os.path.relpath(
+                path=os.path.normpath(abs_path), start=project_folder)
+        except ValueError:
+            # On Windows, when path and start are on different drives.
+            rel_path = os.path.normpath(abs_path)
+        return rel_path
 
     def toolButtonImport(self):
         directory_path = QFileDialog.getExistingDirectory(
@@ -324,7 +336,8 @@ class ImportPhotos:
 
         if directory_path:
             self.selected_folder = directory_path[:]
-            self.selected_folder = './' + os.path.basename(os.path.normpath(self.selected_folder)) + '/'
+            self.selected_folder = self.get_path_relative_to_project_root(
+                self.selected_folder)
             self.dlg.imp.setText(directory_path)
 
     def import_photos(self):
@@ -537,7 +550,8 @@ class ImportPhotos:
             picture_paths.append(os.path.basename(feature.attribute("Path")))
 
         # Pictures that should be removed from the layer
-        self.selected_folder = './' + os.path.basename(os.path.normpath(base_picture_directory)) + '/'
+        self.selected_folder = self.get_path_relative_to_project_root(
+            base_picture_directory)
         list_pictures = []
         try:
             for root, dirs, files in os.walk(base_picture_directory):
@@ -613,7 +627,8 @@ class ImportPhotos:
 
     def get_geo_infos_from_photo(self, photo_path):
         try:
-            rel_path = self.selected_folder + os.path.basename(photo_path)
+            rel_path = os.path.join(
+                self.selected_folder, os.path.basename(photo_path))
             ImagesSrc = '<img src = "' + rel_path + '" width="300" height="225"/>'
             if CHECK_MODULE == 'exifread':
                 with open(photo_path, 'rb') as imgpathF:
