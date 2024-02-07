@@ -548,7 +548,7 @@ class ImportPhotos:
             pass
 
         pictures_to_remove = list(set(picture_paths) - set(list_pictures))
-        pictures_to_add = list(set(list_pictures) - set(picture_paths)).sorted()
+        pictures_to_add = sorted(list(set(list_pictures) - set(picture_paths)))
 
         editing_started = self.selected_layer.startEditing()
         if editing_started:
