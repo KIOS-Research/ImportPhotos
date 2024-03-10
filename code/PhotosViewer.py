@@ -214,8 +214,9 @@ class PhotoWindow(QWidget):
             if not os.path.exists(imPath):
                 try:
                     if self.drawSelf.prj.fileName() and 'RELPATH' in self.drawSelf.fields:
-                        imPath = QFileInfo(self.drawSelf.prj.fileName()).absolutePath() + \
-                                 attributes[f.fieldNameIndex('RelPath')]
+                        imPath = os.path.join(
+                            QFileInfo(self.drawSelf.prj.fileName()).absolutePath(),
+                            attributes[f.fieldNameIndex('RelPath')])
                 except:
                     imPath = ''
             try:
