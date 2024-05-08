@@ -36,7 +36,19 @@ import os
 import uuid
 import json
 
-# Import python module
+
+
+
+
+# Import python modules:
+try:
+    import pyexiv2
+
+    from pyexiv2 import Image
+    PYEXIV_OK = 'true'
+except:
+    PYEXIV_OK = 'false'
+
 CHECK_MODULE = ''
 try:
     import exifread
@@ -270,8 +282,7 @@ class ImportPhotos:
         self.toolMouseClick = MouseClick(self.canvas, self)
 
     def setMouseClickMapTool(self):
-
-        # Set photos layer as active layer
+        """Set photos layer as active layer"""
         for layer in self.project_instance.mapLayers().values():
             if layer.type() == QgsMapLayerType.VectorLayer and layer.fields().names() == FIELDS:
                 self.iface.setActiveLayer(layer)
@@ -290,6 +301,7 @@ class ImportPhotos:
         del self.toolbar
 
     def run(self):
+        """Remind user about missed python modules and exit"""    
         if CHECK_MODULE == '':
             self.showMessage(
                 self.tr('Python Modules'),
@@ -297,6 +309,13 @@ class ImportPhotos:
                 'Warning')
             return
 
+        """Remind user about missed python module pyexiv2 - and continue"""    
+        if PYEXIV_OK == "false":
+            self.showMessage(
+                self.tr('Python Module for IPTC'),
+                self.tr('If you need titles, headings and descriptions from IPTC metadata \n(not only one comment from EXIF),\n please install python module "pyexiv2".'),
+                'Warning')
+         
         self.dlg.out.setText('')
         self.dlg.imp.setText('')
         self.dlg.canvas_extent.setChecked(False)
@@ -340,7 +359,7 @@ class ImportPhotos:
 
     def import_photos(self):
         self.layer_renderer = self.dlg.findChild(QgsRuleBasedRendererWidget, "renderer_widget").renderer()
-
+        """check for form filling"""
         file_not_found = False
         if self.dlg.imp.text() == '' and not os.path.isdir(self.dlg.imp.text()):
             file_not_found = True
@@ -348,7 +367,7 @@ class ImportPhotos:
         if self.dlg.out.text() == '' and not os.path.isabs(self.dlg.out.text()):
             file_not_found = True
             msg = self.tr('Please define output file location.')
-
+        """if form not filled - exit"""
         if file_not_found:
             self.showMessage('Warning', msg, 'Warning')
             return
@@ -366,6 +385,7 @@ class ImportPhotos:
 
         self.dlg.close()
         self.call_import_photos()
+        """will be good to return waiting cursor till photoes are importing: """
         # QGuiApplication.setOverrideCursor(Qt.WaitCursor)
         # photos_to_import.sort()
         # try:
@@ -413,7 +433,8 @@ class ImportPhotos:
                 try:
                     if not os.path.isdir(photo_path) and photo_path.lower().endswith(
                             tuple(SUPPORTED_PHOTOS_EXTENSIONS)):
-                        geo_info = self.get_geo_infos_from_photo(photo_path)
+                        iptcTitle,iptcHeadline,iptcDescription = self.get_iptc_from_photo(photo_path)   #yozki.com
+                        geo_info = self.get_geo_infos_from_photo(photo_path,iptcTitle,iptcHeadline,iptcDescription) #yozki.com
                         if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
                             geo_info = json.dumps(geo_info)
                             fields = QgsJsonUtils.stringToFields(geo_info, CODEC)
@@ -448,6 +469,8 @@ class ImportPhotos:
 
         # Save vector layer as a Shapefile
         driver = EXTENSION_DRIVERS[os.path.splitext(self.dlg.out.text())[1]]
+# Deprecated since version QGIS: 3.20 use writeAsVectorFormatV3 instead:
+#        error_code, error_message = QgsVectorFileWriter.writeAsVectorFormatV3(
         error_code, error_message = QgsVectorFileWriter.writeAsVectorFormat(
             self.temp_photos_layer, self.dlg.out.text(), "utf-8",
             QgsCoordinateReferenceSystem(self.temp_photos_layer.crs().authid()),
@@ -488,7 +511,7 @@ class ImportPhotos:
                     self.tr('photo(s) skipped (because of missing location).'),
                     str(int(out_of_bounds_photos_counter)),
                     self.tr('photo(s) skipped (because not in canvas extent).'))
-            self.showMessage(title, msg, self.tr('Information'))
+            self.showMessage(title, msg, 'Information')
 
         self.layerPhotos_final = QgsVectorLayer(
             self.dlg.out.text(),
@@ -622,14 +645,63 @@ class ImportPhotos:
 
         self.showMessage(title, msg, 'Information')
 
-    def get_geo_infos_from_photo(self, photo_path):
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+####### delete this. it is only delimiter #######################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+    def get_iptc_from_photo(self, photo_path):
+        try:
+        ###########################################################
+        #############        PyEXIV implementing     ##############
+        ###########################################################
+        #Let's get only Title, Header and Description from IPTC data via pyExiV2 module:
+#debug           self.showMessage("Photo Path", photo_path, "Warning")
+            imageExiv = Image(photo_path)
+            iptcArray = imageExiv.read_iptc()
+            try:
+                iptcTitle = iptcArray['Iptc.Application2.ObjectName']  
+            except: #except KeyError:
+                iptcTitle = ""
+            try:
+                iptcHeadline = iptcArray['Iptc.Application2.Headline']  
+            except: #except KeyError:
+                iptcHeadline=''
+            try:
+                iptcDescription = iptcArray['Iptc.Application2.Caption'] 
+            except: #except KeyError:
+                iptcDescription=''
+            
+#debug           self.showMessage("iptcRead", "go next stage", "Information")
+            return iptcTitle,iptcHeadline,iptcDescription
+
+        except Exception as e:
+            return '', ''
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+####### delete this. it is temp delimiter#######################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+
+    def get_geo_infos_from_photo(self, photo_path,iptcTitle,iptcHeadline,iptcDescription):
+
         try:
             rel_path = self.get_path_relative_to_project_root(photo_path)
             ImagesSrc = '<img src = "' + rel_path + '" width="300" height="225"/>'
+           
+            
             if CHECK_MODULE == 'exifread':
                 with open(photo_path, 'rb') as imgpathF:
-                    tags = exifread.process_file(imgpathF, details=False)
-
+                    tags = exifread.process_file(imgpathF, details=True)
+                          
                 if not set(tags.keys()).union({"GPS GPSLongitude", "GPS GPSLatitude"}):
                     return False
 
@@ -691,22 +763,48 @@ class ImportPhotos:
                         model = ''
                 except:
                     model = ''
-
+################################################################
+####### iptc title from pyexiv is have priority: ###############
                 try:
-                    if 'Image ImageDescription' in tags:
-                        title = tags['Image ImageDescription']
+                    if  iptcTitle > "":
+                        title = iptcTitle                    
+                    elif 'Image Title' in tags:
+                        title = tags['Title']
                     else:
-                        title = ''
+                        title = tags
                 except:
                     title = ''
-
+################################################################
+####### iptc description from pyexiv is have priority: #########
                 try:
-                    if 'EXIF UserComment' in tags:
-                        user_comm = tags['EXIF UserComment'].printable
+                    if  iptcDescription > "": #  if IPTC Description exists..
+                        if iptcHeadline > "": #if headline exists - also prefixing description with "headline" string:
+                            user_comm = iptcHeadline+" - "+iptcDescription
+                        user_comm = iptcDescription
+                    elif 'Image ImageDescription' in tags:
+                        user_comm = tags['Image ImageDescription'].printable
                     else:
                         user_comm = ''
                 except:
                     user_comm = ''
+################################################################
+###### original code was looks like this:   ####################
+#                    if 'Image ImageDescription' in tags:
+#                        user_comm = tags['Image ImageDescription'].printable
+#                    else:
+#                        user_comm = ''
+#                except:
+#                    user_comm = ''
+################################################################
+################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
+#################################################################################################################################################################################
 
             elif CHECK_MODULE == 'PIL':
                 a = {}
