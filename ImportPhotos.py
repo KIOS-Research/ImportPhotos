@@ -331,7 +331,7 @@ class ImportPhotos:
 
     def toolButtonImport(self):
         directory_path = QFileDialog.getExistingDirectory(
-            self.dlg, self.tr('Select a folder:'),
+            self.dlg, self.tr('Select a folder'),
             os.path.expanduser('~'), QFileDialog.ShowDirsOnly)
 
         if directory_path:
