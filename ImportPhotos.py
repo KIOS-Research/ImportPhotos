@@ -532,7 +532,8 @@ class ImportPhotos:
 
         if not ok:
             return
-        self.selected_layer = layers[selected_layer_name]
+        if not self.selected_layer:
+            return
 
         # All picture paths that are currently saved in the shapefile layer
         picture_paths = []
