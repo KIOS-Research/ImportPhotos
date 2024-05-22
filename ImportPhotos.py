@@ -35,6 +35,7 @@ from .code.MouseClick import MouseClick
 import os
 import uuid
 import json
+from pathlib import Path
 
 # Import python module
 CHECK_MODULE = ''
@@ -241,6 +242,12 @@ class ImportPhotos:
             icon_path,
             text=self.tr('Update Photos'),
             callback=self.update_photos,
+            parent=self.iface.mainWindow())
+        icon_path = ':/plugins/ImportPhotos/icons/export.svg'
+        self.add_action(
+            icon_path,
+            text=self.tr('Bulk Export'),
+            callback=self.bulk_export,
             parent=self.iface.mainWindow())
 
         self.dlg = ImportPhotosDialog()
@@ -513,7 +520,7 @@ class ImportPhotos:
         """
         self.layerPhotos_final.setMapTipTemplate(expression)
 
-    def update_photos(self):
+    def layer_selector(self, title: str = 'Select layer to update'):
         layers = {}
 
         for layer in self.project_instance.mapLayers().values():
@@ -524,7 +531,7 @@ class ImportPhotos:
         if layers.keys():
             selected_layer_name, ok = QInputDialog.getItem(
                 self.iface.mainWindow(),
-                self.tr("Select layer to update"),
+                self.tr(title),
                 "Layer List:", layers.keys(), 0, False)
         else:
             self.showMessage('Error', self.tr('No photos layer(s) found'), 'Warning')
@@ -532,6 +539,11 @@ class ImportPhotos:
 
         if not ok:
             return
+        
+        return layers[selected_layer_name]
+
+    def update_photos(self):
+        self.selected_layer = self.layer_selector()
         if not self.selected_layer:
             return
 
@@ -622,6 +634,29 @@ class ImportPhotos:
             self.tr('photo(s) removed.'))
 
         self.showMessage(title, msg, 'Information')
+
+    def bulk_export(self):
+        self.selected_layer = self.layer_selector('Select layer to export')
+        if not self.selected_layer:
+            return
+
+        path_column_index = self.selected_layer.fields().indexFromName('Path')
+
+        directory_path = QFileDialog.getExistingDirectory(
+            self.dlg, self.tr('Select an output folder'),
+            os.path.expanduser('~'), QFileDialog.ShowDirsOnly)
+        if not directory_path:
+            return
+
+        images = self.selected_layer.getFeatures()
+        for image in images:
+            src_path = Path(image.attributes()[path_column_index])
+            dest_dir = Path(directory_path)
+            dest_filename = dest_dir / Path(f"{src_path.parent.name}_{src_path.name}")
+            dest_filename.write_bytes(src_path.read_bytes())
+
+        self.showMessage('Success', self.tr('Export complete.'), self.tr('Information'))
+        return
 
     def get_geo_infos_from_photo(self, photo_path):
         try:
