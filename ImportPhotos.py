@@ -57,7 +57,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/impphotos.ui'))
 
 FIELDS = ['fid', 'ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Cam. Maker',
-          'Cam. Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images']
+          'Cam. Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images', 'Link']
 
 SUPPORTED_PHOTOS_EXTENSIONS = ['jpg', 'jpeg', 'JPG', 'JPEG']
 
@@ -248,6 +248,8 @@ class ImportPhotos:
         self.dlg.closebutton.clicked.connect(self.dlg.close)
         self.dlg.toolButtonImport.clicked.connect(self.toolButtonImport)
         self.dlg.toolButtonOut.clicked.connect(self.toolButtonOut)
+        self.dlg.toolButtonRelative.clicked.connect(self.toolButtonRelative)
+        
 
         # Add QgsRuleBasedRendererWidget
         # temp_layer is a class variable because we need to keep its reference
@@ -255,7 +257,7 @@ class ImportPhotos:
         # If it's not a class variable, then it goes out of scope after this method
         # and as mentioned, QGIS crashes because it tries to access it.
         self.temp_layer = QgsVectorLayer(
-            'Point?crs=epsg:4326&field=ID:string&field=Name:string&field=Date:date&field=Time:text&field=Lon:double&field=Lat:double&field=Altitude:double&field=Cam.Mak:string&field=Cam.Mod:string&field=Title:string&field=Comment:string&field=Path:string&field=RelPath:string&field=Timestamp:string&field=Images:string',
+            'Point?crs=epsg:4326&field=ID:string&field=Name:string&field=Date:date&field=Time:text&field=Lon:double&field=Lat:double&field=Altitude:double&field=Cam.Mak:string&field=Cam.Mod:string&field=Title:string&field=Comment:string&field=Path:string&field=RelPath:string&field=Timestamp:string&field=Images:string&field=Link:string',
             'temp_layer',
             'memory')
         self.temp_layer.setRenderer(QgsFeatureRenderer.defaultRenderer(QgsWkbTypes.PointGeometry))
@@ -329,6 +331,16 @@ class ImportPhotos:
             rel_path = os.path.normpath(abs_path)
         return rel_path
 
+    def toolButtonRelative(self):
+        directory_path = QFileDialog.getExistingDirectory(
+            self.dlg, self.tr('Select a folder:'),
+            os.path.expanduser('~'), QFileDialog.ShowDirsOnly)
+
+        if directory_path:
+            self.selected_folder = directory_path[:]
+            self.dlg.relativeroot.setText(directory_path)
+
+
     def toolButtonImport(self):
         directory_path = QFileDialog.getExistingDirectory(
             self.dlg, self.tr('Select a folder:'),
@@ -342,16 +354,23 @@ class ImportPhotos:
         self.layer_renderer = self.dlg.findChild(QgsRuleBasedRendererWidget, "renderer_widget").renderer()
 
         file_not_found = False
-        if self.dlg.imp.text() == '' and not os.path.isdir(self.dlg.imp.text()):
+        if self.dlg.imp.text() == '' and not os.path.isdir(self.dlg.imp.text()): #should have been or?
             file_not_found = True
             msg = self.tr('Please select a directory photos.')
-        if self.dlg.out.text() == '' and not os.path.isabs(self.dlg.out.text()):
+        if self.dlg.out.text() == '' and not os.path.isabs(self.dlg.out.text()): #should have been or?
             file_not_found = True
             msg = self.tr('Please define output file location.')
 
         if file_not_found:
             self.showMessage('Warning', msg, 'Warning')
             return
+
+        if self.dlg.relativeroot.text() == '':
+            self.relativeroot = self.dlg.imp.text()
+        else:
+            self.relativeroot = self.dlg.relativeroot.text()
+            
+        self.webroot = self.dlg.webroot.text() # Will be checked later if it is ''
 
         # get paths of photos
         self.photos_to_import = []
@@ -363,7 +382,11 @@ class ImportPhotos:
         if len(self.photos_to_import) == 0:
             self.showMessage('Warning', self.tr('No photos were found!'), 'Warning')
             return
-
+        
+        # Set up for url:
+            
+        
+        
         self.dlg.close()
         self.call_import_photos()
         # QGuiApplication.setOverrideCursor(Qt.WaitCursor)
@@ -625,7 +648,14 @@ class ImportPhotos:
     def get_geo_infos_from_photo(self, photo_path):
         try:
             rel_path = self.get_path_relative_to_project_root(photo_path)
-            ImagesSrc = '<img src = "' + rel_path + '" width="300" height="225"/>'
+            url = '' # use photo_path, remove relative root, add web root
+            if self.webroot != '':
+                webrelpath = os.path.relpath(photo_path,self.relativeroot)
+                url = self.webroot+webrelpath
+            else:
+                url = photo_path
+            #ImagesSrc = '<img src = "' + rel_path + '" width="300" height="225"/>'
+            ImagesSrc = '<img src = "' + url + '" width="300" height="225"/>'
             if CHECK_MODULE == 'exifread':
                 with open(photo_path, 'rb') as imgpathF:
                     tags = exifread.process_file(imgpathF, details=False)
@@ -793,7 +823,7 @@ class ImportPhotos:
                     'Cam. Maker': str(maker), 'Cam. Model': str(model),
                     'Title': str(title), 'Comment': user_comm,
                     'Path': photo_path, 'RelPath': rel_path,
-                    'Timestamp': timestamp, 'Images': ImagesSrc
+                    'Timestamp': timestamp, 'Images': ImagesSrc, 'Link':url
                 },
                 "geometry": {
                     "coordinates": [lon, lat],
