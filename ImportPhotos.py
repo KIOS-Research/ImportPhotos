@@ -652,10 +652,10 @@ class ImportPhotos:
             if self.webroot != '':
                 webrelpath = os.path.relpath(photo_path,self.relativeroot)
                 url = self.webroot+webrelpath
+                ImagesSrc = '<img src = "' + url + '" width="300" height="225"/>'
             else:
                 url = photo_path
-            #ImagesSrc = '<img src = "' + rel_path + '" width="300" height="225"/>'
-            ImagesSrc = '<img src = "' + url + '" width="300" height="225"/>'
+                ImagesSrc = '<img src = "' + rel_path + '" width="300" height="225"/>'
             if CHECK_MODULE == 'exifread':
                 with open(photo_path, 'rb') as imgpathF:
                     tags = exifread.process_file(imgpathF, details=False)
