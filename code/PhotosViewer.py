@@ -697,7 +697,6 @@ class PhotoWindow(QWidget):
         header = self.allpicturesName[self.drawSelf.featureIndex]
         if link is not None:
             header =f'<a href="{link}">{header}</a>'
-        print(header)
         self.add_window_place.setText(header)
         azimuth = self.allpicturesAzimuth[self.drawSelf.featureIndex]
         if type(azimuth) is str:
