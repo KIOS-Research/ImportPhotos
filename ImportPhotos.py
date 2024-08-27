@@ -57,7 +57,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/impphotos.ui'))
 
 FIELDS = ['fid', 'ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Cam. Maker',
-          'Cam. Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images', 'Link']
+          'Cam. Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images', 'Link','Description']
 
 SUPPORTED_PHOTOS_EXTENSIONS = ['jpg', 'jpeg', 'JPG', 'JPEG']
 
@@ -257,7 +257,12 @@ class ImportPhotos:
         # If it's not a class variable, then it goes out of scope after this method
         # and as mentioned, QGIS crashes because it tries to access it.
         self.temp_layer = QgsVectorLayer(
-            'Point?crs=epsg:4326&field=ID:string&field=Name:string&field=Date:date&field=Time:text&field=Lon:double&field=Lat:double&field=Altitude:double&field=Cam.Mak:string&field=Cam.Mod:string&field=Title:string&field=Comment:string&field=Path:string&field=RelPath:string&field=Timestamp:string&field=Images:string&field=Link:string',
+            'Point?crs=epsg:4326&field=ID:string&field=Name:string&'\
+            'field=Date:date&field=Time:text&field=Lon:double&field=Lat:double'\
+            '&field=Altitude:double&field=Cam.Mak:string&field=Cam.Mod:string'\
+            '&field=Title:string&field=Comment:string&field=Path:string'\'
+            '&field=RelPath:string&field=Timestamp:string&field=Images:string'\
+            '&field=Link:string&field=Description:string',
             'temp_layer',
             'memory')
         self.temp_layer.setRenderer(QgsFeatureRenderer.defaultRenderer(QgsWkbTypes.PointGeometry))
@@ -649,6 +654,7 @@ class ImportPhotos:
         try:
             rel_path = self.get_path_relative_to_project_root(photo_path)
             url = '' # use photo_path, remove relative root, add web root
+            description = ''
             if self.webroot != '':
                 webrelpath = os.path.relpath(photo_path,self.relativeroot)
                 url = self.webroot+webrelpath
@@ -656,6 +662,8 @@ class ImportPhotos:
             else:
                 url = photo_path
                 ImagesSrc = '<img src = "' + rel_path + '" width="300" height="225"/>'
+            # This will make a clickable link in kml
+            description = f'<a href="{url}">{os.path.basename(photo_path)}</a>'
             if CHECK_MODULE == 'exifread':
                 with open(photo_path, 'rb') as imgpathF:
                     tags = exifread.process_file(imgpathF, details=False)
@@ -823,7 +831,8 @@ class ImportPhotos:
                     'Cam. Maker': str(maker), 'Cam. Model': str(model),
                     'Title': str(title), 'Comment': user_comm,
                     'Path': photo_path, 'RelPath': rel_path,
-                    'Timestamp': timestamp, 'Images': ImagesSrc, 'Link':url
+                    'Timestamp': timestamp, 'Images': ImagesSrc, 'Link':url,
+                    'Description': description
                 },
                 "geometry": {
                     "coordinates": [lon, lat],
@@ -843,7 +852,8 @@ class ImportPhotos:
                             'Cam. Maker': str(maker), 'Cam. Model': str(model),
                             'Title': str(title), 'Comment': user_comm,
                             'Path': photo_path, 'RelPath': rel_path,
-                            'Timestamp': timestamp, 'Images': ImagesSrc
+                            'Timestamp': timestamp, 'Images': ImagesSrc, 'Link': url,
+                            'Description': description
                         },
                         "geometry": {
                             "coordinates": [lon, lat],
@@ -852,10 +862,11 @@ class ImportPhotos:
                     }
             except:
                 pass
-
+                # geo_info should exist from default
             return geo_info
 
         except Exception as e:
+            # print(e) # Can be uncommented for debugging
             return ''
 
     def showMessage(self, title, msg, icon):
