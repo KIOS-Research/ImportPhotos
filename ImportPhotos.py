@@ -19,12 +19,16 @@
  ***************************************************************************/
 """
 
-from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox, QInputDialog, QLabel
-from qgis.PyQt.QtGui import QIcon, QGuiApplication
+import json
+import os
+import uuid
+
 from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import QDialog
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt, QTextCodec
 from qgis.PyQt.QtCore import QFileInfo
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt, QTextCodec
+from qgis.PyQt.QtGui import QIcon, QGuiApplication
+from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox, QInputDialog, QLabel
+from qgis.PyQt.QtWidgets import QDialog
 from qgis.core import *
 from qgis.gui import QgsRuleBasedRendererWidget
 
@@ -32,9 +36,6 @@ from qgis.gui import QgsRuleBasedRendererWidget
 from . import resources
 # Import the code for the dialog
 from .code.MouseClick import MouseClick
-import os
-import uuid
-import json
 
 # Import python module
 CHECK_MODULE = ''
@@ -49,6 +50,7 @@ try:
     if CHECK_MODULE == '':
         from PIL import Image
         from PIL.ExifTags import TAGS
+
         CHECK_MODULE = 'PIL'
 except:
     CHECK_MODULE = ''
@@ -57,7 +59,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/impphotos.ui'))
 
 FIELDS = ['fid', 'ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Cam. Maker',
-          'Cam. Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images', 'Link','Description']
+          'Cam. Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images', 'Link', 'Description']
 
 SUPPORTED_PHOTOS_EXTENSIONS = ['jpg', 'jpeg', 'JPG', 'JPEG']
 
@@ -249,7 +251,6 @@ class ImportPhotos:
         self.dlg.toolButtonImport.clicked.connect(self.toolButtonImport)
         self.dlg.toolButtonOut.clicked.connect(self.toolButtonOut)
         self.dlg.toolButtonRelative.clicked.connect(self.toolButtonRelative)
-        
 
         # Add QgsRuleBasedRendererWidget
         # temp_layer is a class variable because we need to keep its reference
@@ -257,11 +258,11 @@ class ImportPhotos:
         # If it's not a class variable, then it goes out of scope after this method
         # and as mentioned, QGIS crashes because it tries to access it.
         self.temp_layer = QgsVectorLayer(
-            'Point?crs=epsg:4326&field=ID:string&field=Name:string&'\
-            'field=Date:date&field=Time:text&field=Lon:double&field=Lat:double'\
-            '&field=Altitude:double&field=Cam.Mak:string&field=Cam.Mod:string'\
-            '&field=Title:string&field=Comment:string&field=Path:string'\'
-            '&field=RelPath:string&field=Timestamp:string&field=Images:string'\
+            'Point?crs=epsg:4326&field=ID:string&field=Name:string&'
+            'field=Date:date&field=Time:text&field=Lon:double&field=Lat:double'
+            '&field=Altitude:double&field=Cam.Mak:string&field=Cam.Mod:string'
+            '&field=Title:string&field=Comment:string&field=Path:string'
+            '&field=RelPath:string&field=Timestamp:string&field=Images:string'
             '&field=Link:string&field=Description:string',
             'temp_layer',
             'memory')
@@ -324,7 +325,7 @@ class ImportPhotos:
             else:
                 # Set extension with the specified filter
                 self.dlg.out.setText(os.path.splitext(outputPath)[0] + extension)
-    
+
     def get_path_relative_to_project_root(self, abs_path):
         project_folder = QFileInfo(
             self.project_instance.fileName()).absolutePath()
@@ -345,7 +346,6 @@ class ImportPhotos:
             self.selected_folder = directory_path[:]
             self.dlg.relativeroot.setText(directory_path)
 
-
     def toolButtonImport(self):
         directory_path = QFileDialog.getExistingDirectory(
             self.dlg, self.tr('Select a folder:'),
@@ -359,10 +359,10 @@ class ImportPhotos:
         self.layer_renderer = self.dlg.findChild(QgsRuleBasedRendererWidget, "renderer_widget").renderer()
 
         file_not_found = False
-        if self.dlg.imp.text() == '' and not os.path.isdir(self.dlg.imp.text()): #should have been or?
+        if self.dlg.imp.text() == '' and not os.path.isdir(self.dlg.imp.text()):  # should have been or?
             file_not_found = True
             msg = self.tr('Please select a directory photos.')
-        if self.dlg.out.text() == '' and not os.path.isabs(self.dlg.out.text()): #should have been or?
+        if self.dlg.out.text() == '' and not os.path.isabs(self.dlg.out.text()):  # should have been or?
             file_not_found = True
             msg = self.tr('Please define output file location.')
 
@@ -374,8 +374,8 @@ class ImportPhotos:
             self.relativeroot = self.dlg.imp.text()
         else:
             self.relativeroot = self.dlg.relativeroot.text()
-            
-        self.webroot = self.dlg.webroot.text() # Will be checked later if it is ''
+
+        self.webroot = self.dlg.webroot.text()  # Will be checked later if it is ''
 
         # get paths of photos
         self.photos_to_import = []
@@ -387,11 +387,9 @@ class ImportPhotos:
         if len(self.photos_to_import) == 0:
             self.showMessage('Warning', self.tr('No photos were found!'), 'Warning')
             return
-        
+
         # Set up for url:
-            
-        
-        
+
         self.dlg.close()
         self.call_import_photos()
         # QGuiApplication.setOverrideCursor(Qt.WaitCursor)
@@ -653,11 +651,9 @@ class ImportPhotos:
     def get_geo_infos_from_photo(self, photo_path):
         try:
             rel_path = self.get_path_relative_to_project_root(photo_path)
-            url = '' # use photo_path, remove relative root, add web root
-            description = ''
             if self.webroot != '':
-                webrelpath = os.path.relpath(photo_path,self.relativeroot)
-                url = self.webroot+webrelpath
+                webrelpath = os.path.relpath(photo_path, self.relativeroot)
+                url = self.webroot + webrelpath
                 ImagesSrc = '<img src = "' + url + '" width="300" height="225"/>'
             else:
                 url = photo_path
@@ -831,7 +827,7 @@ class ImportPhotos:
                     'Cam. Maker': str(maker), 'Cam. Model': str(model),
                     'Title': str(title), 'Comment': user_comm,
                     'Path': photo_path, 'RelPath': rel_path,
-                    'Timestamp': timestamp, 'Images': ImagesSrc, 'Link':url,
+                    'Timestamp': timestamp, 'Images': ImagesSrc, 'Link': url,
                     'Description': description
                 },
                 "geometry": {
