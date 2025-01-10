@@ -27,7 +27,6 @@ from qgis.core import (QgsRectangle, QgsProject)
 from qgis.gui import (QgsMapTool)
 
 from .PhotosViewer import PhotoWindow
-import os.path
 
 
 # Mouseclik import file
