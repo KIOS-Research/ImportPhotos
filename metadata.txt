@@ -11,7 +11,7 @@ name=ImportPhotos
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
 description=Import Photos
-version=3.0.6
+version=3.0.7
 author=Marios S. Kyriakou, George A. Christou, Panayiotis S. Kolios, Demetris G. Eliades, KIOS Research and Innovation Center of Excellence (KIOS CoE)
 email=mariosmsk@gmail.com
 
@@ -25,6 +25,7 @@ repository=https://github.com/KIOS-Research/ImportPhotos/
 # Uncomment the following line and add your changelog:
 changelog=2025-01-10  ImportPhotos 3.0.7:
 			 Add bulk image export button (Thanks @spwoodcock, @hotosm)
+			 Add relative and web root paths/URLs to hyperlink the image names, enabling them to open external links. (Thanks @sickel)
 	  2024-04-19  ImportPhotos 3.0.6:
 			 Fixed relative path handling(Thanks @holesond)
 	  2023-01-04  ImportPhotos 3.0.5:
