@@ -320,15 +320,18 @@ class PhotoWindow(QWidget):
         self.add_window_place.setOpenExternalLinks(True)  # To make link clickable
 
         self.infoPhoto1 = QLabel(self)
-        self.infoPhoto1.setSizePolicy(sizePolicy)
+        self.infoPhoto1.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum))
+        self.infoPhoto1.setStyleSheet("background-color: lightgray;")  # Light gray close to white
         self.infoPhoto1.setFrameShape(QFrame.Box)
 
         self.infoPhoto2 = QLabel(self)
-        self.infoPhoto2.setSizePolicy(sizePolicy)
+        self.infoPhoto2.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum))
+        self.infoPhoto2.setStyleSheet("background-color: lightgray;")  # Light gray close to white
         self.infoPhoto2.setFrameShape(QFrame.Box)
 
         self.infoPhoto3 = QLabel(self)
-        self.infoPhoto3.setSizePolicy(sizePolicy)
+        self.infoPhoto3.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum))
+        self.infoPhoto3.setStyleSheet("background-color: lightgray;")  # Light gray close to white
         self.infoPhoto3.setFrameShape(QFrame.Box)
 
         self.extent = QPushButton(self)
