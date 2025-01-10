@@ -19,10 +19,13 @@
  ***************************************************************************/
 """
 
-from qgis.PyQt.QtGui import (QPixmap, QImage)
+import os.path
+
 from qgis.PyQt.QtCore import (Qt, pyqtSignal, QCoreApplication, QFileInfo, QRectF)
+from qgis.PyQt.QtGui import (QPixmap, QImage)
 from qgis.core import (QgsRectangle, QgsProject)
-from qgis.gui import (QgsMapTool, QgsRubberBand)
+from qgis.gui import (QgsMapTool)
+
 from .PhotosViewer import PhotoWindow
 import os.path
 
@@ -147,9 +150,15 @@ class MouseClick(QgsMapTool):
                     except:
                         pass
                     self.photosDLG.infoPhoto3.setText(self.tr('Layer: ') + self.drawSelf.layerActiveName)
+                    try:
+                        name_ = feature.attributes()[feature.fieldNameIndex('Description')]
+                    except:
+                        pass
+
                     self.photosDLG.add_window_place.setText(name_)
 
                     azimuth = feature.attributes()[feature.fieldNameIndex('Azimuth')]
+
                     if type(azimuth) is str:
                         try:
                             azimuth = float(azimuth)
