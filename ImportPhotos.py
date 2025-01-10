@@ -656,7 +656,7 @@ class ImportPhotos:
                 url = self.webroot + webrelpath
                 ImagesSrc = '<img src = "' + url + '" width="300" height="225"/>'
             else:
-                url = photo_path
+                url = 'file:///'+photo_path
                 ImagesSrc = '<img src = "' + rel_path + '" width="300" height="225"/>'
             # This will make a clickable link in kml
             description = f'<a href="{url}">{os.path.basename(photo_path)}</a>'
