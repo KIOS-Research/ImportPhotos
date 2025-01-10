@@ -12,5 +12,6 @@
         <file>icons/rotate.png</file>
         <file>icons/tonorth.png</file>
         <file>icons/sync_views.svg</file>
+        <file>icons/export.svg</file>
     </qresource>
 </RCC>
