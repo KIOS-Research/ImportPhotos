@@ -36,8 +36,9 @@ Mac Users. Requires the following Python Modules to be installed: UnixImageIO, F
 <img src="https://raw.githubusercontent.com/KIOS-Research/ImportPhotos/v2.2/icons/example.png" width="500" height="400">
 
 # Contributors #
-* Marios S. Kyriakou, [KIOS Research Center for Intelligent Systems and Networks, University of Cyprus (KIOS CoE)](http://www.kios.ucy.ac.cy/)
-* George A. Christou, [KIOS Research Center for Intelligent Systems and Networks, University of Cyprus (KIOS CoE)](http://www.kios.ucy.ac.cy/)
-* Panayiotis S. Kolios, [KIOS Research Center for Intelligent Systems and Networks, University of Cyprus (KIOS CoE)](http://www.kios.ucy.ac.cy/)
+* Marios S. Kyriakou, [KIOS Research and Innovation Center of Excellence (KIOS CoE)](https://www.kios.ucy.ac.cy/)
+* George A. Christou, [KIOS Research and Innovation Center of Excellence (KIOS CoE)](https://www.kios.ucy.ac.cy/)
+* Panayiotis S. Kolios, [KIOS Research and Innovation Center of Excellence (KIOS CoE)](https://www.kios.ucy.ac.cy/)
+* Demetris G. Eliades, [KIOS Research and Innovation Center of Excellence (KIOS CoE)](https://www.kios.ucy.ac.cy/)
 
 * [QGIS Cyprus](https://www.facebook.com/qgiscyprus/)
