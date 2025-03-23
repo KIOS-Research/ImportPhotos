@@ -19,12 +19,16 @@
  ***************************************************************************/
 """
 
-from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox, QInputDialog, QLabel
-from qgis.PyQt.QtGui import QIcon, QGuiApplication
+import json
+import os
+import uuid
+
 from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import QDialog
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt, QTextCodec
 from qgis.PyQt.QtCore import QFileInfo
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt, QTextCodec
+from qgis.PyQt.QtGui import QIcon, QGuiApplication
+from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox, QInputDialog, QLabel
+from qgis.PyQt.QtWidgets import QDialog
 from qgis.core import *
 from qgis.gui import QgsRuleBasedRendererWidget
 
@@ -32,9 +36,8 @@ from qgis.gui import QgsRuleBasedRendererWidget
 from . import resources
 # Import the code for the dialog
 from .code.MouseClick import MouseClick
-import os
-import uuid
-import json
+from pathlib import Path
+
 
 
 
@@ -43,7 +46,6 @@ import json
 # Import python modules:
 try:
     import pyexiv2
-
     from pyexiv2 import Image
     PYEXIV_OK = 'true'
 except:
@@ -61,6 +63,7 @@ try:
     if CHECK_MODULE == '':
         from PIL import Image
         from PIL.ExifTags import TAGS
+
         CHECK_MODULE = 'PIL'
 except:
     CHECK_MODULE = ''
@@ -69,7 +72,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/impphotos.ui'))
 
 FIELDS = ['fid', 'ID', 'Name', 'Date', 'Time', 'Lon', 'Lat', 'Altitude', 'North', 'Azimuth', 'Cam. Maker',
-          'Cam. Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images']
+          'Cam. Model', 'Title', 'Comment', 'Path', 'RelPath', 'Timestamp', 'Images', 'Link', 'Description']
 
 SUPPORTED_PHOTOS_EXTENSIONS = ['jpg', 'jpeg', 'JPG', 'JPEG']
 
@@ -254,12 +257,19 @@ class ImportPhotos:
             text=self.tr('Update Photos'),
             callback=self.update_photos,
             parent=self.iface.mainWindow())
+        icon_path = ':/plugins/ImportPhotos/icons/export.svg'
+        self.add_action(
+            icon_path,
+            text=self.tr('Bulk Export'),
+            callback=self.bulk_export,
+            parent=self.iface.mainWindow())
 
         self.dlg = ImportPhotosDialog()
         self.dlg.ok.clicked.connect(self.import_photos)
         self.dlg.closebutton.clicked.connect(self.dlg.close)
         self.dlg.toolButtonImport.clicked.connect(self.toolButtonImport)
         self.dlg.toolButtonOut.clicked.connect(self.toolButtonOut)
+        self.dlg.toolButtonRelative.clicked.connect(self.toolButtonRelative)
 
         # Add QgsRuleBasedRendererWidget
         # temp_layer is a class variable because we need to keep its reference
@@ -267,7 +277,12 @@ class ImportPhotos:
         # If it's not a class variable, then it goes out of scope after this method
         # and as mentioned, QGIS crashes because it tries to access it.
         self.temp_layer = QgsVectorLayer(
-            'Point?crs=epsg:4326&field=ID:string&field=Name:string&field=Date:date&field=Time:text&field=Lon:double&field=Lat:double&field=Altitude:double&field=Cam.Mak:string&field=Cam.Mod:string&field=Title:string&field=Comment:string&field=Path:string&field=RelPath:string&field=Timestamp:string&field=Images:string',
+            'Point?crs=epsg:4326&field=ID:string&field=Name:string&'
+            'field=Date:date&field=Time:text&field=Lon:double&field=Lat:double&'
+            'field=Altitude:double&field=Cam.Mak:string&field=Cam.Mod:string&'
+            'field=Title:string&field=Comment:string&field=Path:string&'
+            'field=RelPath:string&field=Timestamp:string&field=Images:string'
+            'field=Link:string&field=Description:string',
             'temp_layer',
             'memory')
         self.temp_layer.setRenderer(QgsFeatureRenderer.defaultRenderer(QgsWkbTypes.PointGeometry))
@@ -282,7 +297,8 @@ class ImportPhotos:
         self.toolMouseClick = MouseClick(self.canvas, self)
 
     def setMouseClickMapTool(self):
-        """Set photos layer as active layer"""
+
+        # Set photos layer as active layer
         for layer in self.project_instance.mapLayers().values():
             if layer.type() == QgsMapLayerType.VectorLayer and layer.fields().names() == FIELDS:
                 self.iface.setActiveLayer(layer)
@@ -313,7 +329,7 @@ class ImportPhotos:
         if PYEXIV_OK == "false":
             self.showMessage(
                 self.tr('Python Module for IPTC'),
-                self.tr('If you need titles, headings and descriptions from IPTC metadata \n(not only one comment from EXIF),\n please install python module "pyexiv2".'),
+                self.tr('If you want import titles, headings and descriptions from IPTC metadata \n(not just one comment from EXIF),\n please install python module "pyexiv2".'),
                 'Warning')
          
         self.dlg.out.setText('')
@@ -336,7 +352,7 @@ class ImportPhotos:
             else:
                 # Set extension with the specified filter
                 self.dlg.out.setText(os.path.splitext(outputPath)[0] + extension)
-    
+
     def get_path_relative_to_project_root(self, abs_path):
         project_folder = QFileInfo(
             self.project_instance.fileName()).absolutePath()
@@ -348,9 +364,18 @@ class ImportPhotos:
             rel_path = os.path.normpath(abs_path)
         return rel_path
 
-    def toolButtonImport(self):
+    def toolButtonRelative(self):
         directory_path = QFileDialog.getExistingDirectory(
             self.dlg, self.tr('Select a folder:'),
+            os.path.expanduser('~'), QFileDialog.ShowDirsOnly)
+
+        if directory_path:
+            self.selected_folder = directory_path[:]
+            self.dlg.relativeroot.setText(directory_path)
+
+    def toolButtonImport(self):
+        directory_path = QFileDialog.getExistingDirectory(
+            self.dlg, self.tr('Select a folder'),
             os.path.expanduser('~'), QFileDialog.ShowDirsOnly)
 
         if directory_path:
@@ -359,18 +384,25 @@ class ImportPhotos:
 
     def import_photos(self):
         self.layer_renderer = self.dlg.findChild(QgsRuleBasedRendererWidget, "renderer_widget").renderer()
-        """check for form filling"""
+
         file_not_found = False
-        if self.dlg.imp.text() == '' and not os.path.isdir(self.dlg.imp.text()):
+        if self.dlg.imp.text() == '' and not os.path.isdir(self.dlg.imp.text()):  # should have been or?
             file_not_found = True
             msg = self.tr('Please select a directory photos.')
-        if self.dlg.out.text() == '' and not os.path.isabs(self.dlg.out.text()):
+        if self.dlg.out.text() == '' and not os.path.isabs(self.dlg.out.text()):  # should have been or?
             file_not_found = True
             msg = self.tr('Please define output file location.')
-        """if form not filled - exit"""
+
         if file_not_found:
             self.showMessage('Warning', msg, 'Warning')
             return
+
+        if self.dlg.relativeroot.text() == '':
+            self.relativeroot = self.dlg.imp.text()
+        else:
+            self.relativeroot = self.dlg.relativeroot.text()
+
+        self.webroot = self.dlg.webroot.text()  # Will be checked later if it is ''
 
         # get paths of photos
         self.photos_to_import = []
@@ -382,6 +414,8 @@ class ImportPhotos:
         if len(self.photos_to_import) == 0:
             self.showMessage('Warning', self.tr('No photos were found!'), 'Warning')
             return
+
+        # Set up for url:
 
         self.dlg.close()
         self.call_import_photos()
@@ -469,8 +503,6 @@ class ImportPhotos:
 
         # Save vector layer as a Shapefile
         driver = EXTENSION_DRIVERS[os.path.splitext(self.dlg.out.text())[1]]
-# Deprecated since version QGIS: 3.20 use writeAsVectorFormatV3 instead:
-#        error_code, error_message = QgsVectorFileWriter.writeAsVectorFormatV3(
         error_code, error_message = QgsVectorFileWriter.writeAsVectorFormat(
             self.temp_photos_layer, self.dlg.out.text(), "utf-8",
             QgsCoordinateReferenceSystem(self.temp_photos_layer.crs().authid()),
@@ -511,7 +543,7 @@ class ImportPhotos:
                     self.tr('photo(s) skipped (because of missing location).'),
                     str(int(out_of_bounds_photos_counter)),
                     self.tr('photo(s) skipped (because not in canvas extent).'))
-            self.showMessage(title, msg, 'Information')
+            self.showMessage(title, msg, self.tr('Information'))
 
         self.layerPhotos_final = QgsVectorLayer(
             self.dlg.out.text(),
@@ -536,7 +568,7 @@ class ImportPhotos:
         """
         self.layerPhotos_final.setMapTipTemplate(expression)
 
-    def update_photos(self):
+    def layer_selector(self, title: str = 'Select layer to update'):
         layers = {}
 
         for layer in self.project_instance.mapLayers().values():
@@ -547,7 +579,7 @@ class ImportPhotos:
         if layers.keys():
             selected_layer_name, ok = QInputDialog.getItem(
                 self.iface.mainWindow(),
-                self.tr("Select layer to update"),
+                self.tr(title),
                 "Layer List:", layers.keys(), 0, False)
         else:
             self.showMessage('Error', self.tr('No photos layer(s) found'), 'Warning')
@@ -555,7 +587,13 @@ class ImportPhotos:
 
         if not ok:
             return
-        self.selected_layer = layers[selected_layer_name]
+        
+        return layers[selected_layer_name]
+
+    def update_photos(self):
+        self.selected_layer = self.layer_selector()
+        if not self.selected_layer:
+            return
 
         # All picture paths that are currently saved in the shapefile layer
         picture_paths = []
@@ -645,6 +683,29 @@ class ImportPhotos:
 
         self.showMessage(title, msg, 'Information')
 
+    def bulk_export(self):
+        self.selected_layer = self.layer_selector('Select layer to export')
+        if not self.selected_layer:
+            return
+
+        path_column_index = self.selected_layer.fields().indexFromName('Path')
+
+        directory_path = QFileDialog.getExistingDirectory(
+            self.dlg, self.tr('Select an output folder'),
+            os.path.expanduser('~'), QFileDialog.ShowDirsOnly)
+        if not directory_path:
+            return
+
+        images = self.selected_layer.getFeatures()
+        for image in images:
+            src_path = Path(image.attributes()[path_column_index])
+            dest_dir = Path(directory_path)
+            dest_filename = dest_dir / Path(f"{src_path.parent.name}_{src_path.name}")
+            dest_filename.write_bytes(src_path.read_bytes())
+
+        self.showMessage('Success', self.tr('Export complete.'), self.tr('Information'))
+        return
+    
 #################################################################################################################################################################################
 #################################################################################################################################################################################
 #################################################################################################################################################################################
@@ -681,27 +742,25 @@ class ImportPhotos:
 
         except Exception as e:
             return '', ''
-#################################################################################################################################################################################
-#################################################################################################################################################################################
-#################################################################################################################################################################################
-#################################################################################################################################################################################
-####### delete this. it is temp delimiter#######################################################################################################################################
-#################################################################################################################################################################################
-#################################################################################################################################################################################
-#################################################################################################################################################################################
+
 #################################################################################################################################################################################
 
     def get_geo_infos_from_photo(self, photo_path,iptcTitle,iptcHeadline,iptcDescription):
-
         try:
             rel_path = self.get_path_relative_to_project_root(photo_path)
-            ImagesSrc = '<img src = "' + rel_path + '" width="300" height="225"/>'
-           
-            
+            if self.webroot != '':
+                webrelpath = os.path.relpath(photo_path, self.relativeroot)
+                url = self.webroot + webrelpath
+                ImagesSrc = '<img src = "' + url + '" width="300" height="225"/>'
+            else:
+                url = 'file:///'+photo_path
+                ImagesSrc = '<img src = "' + rel_path + '" width="300" height="225"/>'
+            # This will make a clickable link in kml
+            description = f'<a href="{url}">{os.path.basename(photo_path)}</a>'
             if CHECK_MODULE == 'exifread':
                 with open(photo_path, 'rb') as imgpathF:
-                    tags = exifread.process_file(imgpathF, details=True)
-                          
+                    tags = exifread.process_file(imgpathF, details=False) #<--False means skip extracting makernote tags, and thumbnail
+
                 if not set(tags.keys()).union({"GPS GPSLongitude", "GPS GPSLatitude"}):
                     return False
 
@@ -768,10 +827,12 @@ class ImportPhotos:
                 try:
                     if  iptcTitle > "":
                         title = iptcTitle                    
+                    elif 'Image ImageDescription' in tags:
+                        title = tags['Image ImageDescription']
                     elif 'Image Title' in tags:
                         title = tags['Title']
                     else:
-                        title = tags
+                        title = ''
                 except:
                     title = ''
 ################################################################
@@ -779,32 +840,17 @@ class ImportPhotos:
                 try:
                     if  iptcDescription > "": #  if IPTC Description exists..
                         if iptcHeadline > "": #if headline exists - also prefixing description with "headline" string:
-                            user_comm = iptcHeadline+" - "+iptcDescription
+                            user_comm = iptcHeadline + " - " + iptcDescription
                         user_comm = iptcDescription
+                    elif 'EXIF UserComment' in tags:
+                        user_comm = tags['EXIF UserComment'].printable
                     elif 'Image ImageDescription' in tags:
                         user_comm = tags['Image ImageDescription'].printable
+
                     else:
                         user_comm = ''
                 except:
                     user_comm = ''
-################################################################
-###### original code was looks like this:   ####################
-#                    if 'Image ImageDescription' in tags:
-#                        user_comm = tags['Image ImageDescription'].printable
-#                    else:
-#                        user_comm = ''
-#                except:
-#                    user_comm = ''
-################################################################
-################################################################
-#################################################################################################################################################################################
-#################################################################################################################################################################################
-#################################################################################################################################################################################
-#################################################################################################################################################################################
-#################################################################################################################################################################################
-#################################################################################################################################################################################
-#################################################################################################################################################################################
-#################################################################################################################################################################################
 
             elif CHECK_MODULE == 'PIL':
                 a = {}
@@ -891,7 +937,8 @@ class ImportPhotos:
                     'Cam. Maker': str(maker), 'Cam. Model': str(model),
                     'Title': str(title), 'Comment': user_comm,
                     'Path': photo_path, 'RelPath': rel_path,
-                    'Timestamp': timestamp, 'Images': ImagesSrc
+                    'Timestamp': timestamp, 'Images': ImagesSrc, 'Link': url,
+                    'Description': description
                 },
                 "geometry": {
                     "coordinates": [lon, lat],
@@ -911,7 +958,8 @@ class ImportPhotos:
                             'Cam. Maker': str(maker), 'Cam. Model': str(model),
                             'Title': str(title), 'Comment': user_comm,
                             'Path': photo_path, 'RelPath': rel_path,
-                            'Timestamp': timestamp, 'Images': ImagesSrc
+                            'Timestamp': timestamp, 'Images': ImagesSrc, 'Link': url,
+                            'Description': description
                         },
                         "geometry": {
                             "coordinates": [lon, lat],
@@ -920,10 +968,11 @@ class ImportPhotos:
                     }
             except:
                 pass
-
+                # geo_info should exist from default
             return geo_info
 
         except Exception as e:
+            # print(e) # Can be uncommented for debugging
             return ''
 
     def showMessage(self, title, msg, icon):
