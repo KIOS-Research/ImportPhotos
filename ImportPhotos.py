@@ -22,6 +22,8 @@
 import json
 import os
 import uuid
+import subprocess
+import json
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QFileInfo
@@ -728,15 +730,16 @@ class ImportPhotos:
                         date = None
                         time_ = None
                         timestamp = None
-
+                        
                 try:
                     if 'GPS GPSImgDirection' in tags:
-                        azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(
-                            tags["GPS GPSImgDirection"].values[0].den)
+                       azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(tags["GPS GPSImgDirection"].values[0].den)
                     else:
+                       azimuth = get_flight_yaw(photo_path)
+                       #QgsMessageLog.logMessage(f"Leggo azimuth per {photo_path}: {azimuth}", 'ImportPhotos', level=Qgis.Info)
+                except Exception as e:
+                        QgsMessageLog.logMessage(f"Errore in get_flight_yaw fallback: {e}", 'ImportPhotos', level=Qgis.Critical)
                         azimuth = None
-                except:
-                    azimuth = None
 
                 try:
                     if 'GPS GPSImgDirectionRef' in tags:
@@ -966,3 +969,43 @@ class ImportPhotos:
         s = float(value.values[2].num) / float(value.values[2].den)
 
         return d + (m / 60.0) + (s / 3600.0)
+
+
+import xml.etree.ElementTree as ET
+def get_flight_yaw(photo_path):
+    import xml.etree.ElementTree as ET
+    try:
+        # Legge il contenuto binario del file immagine
+        with open(photo_path, 'rb') as f:
+            content = f.read()
+
+        # Identifica l'inizio e la fine del blocco XMP
+        start = content.find(b"<x:xmpmeta")
+        end = content.find(b"</x:xmpmeta>")
+        if start == -1 or end == -1:
+            return None  # Nessun blocco XMP trovato
+
+        # Estrae e decodifica il blocco XMP
+        xmp_data = content[start:end+12]
+        xml = xmp_data.decode('utf-8', errors='ignore')
+        root = ET.fromstring(xml)
+
+        # Definisce i namespace utilizzati nel file
+        ns = {
+            'drone-dji': 'http://www.dji.com/drone-dji/1.0/',
+            'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
+        }
+
+        # Cerca il tag <rdf:Description> e l'attributo FlightYawDegree
+        for desc in root.findall('.//rdf:Description', ns):
+            yaw = desc.attrib.get('{http://www.dji.com/drone-dji/1.0/}FlightYawDegree')
+            if yaw is not None:
+                return float(str(yaw).replace(',', '.')) % 360  # Normalizza 0–360°
+
+        return None  # Campo non presente
+
+    except Exception as e:
+        from qgis.core import Qgis, QgsMessageLog
+        QgsMessageLog.logMessage(f"[ImportPhotos] Errore in get_flight_yaw(): {e}", 'ImportPhotos', level=Qgis.Critical)
+        return None
+
