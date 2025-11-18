@@ -1,24 +1,5 @@
 ﻿<a href="http://www.kios.ucy.ac.cy"><img src="https://www.kios.ucy.ac.cy/wp-content/uploads/2021/07/Logotype-KIOS.svg" width="200" height="100"/><a>
 
-![ImportPhotos Downloads](https://img.shields.io/badge/dynamic/json?formatter=metric&color=green&label=ImportPhotos-downloads&query=%24.ImportPhotos.downloads&url=https://raw.githubusercontent.com/Mariosmsk/qgis-plugins-downloads/main/data/plugins.json) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3384824.svg)](https://doi.org/10.5281/zenodo.3384824)
-
-## How to cite 
-
-If you find the **"ImportPhotos" QGIS plugin** useful in your research or work, we kindly request that you cite our paper. This helps support our work and ensures that we can continue developing and maintaining the plugin. Here's the citation for your convenience:
-
-Kyriakou, M., Christou, G., & Kolios, P. (2019). *ImportPhotos: a QGIS plugin to visualise geotagged photos*. Zenodo. [DOI:10.5281/zenodo.3384824](https://doi.org/10.5281/zenodo.3384824)
-
-Thank you for your support!
-
-```
-@INPROCEEDINGS{kyriakou2019,
-author={Kyriakou, Marios and Christou, Georgios and Kolios, Panayiotis},
-title={ImportPhotos: a QGIS plugin to visualise geotagged photos},
-month= {jul},
-year= {2019},
-DOI= {10.5281/zenodo.3384824}}
-```
-
 # ImportPhotos
 
 QGIS plugin
