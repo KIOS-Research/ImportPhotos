@@ -23,7 +23,11 @@ repository=https://github.com/KIOS-Research/ImportPhotos/
 
 # Recommended items:
 # Uncomment the following line and add your changelog:
-changelog=2025-01-10  ImportPhotos 3.0.7:
+changelog=2025-11-18  ImportPhotos 3.0.8:
+		 Improved user-facing messages and grammar in dialogs and warnings.
+		 Extracted XMP FlightYaw (@mattcalavera) parsing into a new testable helper.
+		 Various robustness fixes: safer EXIF handling, initialized counters to avoid unbound variables, improved error logging, and normalized message box icon handling.
+	 2025-01-10  ImportPhotos 3.0.7:
 			 Add bulk image export button (Thanks @spwoodcock, @hotosm)
 			 Add relative and web root paths/URLs to hyperlink the image names, enabling them to open external links. (Thanks @sickel)
 	  2024-04-19  ImportPhotos 3.0.6:
