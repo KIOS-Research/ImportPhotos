@@ -22,8 +22,7 @@
 import json
 import os
 import uuid
-import subprocess
-import json
+from pathlib import Path
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QFileInfo
@@ -38,25 +37,19 @@ from qgis.gui import QgsRuleBasedRendererWidget
 from . import resources
 # Import the code for the dialog
 from .code.MouseClick import MouseClick
-from pathlib import Path
+from .code.xmp_utils import get_flight_yaw
 
-# Import python module
 CHECK_MODULE = ''
 try:
-    import exifread
-
+    import exifread  # type: ignore
     CHECK_MODULE = 'exifread'
-except:
-    CHECK_MODULE = ''
-
-try:
-    if CHECK_MODULE == '':
+except Exception:
+    try:
         from PIL import Image
         from PIL.ExifTags import TAGS
-
         CHECK_MODULE = 'PIL'
-except:
-    CHECK_MODULE = ''
+    except Exception:
+        CHECK_MODULE = ''
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/impphotos.ui'))
@@ -290,7 +283,9 @@ class ImportPhotos:
 
         # Set photos layer as active layer
         for layer in self.project_instance.mapLayers().values():
-            if layer.type() == QgsMapLayerType.VectorLayer and layer.fields().names() == FIELDS:
+            # use inclusive check rather than equality, order may differ
+            if layer.type() == QgsMapLayerType.VectorLayer and all(
+                    field in layer.fields().names() for field in FIELDS):
                 self.iface.setActiveLayer(layer)
                 break
 
@@ -310,7 +305,7 @@ class ImportPhotos:
         if CHECK_MODULE == '':
             self.showMessage(
                 self.tr('Python Modules'),
-                self.tr('Please install python module "exifread" or "PIL".'),
+                self.tr('Please install the Python module "exifread" or the "Pillow" package.'),
                 'Warning')
             return
 
@@ -368,12 +363,14 @@ class ImportPhotos:
         self.layer_renderer = self.dlg.findChild(QgsRuleBasedRendererWidget, "renderer_widget").renderer()
 
         file_not_found = False
-        if self.dlg.imp.text() == '' and not os.path.isdir(self.dlg.imp.text()):  # should have been or?
+        msg = ''
+        # use OR for validation checks
+        if self.dlg.imp.text() == '' or not os.path.isdir(self.dlg.imp.text()):
             file_not_found = True
-            msg = self.tr('Please select a directory photos.')
-        if self.dlg.out.text() == '' and not os.path.isabs(self.dlg.out.text()):  # should have been or?
+            msg = self.tr('Please select the folder that contains the photos.')
+        if self.dlg.out.text() == '':
             file_not_found = True
-            msg = self.tr('Please define output file location.')
+            msg = self.tr('Please specify an output file path.')
 
         if file_not_found:
             self.showMessage('Warning', msg, 'Warning')
@@ -394,25 +391,15 @@ class ImportPhotos:
                     self.photos_to_import.append(os.path.join(root, filename))
 
         if len(self.photos_to_import) == 0:
-            self.showMessage('Warning', self.tr('No photos were found!'), 'Warning')
+            self.showMessage('Warning', self.tr('No photos found.'), 'Warning')
             return
 
         # Set up for url:
 
         self.dlg.close()
         self.call_import_photos()
-        # QGuiApplication.setOverrideCursor(Qt.WaitCursor)
-        # photos_to_import.sort()
-        # try:
-        #     result = self.import_photos_task(photos_to_import)
-        #     self.completed(result)
-        # except Exception as e:
-        #     self.showMessage(self.tr('Unexpected Error'), str(e), 'Warning')
-        #     QGuiApplication.restoreOverrideCursor()
 
     def call_import_photos(self):
-        # self.import_photos_task('', '')
-        # self.completed('')
         self.taskPhotos = QgsTask.fromFunction('ImportPhotos', self.import_photos_task,
                                                on_finished=self.completed, wait_time=4)
         QgsApplication.taskManager().addTask(self.taskPhotos)
@@ -449,7 +436,7 @@ class ImportPhotos:
                     if not os.path.isdir(photo_path) and photo_path.lower().endswith(
                             tuple(SUPPORTED_PHOTOS_EXTENSIONS)):
                         geo_info = self.get_geo_infos_from_photo(photo_path)
-                        if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
+                        if geo_info and geo_info.get("properties") and geo_info["properties"].get("Lat") and geo_info["properties"].get("Lon"):
                             geo_info = json.dumps(geo_info)
                             fields = QgsJsonUtils.stringToFields(geo_info, CODEC)
 
@@ -467,22 +454,27 @@ class ImportPhotos:
                             out_of_bounds_photos_counter += 1
                         elif geo_info is False:
                             no_location_photos_counter += 1
-                except:
-                    pass
+                except Exception as e:
+                    QgsMessageLog.logMessage(f"Import error for {photo_path}: {e}", 'ImportPhotos', Qgis.Critical)
 
         if not editing_started or not self.temp_photos_layer.commitChanges():
             self.project_instance.removeMapLayer(self.temp_photos_layer)
             title = self.tr('Import Photos')
+            try:
+                errors = "\n".join(self.temp_photos_layer.commitErrors())
+            except Exception:
+                errors = ''
             msg = "{}\n\n{} {}".format(
                 self.tr("Import Failed."),
                 self.tr("Details:"),
-                "\n".join(self.temp_photos_layer.commitErrors()))
+                errors)
             self.showMessage(title, msg, 'Warning')
             self.result = False, len(
                 self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter, no_location_photos_counter
+            return
 
         # Save vector layer as a Shapefile
-        driver = EXTENSION_DRIVERS[os.path.splitext(self.dlg.out.text())[1]]
+        driver = EXTENSION_DRIVERS.get(os.path.splitext(self.dlg.out.text())[1], 'GPKG')
         error_code, error_message = QgsVectorFileWriter.writeAsVectorFormat(
             self.temp_photos_layer, self.dlg.out.text(), "utf-8",
             QgsCoordinateReferenceSystem(self.temp_photos_layer.crs().authid()),
@@ -491,8 +483,9 @@ class ImportPhotos:
         if error_code != 0:
             self.project_instance.removeMapLayer(self.temp_photos_layer)
             self.showMessage(self.tr('Writing output file error'), error_message, 'Warning')
-            return False, len(
+            self.result = False, len(
                 self.photos_to_import), imported_photos_counter, out_of_bounds_photos_counter, no_location_photos_counter
+            return
 
         self.project_instance.removeMapLayer(self.temp_photos_layer)
         self.setMouseClickMapTool()
@@ -523,7 +516,8 @@ class ImportPhotos:
                     self.tr('photo(s) skipped (because of missing location).'),
                     str(int(out_of_bounds_photos_counter)),
                     self.tr('photo(s) skipped (because not in canvas extent).'))
-            self.showMessage(title, msg, self.tr('Information'))
+            # pass a plain icon keyword to showMessage so it is recognized
+            self.showMessage(title, msg, 'Information')
 
         self.layerPhotos_final = QgsVectorLayer(
             self.dlg.out.text(),
@@ -531,7 +525,10 @@ class ImportPhotos:
             "ogr")
 
         self.layerPhotos_final.setReadOnly(False)
-        self.layerPhotos_final.setRenderer(self.layer_renderer.clone())
+        try:
+            self.layerPhotos_final.setRenderer(self.layer_renderer.clone())
+        except Exception:
+            pass
         self.layerPhotos_final.reload()
         self.layerPhotos_final.triggerRepaint()
         self.project_instance.addMapLayer(self.layerPhotos_final)
@@ -556,18 +553,18 @@ class ImportPhotos:
                     field in layer.fields().names() for field in FIELDS):
                 layers[layer.name()] = layer
 
-        if layers.keys():
+        if layers:
             selected_layer_name, ok = QInputDialog.getItem(
                 self.iface.mainWindow(),
                 self.tr(title),
-                "Layer List:", layers.keys(), 0, False)
+                "Layer List:", list(layers.keys()), 0, False)
         else:
             self.showMessage('Error', self.tr('No photos layer(s) found'), 'Warning')
             return
 
         if not ok:
             return
-        
+
         return layers[selected_layer_name]
 
     def update_photos(self):
@@ -596,13 +593,19 @@ class ImportPhotos:
                 for name in files:
                     if name.lower().endswith(tuple(SUPPORTED_PHOTOS_EXTENSIONS)):
                         list_pictures.append(name)
-        except:
+        except Exception:
             pass
 
         pictures_to_remove = list(set(picture_paths) - set(list_pictures))
         pictures_to_add = sorted(list(set(list_pictures) - set(picture_paths)))
 
         editing_started = self.selected_layer.startEditing()
+        # initialize counters before conditional edit block to ensure they exist even if editing not started
+        imported_pictures_counter = 0
+        out_of_bounds_photos_counter = 0
+        photos_to_import_counter = 0
+        no_location_photos_counter = 0
+
         if editing_started:
 
             try:
@@ -623,7 +626,7 @@ class ImportPhotos:
                     if picture_path.lower().endswith(tuple(SUPPORTED_PHOTOS_EXTENSIONS)):
                         photos_to_import_counter += 1
                         geo_info = self.get_geo_infos_from_photo(os.path.join(base_picture_directory, picture_path))
-                        if geo_info and geo_info["properties"]["Lat"] and geo_info["properties"]["Lon"]:
+                        if geo_info and geo_info.get("properties") and geo_info["properties"].get("Lat") and geo_info["properties"].get("Lon"):
                             # QGIS automatically adds the fid attribute when saving the photos layer
                             if self.selected_layer.source().lower().endswith("gpkg"):
                                 geo_info["properties"]["fid"] = counter + 1
@@ -636,8 +639,8 @@ class ImportPhotos:
                             out_of_bounds_photos_counter += 1
                         elif geo_info is False:
                             no_location_photos_counter += 1
-            except:
-                pass
+            except Exception as e:
+                QgsMessageLog.logMessage(f"Update error: {e}", 'ImportPhotos', Qgis.Critical)
 
         if not editing_started or not self.selected_layer.commitChanges():
             title = self.tr('Update Photos')
@@ -664,7 +667,7 @@ class ImportPhotos:
         self.showMessage(title, msg, 'Information')
 
     def bulk_export(self):
-        self.selected_layer = self.layer_selector('Select layer to export')
+        self.selected_layer = self.layer_selector('Select layer to export photos')
         if not self.selected_layer:
             return
 
@@ -678,182 +681,208 @@ class ImportPhotos:
 
         images = self.selected_layer.getFeatures()
         for image in images:
-            src_path = Path(image.attributes()[path_column_index])
-            dest_dir = Path(directory_path)
-            dest_filename = dest_dir / Path(f"{src_path.parent.name}_{src_path.name}")
-            dest_filename.write_bytes(src_path.read_bytes())
+            try:
+                src_attr = image.attributes()[path_column_index]
+                if not src_attr:
+                    continue
+                src_path = Path(src_attr)
+                if not src_path.exists():
+                    QgsMessageLog.logMessage(f"Source image not found: {src_path}", 'ImportPhotos', Qgis.Warning)
+                    continue
+                dest_dir = Path(directory_path)
+                dest_filename = dest_dir / Path(f"{src_path.parent.name}_{src_path.name}")
+                dest_filename.write_bytes(src_path.read_bytes())
+            except Exception as e:
+                QgsMessageLog.logMessage(f"Error exporting {image.id()}: {e}", 'ImportPhotos', Qgis.Critical)
 
-        self.showMessage('Success', self.tr('Export complete.'), self.tr('Information'))
+        self.showMessage('Success', self.tr('Export complete.'), 'Information')
         return
 
     def get_geo_infos_from_photo(self, photo_path):
         try:
             rel_path = self.get_path_relative_to_project_root(photo_path)
-            if self.webroot != '':
+            if getattr(self, 'webroot', '') != '':
                 webrelpath = os.path.relpath(photo_path, self.relativeroot)
                 url = self.webroot + webrelpath
                 ImagesSrc = '<img src = "' + url + '" width="300" height="225"/>'
             else:
-                url = 'file:///'+photo_path
+                url = 'file:///' + photo_path
                 ImagesSrc = '<img src = "' + rel_path + '" width="300" height="225"/>'
             # This will make a clickable link in kml
             description = f'<a href="{url}">{os.path.basename(photo_path)}</a>'
+
+            # EXIF via exifread
             if CHECK_MODULE == 'exifread':
                 with open(photo_path, 'rb') as imgpathF:
                     tags = exifread.process_file(imgpathF, details=False)
 
-                if not set(tags.keys()).union({"GPS GPSLongitude", "GPS GPSLatitude"}):
+                # Require GPS coordinates
+                if 'GPS GPSLongitude' not in tags or 'GPS GPSLatitude' not in tags:
                     return False
 
                 lat, lon = self.get_exif_location(tags, "lonlat")
+                if lat == '' or lon == '':
+                    return False
 
-                if 'GPS GPSAltitude' in tags and abs(float(tags.get("GPS GPSAltitude").values[0].den)) > 0:
-                    altitude = float(tags.get("GPS GPSAltitude").values[0].num) / float(
-                        tags.get("GPS GPSAltitude").values[0].den)
-                else:
+                # altitude
+                altitude = None
+                try:
+                    if 'GPS GPSAltitude' in tags:
+                        alt_tag = tags.get('GPS GPSAltitude')
+                        # exifread Ratio handling
+                        altitude = float(alt_tag.values[0].num) / float(alt_tag.values[0].den)
+                except Exception:
                     altitude = None
 
                 uuid_ = str(uuid.uuid4())
 
+                # date/time
+                date = time_ = timestamp = None
                 try:
-                    dt1, dt2 = tags["EXIF DateTimeOriginal"].values.split(' ')
-                    date = dt1.replace(':', '/')
-                    time_ = dt2
-                    timestamp = dt1.replace(':', '-') + 'T' + time_
-                except:
-                    try:
-                        date = tags["GPS GPSDate"].values.replace(':', '/')
-                        tt = [str(i) for i in tags["GPS GPSTimeStamp"].values]
+                    if 'EXIF DateTimeOriginal' in tags:
+                        dt = str(tags['EXIF DateTimeOriginal'])
+                        dt1, dt2 = dt.split(' ')
+                        date = dt1.replace(':', '/')
+                        time_ = dt2
+                        timestamp = dt1.replace(':', '-') + 'T' + time_
+                    elif 'GPS GPSDate' in tags and 'GPS GPSTimeStamp' in tags:
+                        date = str(tags['GPS GPSDate']).replace(':', '/')
+                        tt = [str(i) for i in tags['GPS GPSTimeStamp'].values]
                         time_ = "{:0>2}:{:0>2}:{:0>2}".format(tt[0], tt[1], tt[2])
-                        timestamp = tags["GPS GPSDate"].values.replace(':', '-') + 'T' + time_
-                    except:
-                        date = None
-                        time_ = None
-                        timestamp = None
-                        
+                        timestamp = str(tags['GPS GPSDate']).replace(':', '-') + 'T' + time_
+                except Exception:
+                    date = time_ = timestamp = None
+
+                # azimuth
+                azimuth = None
                 try:
                     if 'GPS GPSImgDirection' in tags:
-                       azimuth = float(tags["GPS GPSImgDirection"].values[0].num) / float(tags["GPS GPSImgDirection"].values[0].den)
+                        d = tags['GPS GPSImgDirection']
+                        azimuth = float(d.values[0].num) / float(d.values[0].den)
                     else:
-                       azimuth = get_flight_yaw(photo_path)
-                       #QgsMessageLog.logMessage(f"Leggo azimuth per {photo_path}: {azimuth}", 'ImportPhotos', level=Qgis.Info)
+                        azimuth = get_flight_yaw(photo_path)
                 except Exception as e:
-                        QgsMessageLog.logMessage(f"Errore in get_flight_yaw fallback: {e}", 'ImportPhotos', level=Qgis.Critical)
-                        azimuth = None
+                    QgsMessageLog.logMessage(f"Errore in get_flight_yaw fallback: {e}", 'ImportPhotos', level=Qgis.Critical)
+                    azimuth = None
 
+                north = ''
                 try:
                     if 'GPS GPSImgDirectionRef' in tags:
-                        north = str(tags["GPS GPSImgDirectionRef"].values)
-                    else:
-                        north = ''
-                except:
+                        north = str(tags['GPS GPSImgDirectionRef'])
+                except Exception:
                     north = ''
 
-                try:
-                    if 'Image Make' in tags:
-                        maker = tags['Image Make']
-                    else:
-                        maker = ''
-                except:
-                    maker = ''
-
-                try:
-                    if 'Image Model' in tags:
-                        model = tags['Image Model']
-                    else:
-                        model = ''
-                except:
-                    model = ''
-
-                try:
-                    if 'Image ImageDescription' in tags:
-                        title = tags['Image ImageDescription']
-                    else:
-                        title = ''
-                except:
-                    title = ''
-
+                maker = str(tags.get('Image Make', ''))
+                model = str(tags.get('Image Model', ''))
+                title = str(tags.get('Image ImageDescription', ''))
+                user_comm = ''
                 try:
                     if 'EXIF UserComment' in tags:
-                        user_comm = tags['EXIF UserComment'].printable
-                    else:
-                        user_comm = ''
-                except:
+                        user_comm = str(tags['EXIF UserComment'])
+                except Exception:
                     user_comm = ''
 
+            # EXIF via PIL (Pillow)
             elif CHECK_MODULE == 'PIL':
                 a = {}
                 with Image.open(photo_path) as img:
                     info = img._getexif()
 
-                if info is None:
+                if not info:
                     return False
 
                 for tag, value in info.items():
-                    if (
-                            TAGS.get(tag, tag) == 'GPSInfo' or
-                            TAGS.get(tag, tag) == 'DateTime' or
-                            TAGS.get(tag, tag) == 'DateTimeOriginal'
-                    ):
-                        a[TAGS.get(tag, tag)] = value
+                    name = TAGS.get(tag, tag)
+                    if name in ('GPSInfo', 'DateTime', 'DateTimeOriginal'):
+                        a[name] = value
 
-                if a == {}:
+                if not a:
                     return False
 
-                if a['GPSInfo'] != {}:
-                    if 1 and 2 and 3 and 4 in a['GPSInfo']:
-                        lat = a['GPSInfo'][2]
-                        latref = a['GPSInfo'][1]
-                        lon = a['GPSInfo'][4]
-                        lonref = a['GPSInfo'][3]
+                gpsinfo = a.get('GPSInfo', {})
+                if not gpsinfo:
+                    return False
 
-                        lat = float(lat[0] + lat[1] / 60 + lat[2] / 3600)
-                        lon = float(lon[0] + lon[1] / 60 + lon[2] / 3600)
+                # check required GPS tags exist
+                if not all(k in gpsinfo for k in (1, 2, 3, 4)):
+                    return False
 
-                        if latref == 'S':
-                            lat = -lat
-                        if lonref == 'W':
-                            lon = -lon
-                    else:
-                        return False
+                try:
+                    lat_tuple = gpsinfo[2]
+                    latref = gpsinfo[1]
+                    lon_tuple = gpsinfo[4]
+                    lonref = gpsinfo[3]
 
-                    uuid_ = str(uuid.uuid4())
-                    if 'DateTime' or 'DateTimeOriginal' in a:
-                        if 'DateTime' in a:
-                            dt1, dt2 = a['DateTime'].split()
-                        if 'DateTimeOriginal' in a:
-                            dt1, dt2 = a['DateTimeOriginal'].split()
-                        date = dt1.replace(':', '/')
-                        time_ = dt2
-                        timestamp = dt1.replace(':', '-') + 'T' + time_
+                    def tuple_to_deg(t):
+                        # t can be tuples of (num,den) or floats
+                        try:
+                            d = float(t[0])
+                            m = float(t[1])
+                            s = float(t[2])
+                            return d + (m / 60.0) + (s / 3600.0)
+                        except Exception:
+                            # fallback if values are already floats
+                            return float(t[0])
 
-                    try:
-                        if 6 in a['GPSInfo']:
-                            altitude = float(a['GPSInfo'][6])
-                        else:
-                            altitude = None
-                    except:
-                        altitude = None
+                    lat = tuple_to_deg(lat_tuple)
+                    lon = tuple_to_deg(lon_tuple)
 
-                    try:
-                        if 16 and 17 in a['GPSInfo']:
-                            north = a['GPSInfo'][16]
-                            azimuth = float(a['GPSInfo'][17])
-                        else:
-                            north = ''
-                            azimuth = None
-                    except:
-                        north = ''
-                        azimuth = None
+                    if latref == 'S':
+                        lat = -lat
+                    if lonref == 'W':
+                        lon = -lon
+                except Exception:
+                    return False
 
-                    maker = ''
-                    model = ''
-                    user_comm = ''
-                    title = ''
+                uuid_ = str(uuid.uuid4())
 
-            if self.dlg.canvas_extent.isChecked():
-                if not (self.canvas.extent().xMaximum() > lon > self.canvas.extent().xMinimum() \
-                        and self.canvas.extent().yMaximum() > lat > self.canvas.extent().yMinimum()):
+                date = time_ = timestamp = None
+                if 'DateTimeOriginal' in a:
+                    dt1, dt2 = a['DateTimeOriginal'].split()
+                    date = dt1.replace(':', '/')
+                    time_ = dt2
+                    timestamp = dt1.replace(':', '-') + 'T' + time_
+                elif 'DateTime' in a:
+                    dt1, dt2 = a['DateTime'].split()
+                    date = dt1.replace(':', '/')
+                    time_ = dt2
+                    timestamp = dt1.replace(':', '-') + 'T' + time_
+
+                altitude = None
+                try:
+                    if 6 in gpsinfo:
+                        altitude = float(gpsinfo[6])
+                except Exception:
+                    altitude = None
+
+                north = ''
+                azimuth = None
+                try:
+                    if 16 in gpsinfo:
+                        north = gpsinfo[16]
+                    if 17 in gpsinfo:
+                        azimuth = float(gpsinfo[17])
+                except Exception:
+                    north = ''
+                    azimuth = None
+
+                maker = ''
+                model = ''
+                user_comm = ''
+                title = ''
+
+            else:
+                # no EXIF library available
+                return False
+
+            # If canvas extent check requested
+            if getattr(self.dlg, 'canvas_extent', None) and self.dlg.canvas_extent.isChecked():
+                try:
+                    if not (self.canvas.extent().xMaximum() > lon > self.canvas.extent().xMinimum() and
+                            self.canvas.extent().yMaximum() > lat > self.canvas.extent().yMinimum()):
+                        return 'out'
+                except Exception:
+                    # if lat/lon not defined or extent not available, skip
                     return 'out'
 
             geo_info = {
@@ -876,42 +905,40 @@ class ImportPhotos:
             }
 
             try:
-                if self.selected_layer.source().lower().endswith("gpkg"):
-                    geo_info = {
-                        "type": "Feature",
-                        "properties": {
-                            'fid': 0, 'ID': uuid_, 'Name': os.path.basename(photo_path),
-                            'Date': date, 'Time': time_,
-                            'Lon': lon, 'Lat': lat, 'Altitude': altitude,
-                            'North': north, 'Azimuth': azimuth,
-                            'Cam. Maker': str(maker), 'Cam. Model': str(model),
-                            'Title': str(title), 'Comment': user_comm,
-                            'Path': photo_path, 'RelPath': rel_path,
-                            'Timestamp': timestamp, 'Images': ImagesSrc, 'Link': url,
-                            'Description': description
-                        },
-                        "geometry": {
-                            "coordinates": [lon, lat],
-                            "type": "Point"
-                        }
-                    }
-            except:
+                if getattr(self, 'selected_layer', None) and self.selected_layer.source().lower().endswith("gpkg"):
+                    # ensure fid present for gpkg imports
+                    geo_info = geo_info.copy()
+                    geo_info['properties'] = geo_info['properties'].copy()
+                    geo_info['properties'].setdefault('fid', 0)
+            except Exception:
                 pass
-                # geo_info should exist from default
             return geo_info
 
         except Exception as e:
-            # print(e) # Can be uncommented for debugging
+            QgsMessageLog.logMessage(f"Error reading EXIF for {photo_path}: {e}", 'ImportPhotos', Qgis.Critical)
             return ''
 
     def showMessage(self, title, msg, icon):
-        if icon == 'Warning':
-            icon = QMessageBox.Warning
-        elif icon == 'Information':
-            icon = QMessageBox.Information
+        # Accept either a QMessageBox icon constant or a string (possibly translated)
+        # Normalize icon to a QMessageBox.Icon value
+        if isinstance(icon, str):
+            ik = icon.lower()
+            if 'warn' in ik:
+                qicon = QMessageBox.Warning
+            elif 'info' in ik:
+                qicon = QMessageBox.Information
+            elif 'error' in ik or 'crit' in ik:
+                qicon = QMessageBox.Critical
+            else:
+                qicon = QMessageBox.NoIcon
+        elif isinstance(icon, int):
+            # probably already a QMessageBox.Icon value
+            qicon = icon
+        else:
+            qicon = QMessageBox.NoIcon
 
         msgBox = QMessageBox()
-        msgBox.setIcon(icon)
+        msgBox.setIcon(qicon)
         msgBox.setWindowTitle(title)
         msgBox.setText(msg)
         msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
@@ -941,12 +968,18 @@ class ImportPhotos:
 
             if gps_latitude and gps_latitude_ref and gps_longitude and gps_longitude_ref:
                 lat = self._convert_to_degress(gps_latitude)
-                if gps_latitude_ref.values[0] != 'N':
-                    lat = 0 - lat
+                try:
+                    if gps_latitude_ref.values[0] != 'N':
+                        lat = -lat
+                except Exception:
+                    pass
 
                 lon = self._convert_to_degress(gps_longitude)
-                if gps_longitude_ref.values[0] != 'E':
-                    lon = 0 - lon
+                try:
+                    if gps_longitude_ref.values[0] != 'E':
+                        lon = -lon
+                except Exception:
+                    pass
 
             return lat, lon
 
@@ -964,48 +997,14 @@ class ImportPhotos:
         :type value: exifread.utils.Ratio
         :rtype: float
         """
-        d = float(value.values[0].num) / float(value.values[0].den)
-        m = float(value.values[1].num) / float(value.values[1].den)
-        s = float(value.values[2].num) / float(value.values[2].den)
+        try:
+            d = float(value.values[0].num) / float(value.values[0].den)
+            m = float(value.values[1].num) / float(value.values[1].den)
+            s = float(value.values[2].num) / float(value.values[2].den)
+            return d + (m / 60.0) + (s / 3600.0)
+        except Exception:
+            return 0.0
 
-        return d + (m / 60.0) + (s / 3600.0)
 
-
-import xml.etree.ElementTree as ET
-def get_flight_yaw(photo_path):
-    import xml.etree.ElementTree as ET
-    try:
-        # Legge il contenuto binario del file immagine
-        with open(photo_path, 'rb') as f:
-            content = f.read()
-
-        # Identifica l'inizio e la fine del blocco XMP
-        start = content.find(b"<x:xmpmeta")
-        end = content.find(b"</x:xmpmeta>")
-        if start == -1 or end == -1:
-            return None  # Nessun blocco XMP trovato
-
-        # Estrae e decodifica il blocco XMP
-        xmp_data = content[start:end+12]
-        xml = xmp_data.decode('utf-8', errors='ignore')
-        root = ET.fromstring(xml)
-
-        # Definisce i namespace utilizzati nel file
-        ns = {
-            'drone-dji': 'http://www.dji.com/drone-dji/1.0/',
-            'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
-        }
-
-        # Cerca il tag <rdf:Description> e l'attributo FlightYawDegree
-        for desc in root.findall('.//rdf:Description', ns):
-            yaw = desc.attrib.get('{http://www.dji.com/drone-dji/1.0/}FlightYawDegree')
-            if yaw is not None:
-                return float(str(yaw).replace(',', '.')) % 360  # Normalizza 0–360°
-
-        return None  # Campo non presente
-
-    except Exception as e:
-        from qgis.core import Qgis, QgsMessageLog
-        QgsMessageLog.logMessage(f"[ImportPhotos] Errore in get_flight_yaw(): {e}", 'ImportPhotos', level=Qgis.Critical)
-        return None
-
+# NOTE: XMP parsing helper is implemented in code/xmp_utils.py and imported above.
+# The local duplicate implementation was removed so the tested helper is used.
