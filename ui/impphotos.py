@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_photosImp(object):
     def setupUi(self, photosImp):
         photosImp.setObjectName("photosImp")
-        photosImp.setWindowModality(QtCore.Qt.NonModal)
+        photosImp.setWindowModality(QtCore.Qt.WindowModality.NonModal)
         photosImp.resize(815, 470)
         photosImp.setMinimumSize(QtCore.QSize(382, 223))
         photosImp.setWhatsThis("")
@@ -95,7 +95,7 @@ class Ui_photosImp(object):
         self.label.setObjectName("label")
         self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
         self.canvas_extent = QtWidgets.QCheckBox(photosImp)
-        self.canvas_extent.setLayoutDirection(QtCore.Qt.LeftToRight)
+        self.canvas_extent.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
         self.canvas_extent.setObjectName("canvas_extent")
         self.gridLayout.addWidget(self.canvas_extent, 11, 2, 1, 1)
         self.toolButtonOut = QtWidgets.QPushButton(photosImp)
