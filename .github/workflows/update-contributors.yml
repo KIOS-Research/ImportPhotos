@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Generate CONTRIBUTORS.md
         env:
@@ -24,7 +24,7 @@ jobs:
           echo "" >> CONTRIBUTORS.md
 
           gh api "repos/$REPO/contributors?per_page=100" --paginate \
-            --jq '.[] | "- [@" + .login + "](" + .html_url + ") — " + (.contributions|tostring) + " commits"' \
+            --jq '.[] | "- [@" + .login + "](" + .html_url + ")"' \
             >> CONTRIBUTORS.md
 
       - name: Commit changes
