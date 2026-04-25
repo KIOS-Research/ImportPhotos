@@ -1,0 +1,36 @@
+name: Update CONTRIBUTORS.md
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-contributors:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate CONTRIBUTORS.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "# Contributors" > CONTRIBUTORS.md
+          echo "" >> CONTRIBUTORS.md
+
+          gh api "repos/$REPO/contributors?per_page=100" --paginate \
+            --jq '.[] | "- [@" + .login + "](" + .html_url + ") — " + (.contributions|tostring) + " commits"' \
+            >> CONTRIBUTORS.md
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CONTRIBUTORS.md
+          git diff --cached --quiet || git commit -m "Update CONTRIBUTORS.md"
+          git push
