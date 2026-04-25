@@ -4,7 +4,7 @@
  ImportPhotos
                                  A QGIS plugin
  Import photos
-        last update          : 16/04/2026 github:davedavedavedave
+        last update          : 25/04/2026
         begin                : February 2018
         copyright            : (C) 2019 by KIOS Research Center
         email                : mariosmsk@gmail.com
@@ -640,11 +640,11 @@ class PhotoWindow(QWidget):
         self.drawSelf.getImage = self.load_oriented_image(imPath)
 
         if self.gray_filter_status:
-            self.drawSelf.getImage = self.drawSelf.getImage.convertToFormat(QImage.Format_Grayscale8)
+            self.drawSelf.getImage = self.drawSelf.getImage.convertToFormat(QImage.Format.Format_Grayscale8)
         if self.mirror_filter_status:
             self.drawSelf.getImage = self.drawSelf.getImage.mirrored(True, False)
         if self.mono_filter_status:
-            self.drawSelf.getImage = self.drawSelf.getImage.convertToFormat(QImage.Format_Mono)
+            self.drawSelf.getImage = self.drawSelf.getImage.convertToFormat(QImage.Format.Format_Mono)
 
         if opencv:
             if self.opencv_filt_status['2DConvolution']:
@@ -697,7 +697,7 @@ class PhotoWindow(QWidget):
                     except:
                         rgb = cv2.cvtColor(filt, cv2.COLOR_BGR2RGB)
 
-                    self.drawSelf.getImage = QImage(rgb, width, height, QImage.Format_RGB888)
+                    self.drawSelf.getImage = QImage(rgb, width, height, QImage.Format.Format_RGB888)
                     break
 
         pixmap = QPixmap.fromImage(self.drawSelf.getImage)
