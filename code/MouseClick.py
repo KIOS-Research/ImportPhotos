@@ -4,7 +4,7 @@
  ImportPhotos
                                  A QGIS plugin
  Import photos
-        last update          : 04/01/2023
+        last update          : 16/04/2026 github:davedavedavedave
         begin                : February 2018
         copyright            : (C) 2019 by KIOS Research Center
         email                : mariosmsk@gmail.com
@@ -46,7 +46,7 @@ class MouseClick(QgsMapTool):
         if event.button() == 1:
             # sigeal : keep photo viewer on top of other windows
             if self.photosDLG is not None:
-                self.photosDLG.setWindowFlags(Qt.WindowStaysOnTopHint)
+                self.photosDLG.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
             self.drawSelf.refresh()
 
     def canvasMoveEvent(self, event):

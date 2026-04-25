@@ -4,7 +4,7 @@
  ImportPhotos
                                  A QGIS plugin
  Import photos
-        last update          : 04/01/2023
+        last update          : 016/04/2026 github:davedavedavedave
         begin                : February 2018
         copyright            : (C) 2019 by KIOS Research Center
         email                : mariosmsk@gmail.com
@@ -26,7 +26,7 @@ from pathlib import Path
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QFileInfo
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt, QTextCodec
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt
 from qgis.PyQt.QtGui import QIcon, QGuiApplication
 from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox, QInputDialog, QLabel
 from qgis.PyQt.QtWidgets import QDialog
@@ -77,14 +77,13 @@ EXTENSION_DRIVERS = {
     ".tab": "MapInfo File"
 }
 
-CODEC = QTextCodec.codecForName("UTF-8")
 
 
 # Import ui file
 class ImportPhotosDialog(QDialog, FORM_CLASS):
     def __init__(self, parent=None):
         # """Constructor."""
-        QDialog.__init__(self, None, Qt.WindowStaysOnTopHint)
+        QDialog.__init__(self, None, Qt.WindowType.WindowStaysOnTopHint)
         super(ImportPhotosDialog, self).__init__(parent)
         self.setupUi(self)
 
@@ -344,7 +343,7 @@ class ImportPhotos:
     def toolButtonRelative(self):
         directory_path = QFileDialog.getExistingDirectory(
             self.dlg, self.tr('Select a folder:'),
-            os.path.expanduser('~'), QFileDialog.ShowDirsOnly)
+            os.path.expanduser('~'), QFileDialog.Option.ShowDirsOnly)
 
         if directory_path:
             self.selected_folder = directory_path[:]
@@ -353,7 +352,7 @@ class ImportPhotos:
     def toolButtonImport(self):
         directory_path = QFileDialog.getExistingDirectory(
             self.dlg, self.tr('Select a folder'),
-            os.path.expanduser('~'), QFileDialog.ShowDirsOnly)
+            os.path.expanduser('~'), QFileDialog.Option.ShowDirsOnly)
 
         if directory_path:
             self.selected_folder = directory_path[:]
@@ -400,9 +399,11 @@ class ImportPhotos:
         self.call_import_photos()
 
     def call_import_photos(self):
-        self.taskPhotos = QgsTask.fromFunction('ImportPhotos', self.import_photos_task,
-                                               on_finished=self.completed, wait_time=4)
-        QgsApplication.taskManager().addTask(self.taskPhotos)
+        try:
+            self.import_photos_task(None, 4)
+            self.completed(None)
+        except Exception as e:
+            self.showMessage(self.tr('ImportPhotos'), str(e), 'Critical')
 
     def stopped(self, task):
         QgsMessageLog.logMessage(
@@ -438,7 +439,7 @@ class ImportPhotos:
                         geo_info = self.get_geo_infos_from_photo(photo_path)
                         if geo_info and geo_info.get("properties") and geo_info["properties"].get("Lat") and geo_info["properties"].get("Lon"):
                             geo_info = json.dumps(geo_info)
-                            fields = QgsJsonUtils.stringToFields(geo_info, CODEC)
+                            fields = QgsJsonUtils.stringToFields(geo_info)
 
                             if not attribute_fields_set:
                                 attribute_fields_set = True
@@ -446,7 +447,7 @@ class ImportPhotos:
                                     self.temp_photos_layer.addAttribute(field)
 
                             feature = QgsJsonUtils.stringToFeatureList(
-                                geo_info, fields, CODEC)[0]
+                                geo_info, fields)[0]
 
                             self.temp_photos_layer.addFeature(feature)
                             imported_photos_counter += 1
@@ -475,10 +476,17 @@ class ImportPhotos:
 
         # Save vector layer as a Shapefile
         driver = EXTENSION_DRIVERS.get(os.path.splitext(self.dlg.out.text())[1], 'GPKG')
-        error_code, error_message = QgsVectorFileWriter.writeAsVectorFormat(
-            self.temp_photos_layer, self.dlg.out.text(), "utf-8",
-            QgsCoordinateReferenceSystem(self.temp_photos_layer.crs().authid()),
-            driver)
+
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = driver
+        options.fileEncoding = "utf-8"
+
+        error_code, error_message = QgsVectorFileWriter.writeAsVectorFormatV2(
+            self.temp_photos_layer,
+            self.dlg.out.text(),
+            self.project_instance.transformContext(),
+            options
+        )
 
         if error_code != 0:
             self.project_instance.removeMapLayer(self.temp_photos_layer)
@@ -519,10 +527,19 @@ class ImportPhotos:
             # pass a plain icon keyword to showMessage so it is recognized
             self.showMessage(title, msg, 'Information')
 
-        self.layerPhotos_final = QgsVectorLayer(
-            self.dlg.out.text(),
-            os.path.basename(self.dlg.out.text()).split(".")[0],
-            "ogr")
+            self.layerPhotos_final = QgsVectorLayer(
+                self.dlg.out.text(),
+                os.path.basename(self.dlg.out.text()).split(".")[0],
+                "ogr"
+            )
+
+            if not self.layerPhotos_final.isValid():
+                self.showMessage(
+                    self.tr('ImportPhotos'),
+                    self.tr('Output file was written, but QGIS could not open it as a layer: ') + self.dlg.out.text(),
+                    'Critical'
+                )
+                return
 
         self.layerPhotos_final.setReadOnly(False)
         try:
@@ -675,7 +692,7 @@ class ImportPhotos:
 
         directory_path = QFileDialog.getExistingDirectory(
             self.dlg, self.tr('Select an output folder'),
-            os.path.expanduser('~'), QFileDialog.ShowDirsOnly)
+            os.path.expanduser('~'), QFileDialog.Option.ShowDirsOnly)
         if not directory_path:
             return
 
@@ -924,13 +941,13 @@ class ImportPhotos:
         if isinstance(icon, str):
             ik = icon.lower()
             if 'warn' in ik:
-                qicon = QMessageBox.Warning
+                qicon = QMessageBox.Icon.Warning
             elif 'info' in ik:
-                qicon = QMessageBox.Information
+                qicon = QMessageBox.Icon.Information
             elif 'error' in ik or 'crit' in ik:
-                qicon = QMessageBox.Critical
+                qicon = QMessageBox.Icon.Critical
             else:
-                qicon = QMessageBox.NoIcon
+                qicon = QMessageBox.Icon.NoIcon
         elif isinstance(icon, int):
             # probably already a QMessageBox.Icon value
             qicon = icon
@@ -941,9 +958,13 @@ class ImportPhotos:
         msgBox.setIcon(qicon)
         msgBox.setWindowTitle(title)
         msgBox.setText(msg)
-        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+        msgBox.setWindowFlags(
+            Qt.WindowType.CustomizeWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.WindowCloseButtonHint
+        )
         QGuiApplication.restoreOverrideCursor()
-        msgBox.exec_()
+        msgBox.exec()
 
     def refresh(self):
         self.iface.mainWindow().findChild(

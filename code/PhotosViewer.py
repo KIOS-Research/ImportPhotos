@@ -4,7 +4,7 @@
  ImportPhotos
                                  A QGIS plugin
  Import photos
-        last update          : 04/01/2023
+        last update          : 16/04/2026 github:davedavedavedave
         begin                : February 2018
         copyright            : (C) 2019 by KIOS Research Center
         email                : mariosmsk@gmail.com
@@ -20,10 +20,10 @@
 """
 
 from qgis.PyQt.QtWidgets import (QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QWidget,
-                                 QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame, QMenuBar, QAction, qApp,
+                                 QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame, QMenuBar, QAction,
                                  QFileDialog, QMessageBox)
 from qgis.PyQt.QtCore import (QFileInfo, Qt, pyqtSignal, QRectF, QRect, QSize, QCoreApplication)
-from qgis.PyQt.QtGui import (QPainterPath, QIcon, QPixmap, QImage, QFont)
+from qgis.PyQt.QtGui import (QPainterPath, QIcon, QPixmap, QImage, QFont, QImageReader)
 import os.path
 
 # Filtering opencv
@@ -63,7 +63,7 @@ class PhotosViewer(QGraphicsView):
             self.leftClick.setToolTip(self.tr('Show previous photo'))
             self.leftClick.setStyleSheet("QPushButton{border: 0px; background: transparent;}")
             self.leftClick.setIconSize(QSize(size, size))
-            self.leftClick.setFocusPolicy(Qt.NoFocus)
+            self.leftClick.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
             self.rightClick = QPushButton(self)
             self.rightClick.setIcon(QIcon(':/plugins/ImportPhotos/icons/arrowRight.png'))
@@ -71,20 +71,20 @@ class PhotosViewer(QGraphicsView):
             self.rightClick.setToolTip(self.tr('Show next photo'))
             self.rightClick.setStyleSheet("QPushButton{border: 0px; background: transparent;}")
             self.rightClick.setIconSize(QSize(size, size))
-            self.rightClick.setFocusPolicy(Qt.NoFocus)
+            self.rightClick.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.setScene(self.scene)
         self.setMouseTracking(False)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setDragMode(QGraphicsView.NoDrag)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setDragMode(QGraphicsView.DragMode.NoDrag)
 
     def mousePressEvent(self, event):
         sc_pos = self.mapToScene(event.pos())
         if self.panSelect:
-            self.setDragMode(QGraphicsView.ScrollHandDrag)
+            self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         if self.zoomSelect:
-            self.setDragMode(QGraphicsView.RubberBandDrag)
+            self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
         self.afterLeftClick.emit(sc_pos.x(), sc_pos.y())
         QGraphicsView.mousePressEvent(self, event)
 
@@ -92,7 +92,7 @@ class PhotosViewer(QGraphicsView):
         sc_pos = self.mapToScene(event.pos())
         if self.zoomSelect or self.panSelect:
             self.zoom_data = []
-            self.fitInView(self.sceneRect(), Qt.KeepAspectRatio)
+            self.fitInView(self.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         self.afterDoubleClick.emit(sc_pos.x(), sc_pos.y())
         QGraphicsView.mouseDoubleClickEvent(self, event)
 
@@ -107,12 +107,12 @@ class PhotosViewer(QGraphicsView):
             self.scene.setSelectionArea(QPainterPath())
             if selection_bb.isValid() and (selection_bb != view_bb):
                 self.zoom_data = selection_bb
-                self.fitInView(self.zoom_data, Qt.KeepAspectRatio)
-        self.setDragMode(QGraphicsView.NoDrag)
+                self.fitInView(self.zoom_data, Qt.AspectRatioMode.KeepAspectRatio)
+        self.setDragMode(QGraphicsView.DragMode.NoDrag)
         self.afterLeftClickReleased.emit(sc_pos.x(), sc_pos.y())
 
     def resizeEvent(self, event):
-        self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
+        self.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
         if len(self.selfwindow.allpictures) > 1:
             loc = self.viewport().geometry()
@@ -139,24 +139,24 @@ class PhotosViewer(QGraphicsView):
             self.rotate_azimuth_value = 0
 
     def keyPressEvent(self, e):
-        if e.key() == Qt.Key_Right:
+        if e.key() == Qt.Key.Key_Right:
             self.selfwindow.rightClickButton()
 
-        if e.key() == Qt.Key_Left:
+        if e.key() == Qt.Key.Key_Left:
             self.selfwindow.leftClickButton()
 
-        if e.key() == Qt.Key_Escape:
+        if e.key() == Qt.Key.Key_Escape:
             if self.selfwindow.isFullScreen():
                 self.selfwindow.showMaximized()
                 return
 
-        if e.key() == Qt.Key_F11:
+        if e.key() == Qt.Key.Key_F11:
             if self.selfwindow.isFullScreen():
                 self.selfwindow.showMaximized()
             else:
                 self.selfwindow.showFullScreen()
 
-        if e.key() == Qt.Key_Escape:
+        if e.key() == Qt.Key.Key_Escape:
             self.selfwindow.close()
 
     # noinspection PyMethodMayBeStatic
@@ -312,27 +312,27 @@ class PhotoWindow(QWidget):
         except:
             pass
         # # Add Filter buttons
-        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.add_window_place = QLabel(self)  # temporary
-        self.add_window_place.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum))
-        self.add_window_place.setFrameShape(QFrame.NoFrame)
+        self.add_window_place.setSizePolicy(QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
+        self.add_window_place.setFrameShape(QFrame.Shape.NoFrame)
         self.add_window_place.setOpenExternalLinks(True)  # To make link clickable
 
         self.infoPhoto1 = QLabel(self)
-        self.infoPhoto1.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum))
+        self.infoPhoto1.setSizePolicy(QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
         self.infoPhoto1.setStyleSheet("background-color: lightgray;")  # Light gray close to white
-        self.infoPhoto1.setFrameShape(QFrame.Box)
+        self.infoPhoto1.setFrameShape(QFrame.Shape.Box)
 
         self.infoPhoto2 = QLabel(self)
-        self.infoPhoto2.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum))
+        self.infoPhoto2.setSizePolicy(QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
         self.infoPhoto2.setStyleSheet("background-color: lightgray;")  # Light gray close to white
-        self.infoPhoto2.setFrameShape(QFrame.Box)
+        self.infoPhoto2.setFrameShape(QFrame.Shape.Box)
 
         self.infoPhoto3 = QLabel(self)
-        self.infoPhoto3.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum))
+        self.infoPhoto3.setSizePolicy(QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
         self.infoPhoto3.setStyleSheet("background-color: lightgray;")  # Light gray close to white
-        self.infoPhoto3.setFrameShape(QFrame.Box)
+        self.infoPhoto3.setFrameShape(QFrame.Shape.Box)
 
         self.extent = QPushButton(self)
         self.extent.setSizePolicy(sizePolicy)
@@ -387,10 +387,10 @@ class PhotoWindow(QWidget):
         HBlayout = QHBoxLayout()
         HBlayout2 = QHBoxLayout()
         HBlayoutTop = QHBoxLayout()
-        HBlayoutTop.setAlignment(Qt.AlignCenter)
+        HBlayoutTop.setAlignment(Qt.AlignmentFlag.AlignCenter)
         HBlayoutTop.addWidget(self.add_window_place)
         HBlayout2.addWidget(self.viewer)
-        HBlayout.setAlignment(Qt.AlignCenter)
+        HBlayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         HBlayout.addWidget(self.infoPhoto1)
         HBlayout.addWidget(self.infoPhoto2)
         HBlayout.addWidget(self.infoPhoto3)
@@ -560,20 +560,24 @@ class PhotoWindow(QWidget):
     def showMessage(self, title, msg, button, icon):
         msgBox = QMessageBox()
         if icon == 'Warning':
-            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setIcon(QMessageBox.Icon.Warning)
         if icon == 'Info':
-            msgBox.setIcon(QMessageBox.Information)
+            msgBox.setIcon(QMessageBox.Icon.Information)
         msgBox.setWindowTitle(title)
         msgBox.setText(msg)
-        msgBox.setStandardButtons(QMessageBox.Ok)
+        msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
         font = QFont()
         font.setPointSize(9)
         msgBox.setFont(font)
-        msgBox.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
-        buttonY = msgBox.button(QMessageBox.Ok)
+        msgBox.setWindowFlags(
+            Qt.WindowType.CustomizeWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.WindowCloseButtonHint
+        )
+        buttonY = msgBox.button(QMessageBox.StandardButton.Ok)
         buttonY.setText(button)
         buttonY.setFont(font)
-        msgBox.exec_()
+        msgBox.exec()
 
     def hide_arrow_button(self):
         icon_right = QIcon(':/plugins/ImportPhotos/icons/arrowRight.png')
@@ -609,6 +613,19 @@ class PhotoWindow(QWidget):
                 break
         self.updateWindow()
 
+    def load_oriented_image(self, imPath):
+        if not imPath:
+            return QImage()
+
+        reader = QImageReader(imPath)
+        reader.setAutoTransform(True)
+        image = reader.read()
+
+        if image.isNull():
+            return QImage(imPath)
+
+        return image
+
     def updateWindow(self):
         imPath = self.allpicturesImpath[self.drawSelf.featureIndex]
         try:
@@ -620,7 +637,7 @@ class PhotoWindow(QWidget):
             imPath = ''
 
         self.viewer.scene.clear()
-        self.drawSelf.getImage = QImage(imPath)
+        self.drawSelf.getImage = self.load_oriented_image(imPath)
 
         if self.gray_filter_status:
             self.drawSelf.getImage = self.drawSelf.getImage.convertToFormat(QImage.Format_Grayscale8)
@@ -736,22 +753,22 @@ class PhotoWindow(QWidget):
     def panbutton(self):
         self.viewer.panSelect = True
         self.viewer.zoomSelect = False
-        self.viewer.setCursor(Qt.OpenHandCursor)
-        self.viewer.setDragMode(QGraphicsView.ScrollHandDrag)
+        self.viewer.setCursor(Qt.CursorShape.OpenHandCursor)
+        self.viewer.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
 
     def zoombutton(self):
         self.viewer.panSelect = False
         self.viewer.zoomSelect = True
-        self.viewer.setCursor(Qt.CrossCursor)
-        self.viewer.setDragMode(QGraphicsView.RubberBandDrag)
+        self.viewer.setCursor(Qt.CursorShape.CrossCursor)
+        self.viewer.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
 
     def extentbutton(self):
         self.viewer.zoom_data = []
-        self.viewer.fitInView(self.viewer.sceneRect(), Qt.KeepAspectRatio)
+        self.viewer.fitInView(self.viewer.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         self.viewer.panSelect = False
         self.viewer.zoomSelect = False
-        self.viewer.setCursor(Qt.ArrowCursor)
-        self.viewer.setDragMode(QGraphicsView.NoDrag)
+        self.viewer.setCursor(Qt.CursorShape.ArrowCursor)
+        self.viewer.setDragMode(QGraphicsView.DragMode.NoDrag)
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
