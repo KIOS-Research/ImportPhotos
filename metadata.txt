@@ -8,7 +8,7 @@
 
 [general]
 name=ImportPhotos
-qgisMinimumVersion=3.99
+qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
 description=Import Photos
 version=4.0.0
@@ -23,7 +23,9 @@ repository=https://github.com/KIOS-Research/ImportPhotos/
 
 # Recommended items:
 # Uncomment the following line and add your changelog:
-changelog=2026-04-25  ImportPhotos 4.0.0:
+changelog=2026-04-25  ImportPhotos 4.0.1:
+			Updated metadata for QGIS 4 compatibility.
+	2026-04-25  ImportPhotos 4.0.0:
 			Revised refrences to allow to work in QGIS 4.XX
 			Fixed image viewer not respecting EXIF orientation (@DaveDaveDaveDave).
 	2025-11-18  ImportPhotos 3.0.8:
