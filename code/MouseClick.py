@@ -22,7 +22,7 @@
 import os.path
 
 from qgis.PyQt.QtCore import (Qt, pyqtSignal, QCoreApplication, QFileInfo, QRectF)
-from qgis.PyQt.QtGui import (QPixmap, QImage)
+from qgis.PyQt.QtGui import QPixmap
 from qgis.core import (QgsRectangle, QgsProject)
 from qgis.gui import (QgsMapTool)
 
@@ -115,10 +115,9 @@ class MouseClick(QgsMapTool):
                         if c:
                             return
 
-                    self.drawSelf.getImage = QImage(imPath)
-
                     if self.photosDLG is None or activeLayerChanged:
                         self.photosDLG = PhotoWindow(self.drawSelf)
+                    self.drawSelf.getImage = self.photosDLG.load_oriented_image(imPath)
                     self.photosDLG.viewer.scene.clear()
                     pixmap = QPixmap.fromImage(self.drawSelf.getImage)
                     self.photosDLG.viewer.scene.addPixmap(pixmap)

@@ -23,8 +23,9 @@ from qgis.PyQt.QtWidgets import (QGraphicsView, QGraphicsScene, QVBoxLayout, QHB
                                  QLineEdit, QLabel, QSizePolicy, QPushButton, QFrame, QMenuBar, QAction,
                                  QFileDialog, QMessageBox)
 from qgis.PyQt.QtCore import (QFileInfo, Qt, pyqtSignal, QRectF, QRect, QSize, QCoreApplication)
-from qgis.PyQt.QtGui import (QPainterPath, QIcon, QPixmap, QImage, QFont, QImageReader)
+from qgis.PyQt.QtGui import (QPainterPath, QIcon, QPixmap, QImage, QFont, QImageReader, QTransform)
 import os.path
+import struct
 
 # Filtering opencv
 opencv = False
@@ -622,9 +623,90 @@ class PhotoWindow(QWidget):
         image = reader.read()
 
         if image.isNull():
-            return QImage(imPath)
+            image = QImage(imPath)
+            if not image.isNull():
+                orientation = self._get_exif_orientation(imPath)
+                image = self._apply_exif_orientation_qimage(image, orientation)
 
         return image
+
+    def _get_exif_orientation(self, imPath):
+        """Read EXIF Orientation tag (0x0112). Returns 1–8; 1 means no rotation."""
+        try:
+            with open(imPath, 'rb') as f:
+                header = f.read(2)
+                if header == b'\xff\xd8':  # JPEG
+                    while True:
+                        marker = f.read(2)
+                        if len(marker) < 2 or marker[0:1] != b'\xff':
+                            break
+                        seg_len = struct.unpack('>H', f.read(2))[0]
+                        if marker == b'\xff\xe1':  # APP1 = EXIF
+                            seg_data = f.read(seg_len - 2)
+                            if seg_data[:4] == b'Exif':
+                                return self._parse_tiff_orientation(seg_data[6:])
+                            return 1
+                        f.seek(seg_len - 2, 1)
+                elif header in (b'II', b'MM'):  # TIFF
+                    f.seek(0)
+                    return self._parse_tiff_orientation(f.read())
+        except Exception:
+            pass
+        return 1
+
+    def _parse_tiff_orientation(self, tiff):
+        try:
+            endian = '<' if tiff[:2] == b'II' else '>'
+            ifd_off = struct.unpack(endian + 'I', tiff[4:8])[0]
+            n = struct.unpack(endian + 'H', tiff[ifd_off:ifd_off + 2])[0]
+            for i in range(n):
+                off = ifd_off + 2 + i * 12
+                tag = struct.unpack(endian + 'H', tiff[off:off + 2])[0]
+                if tag == 0x0112:  # Orientation
+                    return struct.unpack(endian + 'H', tiff[off + 8:off + 10])[0]
+        except Exception:
+            pass
+        return 1
+
+    def _apply_exif_orientation_qimage(self, image, orientation):
+        """Apply EXIF orientation to a QImage using rotate/mirror."""
+        if orientation <= 1:
+            return image
+        if orientation == 2:
+            return image.mirrored(True, False)
+        elif orientation == 3:
+            return image.transformed(QTransform().rotate(180))
+        elif orientation == 4:
+            return image.mirrored(False, True)
+        elif orientation == 5:  # transpose: flip H then rotate 90° CCW
+            return image.mirrored(True, False).transformed(QTransform().rotate(-90))
+        elif orientation == 6:  # rotate 90° CW
+            return image.transformed(QTransform().rotate(90))
+        elif orientation == 7:  # transverse: flip H then rotate 90° CW
+            return image.mirrored(True, False).transformed(QTransform().rotate(90))
+        elif orientation == 8:  # rotate 90° CCW
+            return image.transformed(QTransform().rotate(-90))
+        return image
+
+    def _apply_exif_orientation_cv2(self, img, orientation):
+        """Apply EXIF orientation to a cv2/numpy image array."""
+        if orientation <= 1:
+            return img
+        if orientation == 2:
+            return cv2.flip(img, 1)
+        elif orientation == 3:
+            return cv2.rotate(img, cv2.ROTATE_180)
+        elif orientation == 4:
+            return cv2.flip(img, 0)
+        elif orientation == 5:  # transpose: flip H then rotate 90° CCW
+            return cv2.rotate(cv2.flip(img, 1), cv2.ROTATE_90_COUNTERCLOCKWISE)
+        elif orientation == 6:  # rotate 90° CW
+            return cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+        elif orientation == 7:  # transverse: flip H then rotate 90° CW
+            return cv2.rotate(cv2.flip(img, 1), cv2.ROTATE_90_CLOCKWISE)
+        elif orientation == 8:  # rotate 90° CCW
+            return cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        return img
 
     def updateWindow(self):
         imPath = self.allpicturesImpath[self.drawSelf.featureIndex]
@@ -691,6 +773,7 @@ class PhotoWindow(QWidget):
             for value in self.opencv_filt_status:
                 if self.opencv_filt_status[value] == True:
                     # Fix for all opencv filters
+                    filt = self._apply_exif_orientation_cv2(filt, self._get_exif_orientation(imPath))
                     height, width = filt.shape[:2]
                     try:
                         rgb = cv2.cvtColor(filt, cv2.COLOR_GRAY2RGB)
