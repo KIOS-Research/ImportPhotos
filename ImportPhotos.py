@@ -385,7 +385,8 @@ class ImportPhotos:
         # get paths of photos
         self.photos_to_import = []
         for root, dirs, files in os.walk(self.dlg.imp.text()):
-            for filename in files:
+            dirs.sort(key=str.lower)
+            for filename in sorted(files, key=str.lower):
                 if filename.lower().endswith(tuple(SUPPORTED_PHOTOS_EXTENSIONS)):
                     self.photos_to_import.append(os.path.join(root, filename))
 

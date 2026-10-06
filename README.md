@@ -9,6 +9,9 @@ This tool can be used to import Geo-Tagged photos (jpg or jpeg) as points to QGI
 Latest version 3.0.10:<p> QGIS 4 Support!
 ![image](https://github.com/user-attachments/assets/ecfa56f8-615f-43fe-87c7-5fb57fe78896)
 
+QGIS 4 note: XMP yaw extraction now works even when the host QGIS Python
+environment does not provide the optional `defusedxml` package.
+
 ![image](https://github.com/user-attachments/assets/02719e75-f319-4f94-a075-5a6e373801a7)
 
 Tutorial on youtube:<p>

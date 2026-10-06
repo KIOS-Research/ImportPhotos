@@ -5,7 +5,11 @@ returns a float yaw (0-360) when FlightYawDegree is present in XMP, otherwise
 returns None.
 """
 from typing import Optional
-from defusedxml import ElementTree as ET
+
+try:
+    from defusedxml import ElementTree as ET
+except ModuleNotFoundError:
+    import xml.etree.ElementTree as ET
 
 
 def get_flight_yaw(photo_path: str) -> Optional[float]:
@@ -43,4 +47,3 @@ def get_flight_yaw(photo_path: str) -> Optional[float]:
         return None
     except Exception:
         return None
-
